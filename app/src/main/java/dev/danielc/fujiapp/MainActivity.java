@@ -39,6 +39,15 @@ public class MainActivity extends AppCompatActivity {
                 connectClick(v);
             }
         });
+
+        // Test activity
+//        Intent intent = new Intent(MainActivity.this, test.class);
+//        startActivity(intent);
+    }
+
+    @Override
+    public void onBackPressed() {
+        Backend.logLocation = "main";
     }
 
     public void connectClick(View v) {
