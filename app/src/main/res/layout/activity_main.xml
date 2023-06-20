@@ -23,7 +23,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Unofficial Fuji WiFi app"
+            android:text="Unofficial Fujifilm WiFi App"
             android:textSize="20sp" />
 
         <Button
@@ -58,7 +58,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
 
-        android:text="Some text at the bottom"
+        android:text="Source code: https://github.com/petabyt/fujiapp\nMade with camlib (GPL2)\ncom.jsibbold.zoomage.ZoomageView (Apache)\nAnd Android Icons (Apache)"
         app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

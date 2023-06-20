@@ -6,24 +6,50 @@
     android:layout_height="match_parent"
     tools:context=".Viewer">
 
-    <TextView
-        android:id="@+id/filename"
+    <LinearLayout
+        android:id="@+id/linearLayout2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Blah blah blah" />
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <com.jsibbold.zoomage.ZoomageView
-        android:id="@+id/zoom_view"
+        <ImageButton
+            android:id="@+id/download_button"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:srcCompat="@drawable/download" />
+
+        <ImageButton
+            android:id="@+id/share_button"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:srcCompat="@drawable/share" />
+
+    </LinearLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/zoomable"
-        app:zoomage_animateOnReset="true"
-        app:zoomage_autoCenter="true"
-        app:zoomage_autoResetMode="UNDER"
-        app:zoomage_maxScale="8"
-        app:zoomage_minScale="0.6"
-        app:zoomage_restrictBounds="false"
-        app:zoomage_translatable="true"
-        app:zoomage_zoomable="true" />
+        android:layout_marginTop="50dp"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout2">
+
+        <com.jsibbold.zoomage.ZoomageView
+            android:id="@+id/zoom_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/zoomable"
+            app:zoomage_animateOnReset="true"
+            app:zoomage_autoCenter="true"
+            app:zoomage_autoResetMode="UNDER"
+            app:zoomage_maxScale="8"
+            app:zoomage_minScale="0.6"
+            app:zoomage_restrictBounds="false"
+            app:zoomage_translatable="true"
+            app:zoomage_zoomable="true" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
