@@ -30,7 +30,8 @@
             android:layout_height="wrap_content"
             android:background="#3B493A"
             tools:layout_editor_absoluteX="8dp"
-            tools:layout_editor_absoluteY="16dp">
+            tools:layout_editor_absoluteY="16dp"
+            >
 
         </androidx.recyclerview.widget.RecyclerView>
 

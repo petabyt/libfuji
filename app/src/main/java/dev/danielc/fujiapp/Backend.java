@@ -49,11 +49,11 @@ public class Backend {
     private static String basicLog = "";
     public static void jni_print(String arg) {
         Log.d("jni_print", arg);
-        basicLog += arg;
-        if (logLocation == "main") {
-            MainActivity.getInstance().setErrorText(basicLog);
-        } else if (logLocation == "gallery") {
-            gallery.getInstance().setErrorText(basicLog);
-        }
+//        basicLog += arg;
+//        if (logLocation == "main") {
+//            MainActivity.getInstance().setErrorText(basicLog);
+//        } else if (logLocation == "gallery") {
+//            gallery.getInstance().setErrorText(basicLog);
+//        }
     }
 }

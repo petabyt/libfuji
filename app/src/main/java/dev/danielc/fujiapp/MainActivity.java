@@ -41,8 +41,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Test activity
-//        Intent intent = new Intent(MainActivity.this, test.class);
-//        startActivity(intent);
+        Intent intent = new Intent(MainActivity.this, test.class);
+        startActivity(intent);
     }
 
     @Override

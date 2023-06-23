@@ -43,8 +43,6 @@ public class gallery extends AppCompatActivity {
         recyclerView = findViewById(R.id.galleryView);
         recyclerView.setLayoutManager(new GridLayoutManager(this, 4));
 
-        int[] ids = {1, 2, 3};
-
         handler = new Handler(Looper.getMainLooper());
 
         Thread thread = new Thread(new Runnable() {

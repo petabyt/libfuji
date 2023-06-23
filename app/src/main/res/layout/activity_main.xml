@@ -8,7 +8,7 @@
 
     <LinearLayout
         android:id="@+id/boxLayout"
-        android:layout_width="284dp"
+        android:layout_width="300dp"
         android:layout_height="fill_parent"
         android:gravity="center"
         android:orientation="vertical"
@@ -23,7 +23,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Unofficial Fujifilm WiFi App"
+            android:text="Unofficial Fujifilm App"
             android:textSize="20sp" />
 
         <Button
