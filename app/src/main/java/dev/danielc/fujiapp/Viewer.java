@@ -1,5 +1,8 @@
+// Download the image, button for share and download
+// Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
+import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -19,14 +22,39 @@ import org.json.JSONObject;
 import android.os.Environment;
 import android.content.Intent;
 import android.net.Uri;
+import android.app.Activity;
+import android.content.Context;
 import android.os.StrictMode;
+import android.widget.ProgressBar;
+import android.widget.PopupWindow;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.view.Gravity;
+import android.widget.Button;
+import android.view.ViewTreeObserver;
 
 public class Viewer extends AppCompatActivity {
-    Handler handler;
+    public static Handler handler = null;
+    public static PopupWindow popupWindow = null;
+    public static ProgressBar progressBar = null;
+
+    public ProgressBar downloadPopup(Activity activity) {
+        LayoutInflater inflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View popupView = inflater.inflate(R.layout.popup_download, null);
+        popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        popupWindow.showAtLocation(getWindow().getDecorView().getRootView(), Gravity.CENTER, 0, 0);
+
+        return popupView.findViewById(R.id.progress_bar);
+    }
+
 
     public void createDir(String directoryPath) {
         File directory = new File(directoryPath);
-
         if (!directory.exists()) {
             boolean created = directory.mkdirs();
             if (!created) {
@@ -36,11 +64,8 @@ public class Viewer extends AppCompatActivity {
     }
 
     String downloadedFile = null;
-
     public void writeFile(String filename, byte[] data) {
-        String mainStorage = Environment.getExternalStorageDirectory().getAbsolutePath();
-        String fujifilm = mainStorage + File.separator + "DCIM" + File.separator + "fuji";
-
+        String fujifilm = Backend.getDownloads();
         createDir(fujifilm);
 
         downloadedFile = fujifilm + File.separator + filename;
@@ -96,7 +121,16 @@ public class Viewer extends AppCompatActivity {
 
         handler = new Handler(Looper.getMainLooper());
 
-        Toast.makeText(Viewer.this, "Downloading...", Toast.LENGTH_SHORT).show();
+        ViewTreeObserver viewTreeObserver = getWindow().getDecorView().getViewTreeObserver();
+        viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                // Remove the listener to prevent multiple calls
+                getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                Viewer.progressBar = downloadPopup(Viewer.this);
+            }
+        });
+
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -115,6 +149,14 @@ public class Viewer extends AppCompatActivity {
                     String filename = jsonObject.getJSONObject("resp").getString("filename");
 
                     byte[] file = Backend.cFujiGetFile(handle);
+
+                    handler.post(new Runnable() {
+                    @Override
+                        public void run() {
+                            Viewer.popupWindow.dismiss();
+                        }
+                    });
+
                     if (file == null) {
                         handler.post(new Runnable() {
                             @Override
@@ -126,7 +168,6 @@ public class Viewer extends AppCompatActivity {
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                Toast.makeText(Viewer.this, "Loading the image", Toast.LENGTH_SHORT).show();
                                 ZoomageView zoomageView = findViewById(R.id.zoom_view);
                                 Bitmap bitmap = BitmapFactory.decodeByteArray(file, 0, file.length);
                                 zoomageView.setImageBitmap(bitmap);
@@ -135,8 +176,8 @@ public class Viewer extends AppCompatActivity {
                                     @Override
                                     public void onClick(View v) {
                                         writeFile(filename, file);
-                                                                                            }
-                                                                });
+                                    }
+                                });
 
                                 findViewById(R.id.share_button).setOnClickListener(new View.OnClickListener() {
                                     @Override
@@ -152,6 +193,7 @@ public class Viewer extends AppCompatActivity {
                         @Override
                         public void run() {
                             Toast.makeText(Viewer.this, "Exception in download", Toast.LENGTH_SHORT).show();
+                            Backend.jni_print(e.toString());
                         }
                     });
                 }
@@ -159,11 +201,4 @@ public class Viewer extends AppCompatActivity {
         });
         thread.start();
     }
-
-//    @Override
-//    public void onBackPressed() {
-//        Backend.logLocation = "gallery";
-//        Intent intent = new Intent(this, gallery.class);
-//        this.startActivity(intent);
-//    }
 }

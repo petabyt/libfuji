@@ -1,12 +1,14 @@
+// Native Java interface for JNI to use sockets - socket() doesn't work for some reason (probably thread issues)
+// Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
 import android.util.Log;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import android.util.Log;
 
 public class Conn {
     private static Socket socket;
@@ -40,18 +42,7 @@ public class Conn {
         }
     }
 
-//    public static int read(byte[] buffer, int length) {
-//        int read = 0;
-//        try {
-//            int rc = inputStream.read(buffer, 0, length);
-//            return rc;
-//        } catch (IOException e) {
-//            Backend.jni_print("Error reading from the server: " + e.getMessage() + "\n");
-//            return -1;
-//        }
-//    }
-
-    public static synchronized int read(byte[] buffer, int length) {
+    public static int read(byte[] buffer, int length) {
         int read = 0;
         while (true) {
             try {
@@ -59,6 +50,15 @@ public class Conn {
                 if (rc == -1) return rc;
                 read += rc;
                 if (read == length) return read;
+
+                final int progress = (int)((double)read / (double)length * 100.0);
+                if (Viewer.handler == null) continue;
+                Viewer.handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Viewer.progressBar.setProgress(progress);
+                    }
+                });
             } catch (IOException e) {
                 Backend.jni_print("Error reading " + length + " bytes: " + e.getMessage() + "\n");
                 return -1;

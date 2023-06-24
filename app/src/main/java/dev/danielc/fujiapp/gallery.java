@@ -1,3 +1,5 @@
+// Activity with a recycle view, populates with thumbnails - image is downloaded in Viewer activity.
+// Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -5,7 +7,7 @@ import org.json.JSONArray;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
+import android.widget.Toast;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -79,8 +81,8 @@ public class gallery extends AppCompatActivity {
                 }
 
                 try {
-                    Backend.run("ptp_set_property;\"Fuji_Mode\",2;");
-                    Backend.run("ptp_set_property;\"Fuji_TransferMode\",2;");
+                    Backend.run("ptp_set_property;\"PTP_PC_FUJI_Mode\",2;");
+                    Backend.run("ptp_set_property;\"PTP_PC_FUJI_TransferMode\",2;");
                 } catch (Exception e) {
                     Backend.jni_print("Failed to set modes\n");
                     return;
@@ -94,10 +96,8 @@ public class gallery extends AppCompatActivity {
                     JSONObject jsonObject = Backend.run("ptp_get_storage_ids;");
 
                     storageId = jsonObject.getJSONArray("resp").getInt(0);
-                    jsonObject = Backend.run("ptp_get_storage_info;" + Integer.toString(storageId));
-                    Backend.jni_print(jsonObject.toString() + "\n");
 
-                    jsonObject = Backend.run("ptp_get_object_handles;" + String.valueOf(storageId) + "," + String.valueOf(0) + ", " + String.valueOf(Backend.PTP_OF_JPEG) + ";");
+                    jsonObject = Backend.run("ptp_get_object_handles;" + String.valueOf(storageId) + "," + String.valueOf(0) + "," + String.valueOf(Backend.PTP_OF_JPEG) + ";");
                     JSONArray respArray = jsonObject.getJSONArray("resp");
                     objectHandles = new int[respArray.length()];
                     for (int i = 0; i < respArray.length(); i++) {
@@ -108,14 +108,19 @@ public class gallery extends AppCompatActivity {
                     return;
                 }
 
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        imageAdapter = new ImageAdapter(gallery.this, objectHandles);
-                        recyclerView.setAdapter(imageAdapter);
-                    }
-                });
+                if (objectHandles.length == 0) {
+                    Backend.jni_print("No JPEG images available. Might figure out how to download RAW, eventually.");
+                } else {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            imageAdapter = new ImageAdapter(gallery.this, objectHandles);
+                            recyclerView.setAdapter(imageAdapter);
+                        }
+                    });                    
+                }
 
+                // Use this thread to ping the camera for events
                 while (true) {
                     if (Backend.cPtpFujiPing() == 0) {
                         try {
@@ -124,7 +129,12 @@ public class gallery extends AppCompatActivity {
                             return;
                         }
                     } else {
-                        Backend.jni_print("Failed to ping, quitting.");
+                        handler.post(new Runnable() {
+                        @Override
+                            public void run() {
+                                Toast.makeText(gallery.this, "Failed to ping, disconnected", Toast.LENGTH_SHORT).show();
+                            }
+                        });
                         return;
                     }
                 }

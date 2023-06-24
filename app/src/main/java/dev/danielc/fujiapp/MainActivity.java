@@ -1,3 +1,4 @@
+// Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
 import android.os.Handler;
@@ -40,9 +41,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        Backend.jni_print("Download location: " + Backend.getDownloads());
+
         // Test activity
-        Intent intent = new Intent(MainActivity.this, test.class);
-        startActivity(intent);
+        // Intent intent = new Intent(MainActivity.this, test.class);
+        // startActivity(intent);
     }
 
     @Override

@@ -17,6 +17,7 @@ struct AndroidBackend {
     jmethodID jni_print;
     jmethodID cmd_read;
     jmethodID cmd_write;
+    jfieldID progress;
 }backend;
 
 struct PtpRuntime ptp_runtime;
@@ -57,6 +58,7 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
     backend.jni_print = (*backend.env)->GetStaticMethodID(backend.env, pacClass, "jni_print", "(Ljava/lang/String;)V");
     backend.cmd_write = (*backend.env)->GetStaticMethodID(backend.env, connClass, "write", "([B)I");
     backend.cmd_read = (*backend.env)->GetStaticMethodID(backend.env, connClass, "read", "([BI)I");
+    backend.progress = (*backend.env)->GetStaticFieldID(backend.env, pacClass, "transferProgress", "I");
 
     ptp_generic_init(&ptp_runtime);
     ptp_runtime.connection_type = PTP_IP;

@@ -22,7 +22,8 @@
             android:id="@+id/gallery_logs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="..." />
+            android:text="..."
+            tools:visibility="gone" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/galleryView"

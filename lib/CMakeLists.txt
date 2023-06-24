@@ -33,6 +33,7 @@ add_library( # Sets the name of the library.
         camlib/src/operations.c
         camlib/src/packet.c
         camlib/src/util.c
+        camlib/src/ml.c
 
         fujiapp.c
         lib.c

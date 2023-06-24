@@ -1,3 +1,5 @@
+// Custom image adapter to show an image from JPEG byte[]
+// Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
 import android.content.Context;
@@ -59,7 +61,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                 try {
                     Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length);
                     if (bitmap == null) {
-                        Backend.jni_print("decode error\n");
+                        Backend.jni_print("Image decode error\n");
                     }
                     holder.itemView.post(new Runnable() {
                         @Override

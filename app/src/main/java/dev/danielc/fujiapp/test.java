@@ -1,3 +1,4 @@
+// Ignore, this is a test activity for learning Android layouts
 package dev.danielc.fujiapp;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -30,35 +31,16 @@ import android.widget.ProgressBar;
 
 public class test extends AppCompatActivity {
     private Handler handler;
-    public void showPopupWindow(Activity activity) {
-        // Create a LayoutInflater object to inflate the popup layout
+    public ProgressBar showPopupWindow(Activity activity) {
         LayoutInflater inflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View popupView = inflater.inflate(R.layout.popup_download, null);
-
-        // Create a PopupWindow object
         PopupWindow popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
-        // Set a background color for the popup window
         popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 
-        // Set the window position
         popupWindow.showAtLocation(getWindow().getDecorView().getRootView(), Gravity.CENTER, 0, 0);
 
-        // Dismiss the popup window when clicked outside or the back button is pressed
-        popupWindow.setOutsideTouchable(true);
-        popupWindow.setFocusable(true);
-
-        ProgressBar progressBar = popupView.findViewById(R.id.progress_bar);
-        progressBar.setProgress(50); // Set the progress to 50%
-
-        // Handle the click event of the close button
-        Button closeButton = popupView.findViewById(R.id.close_button);
-        closeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                popupWindow.dismiss();
-            }
-        });
+        return popupView.findViewById(R.id.progress_bar);
     }
 
     @Override
@@ -75,7 +57,8 @@ public class test extends AppCompatActivity {
                 getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
 
                 // Show the popup window
-                showPopupWindow(test.this);
+                ProgressBar progressBar = showPopupWindow(test.this);
+                progressBar.setProgress(50);
             }
         });
     }
