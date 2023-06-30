@@ -19,9 +19,6 @@ import android.content.Intent;
 public class MainActivity extends AppCompatActivity {
     private static MainActivity instance;
 
-    private int FUJI_CMD_PORT = 55740;
-    private int TIMEOUT = 1000;
-
     Handler handler;
 
     @Override
@@ -37,11 +34,12 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.reconnect).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Backend.jni_print_clear();
                 connectClick(v);
             }
         });
 
-        Backend.jni_print("Download location: " + Backend.getDownloads());
+        Backend.jni_print("Download location: " + Backend.getDownloads() + "\n");
 
         // Test activity
         // Intent intent = new Intent(MainActivity.this, test.class);
@@ -63,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onAvailable(Network network) {
                 ConnectivityManager.setProcessDefaultNetwork(network);
-                if (!Conn.connect("192.168.0.1", FUJI_CMD_PORT, TIMEOUT)) {
+                if (!Conn.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
                     Backend.logLocation = "gallery";
                     Intent intent = new Intent(MainActivity.this, gallery.class);
                     startActivity(intent);

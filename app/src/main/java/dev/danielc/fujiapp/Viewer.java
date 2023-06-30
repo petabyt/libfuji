@@ -40,6 +40,7 @@ public class Viewer extends AppCompatActivity {
     public static PopupWindow popupWindow = null;
     public static ProgressBar progressBar = null;
 
+    // Create a popup - will set popupWindow, will be closed when finished
     public ProgressBar downloadPopup(Activity activity) {
         LayoutInflater inflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View popupView = inflater.inflate(R.layout.popup_download, null);
@@ -52,24 +53,24 @@ public class Viewer extends AppCompatActivity {
         return popupView.findViewById(R.id.progress_bar);
     }
 
-
     public void createDir(String directoryPath) {
         File directory = new File(directoryPath);
         if (!directory.exists()) {
-            boolean created = directory.mkdirs();
-            if (!created) {
+            if (!directory.mkdirs()) {
                 return;
             }
         }
     }
 
-    String downloadedFile = null;
+    String downloadedFilename = null;
+
+    // Must be ran on UI thread
     public void writeFile(String filename, byte[] data) {
         String fujifilm = Backend.getDownloads();
         createDir(fujifilm);
 
-        downloadedFile = fujifilm + File.separator + filename;
-        File file = new File(downloadedFile);
+        downloadedFilename = fujifilm + File.separator + filename;
+        File file = new File(downloadedFilename);
         FileOutputStream fos = null;
 
         try {
@@ -90,14 +91,15 @@ public class Viewer extends AppCompatActivity {
     }
 
     public void share(String filename, byte[] data) {
-        if (downloadedFile == null) {
+        if (downloadedFilename == null) {
             writeFile(filename, data);
         }
 
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
         shareIntent.setType("image/jpeg");
 
-        Uri imageUri = Uri.parse("file://" + downloadedFile);
+        // TODO: Some apps (discord) just sends a raw file (maybe needs lowercase?)
+        Uri imageUri = Uri.parse("file://" + downloadedFilename);
         shareIntent.putExtra(Intent.EXTRA_STREAM, imageUri);
 
         Intent chooserIntent = Intent.createChooser(shareIntent, "Share image");
@@ -116,16 +118,17 @@ public class Viewer extends AppCompatActivity {
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
 
+        // This activity must be called with object handle
         Intent intent = getIntent();
         int handle = intent.getIntExtra("handle", 0);
 
         handler = new Handler(Looper.getMainLooper());
 
+        // Start the popup only when activity 'key' is finished
         ViewTreeObserver viewTreeObserver = getWindow().getDecorView().getViewTreeObserver();
         viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
-                // Remove the listener to prevent multiple calls
                 getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 Viewer.progressBar = downloadPopup(Viewer.this);
             }
