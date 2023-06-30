@@ -1,3 +1,6 @@
+#ifndef CUSTOM_JNI_H
+#define CUSTOM_JNI_H
+
 #if defined(__arm__)
 #if defined(__ARM_ARCH_7A__)
 #if defined(__ARM_NEON__)
@@ -34,4 +37,4 @@
 #define JNI_FUNC(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_fujiapp_Backend_##name
 #endif
 
-#include <jni.h>
+#endif

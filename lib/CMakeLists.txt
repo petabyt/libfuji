@@ -35,7 +35,8 @@ add_library( # Sets the name of the library.
         camlib/src/util.c
         camlib/src/ml.c
 
-        fujiapp.c
+        main.c
+        fuji.c
         lib.c
 )
 
