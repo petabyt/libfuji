@@ -1,4 +1,4 @@
-// JNI PTP/IP fuji bindings to camlib
+// JNI PTP/IP interface for camlib Fuji functionality
 // Copyright 2023 (c) Unofficial fujiapp
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +9,8 @@
 
 #include "jni.h"
 #include "backend.h"
+
+// TODO: Rename to cl____?
 
 JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
     backend.env = env;
@@ -46,7 +48,7 @@ JNI_FUNC(jint, cPtpFujiWaitUnlocked)(JNIEnv *env, jobject thiz) {
 
 JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
     backend.env = env;
-    return ptp_fuji_ping(&backend.r);
+    return ptpip_fuji_get_events(&backend.r);
 }
 
 JNI_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
@@ -75,6 +77,8 @@ JNI_FUNC(jint, cPtpGetPropValue)(JNIEnv *env, jobject thiz, jint code) {
 JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
     backend.env = env;
 
+    // Set the compression prop (allows full images to go through, otherwise puts
+    // extra data in ObjectInfo and cuts off image downloads)
     int rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Compression, 1);
     if (rc) {
         return NULL;
@@ -90,6 +94,8 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 
     jbyteArray ret = (*env)->NewByteArray(env, oi.compressed_size);
 
+    // Makes sure to set the compression prop back to 0 after finished
+    // (extra data won't go through for some reason)
     int read = 0;
     while (1) {
         rc = ptp_get_partial_object(&backend.r, handle, read, max);
@@ -112,4 +118,22 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
             return ret;
         }
     }
+}
+
+JNI_FUNC(jint, cFujiSetVersion)(JNIEnv *env, jobject thiz) {
+    backend.env = env;
+
+    int rc = ptp_get_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion);
+    if (rc < 0) return rc;
+
+    int version = ptp_parse_prop_value(&backend.r);
+
+    if (version == 2) {
+        ptp_set_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion, 2);
+    } else {
+        jni_print("Sorry, unsupported protocol version %d.\n", version);
+        return PTP_RUNTIME_ERR;
+    }
+
+    return 0;
 }

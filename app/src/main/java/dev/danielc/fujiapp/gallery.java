@@ -1,4 +1,5 @@
 // Activity with a recycle view, populates with thumbnails - image is downloaded in Viewer activity.
+// This does most of the connection initialization (maybe move somewhere else?)
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 import org.json.JSONObject;
@@ -81,8 +82,9 @@ public class gallery extends AppCompatActivity {
                 }
 
                 try {
+                    // TODO: Move to JNI
                     Backend.run("ptp_set_property;\"PTP_PC_FUJI_Mode\",2;");
-                    Backend.run("ptp_set_property;\"PTP_PC_FUJI_TransferMode\",2;");
+                    Backend.run("ptp_set_property;\"PTP_PC_FUJI_FunctionVersion\",2;");
                 } catch (Exception e) {
                     Backend.jni_print("Failed to set modes\n");
                     return;

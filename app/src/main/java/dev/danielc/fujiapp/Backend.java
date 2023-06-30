@@ -12,14 +12,26 @@ public class Backend {
         System.loadLibrary("fujiapp");
     }
 
-    public static Bitmap bitmaps[] = null;
+    // In order to give the backend access to the static methods, new objects must be made
+    public static void init() {
+        cInit(new Backend(), new Conn());
+    }
 
-    public static int PTP_OF_JPEG = 0x3801;
+    // Clear entire backend for a new connection
+    public static void clear() {
+        // TODO: clear connection state? don't want to reinit connection in some places maybe.
+    }
 
-    public static int transferProgress = 0;
+    // Constants
+    public static final String FUJI_IP = "192.168.0.1";
+    public static final int FUJI_CMD_PORT = 55740;
+    public static final int TIMEOUT = 1000;
+    public static final int PTP_OF_JPEG = 0x3801;
 
-    // Note that all these native functions are synchronized - they can only be called by Java
-    // by one thread at a time - necessary for a socket connection
+    //public static Bitmap bitmaps[] = null;
+
+    // Note that all these native functions are synchronized (they can only be called by Java
+    // by one thread at a time - necessary for a socket connection)
     public native synchronized static void cInit(Backend b, Conn c);
     public native synchronized static String cTestFunc();
     public native synchronized static int cPtpFujiInit();
@@ -46,21 +58,24 @@ public class Backend {
         }
     }
 
-    // In order to give the backend access to the static methods, new objects must be made
-    public static void init() {
-        cInit(new Backend(), new Conn());
-    }
+    // JNI -> UI log communication
 
     public static String logLocation = "main";
+
+    public static void jni_print_clear() {
+        basicLog = "";
+        MainActivity.getInstance().setErrorText("");
+    }
 
     // debug function for both Java frontend and JNI backend
     private static String basicLog = "";
     public static void jni_print(String arg) {
         Log.d("jni_print", arg);
         basicLog += arg;
-        if (logLocation == "main") {
+        if (MainActivity.getInstance() != null) {
             MainActivity.getInstance().setErrorText(basicLog);
-        } else if (logLocation == "gallery") {
+        }
+        if (gallery.getInstance() != null) {
             gallery.getInstance().setErrorText(basicLog);
         }
     }

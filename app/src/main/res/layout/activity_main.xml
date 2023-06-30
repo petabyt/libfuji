@@ -54,11 +54,11 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/textViewBottom"
+        android:id="@+id/bottomText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
 
-        android:text="Source code: https://github.com/petabyt/fujiapp\nMade with camlib (GPL2)\ncom.jsibbold.zoomage.ZoomageView (Apache)\nAnd Android Icons (Apache)"
+        android:text=""
         app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

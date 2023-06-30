@@ -1,6 +1,7 @@
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
+import android.app.Activity;
 import android.os.Handler;
 import android.os.Looper;
 import android.content.Context;
@@ -15,9 +16,33 @@ import android.view.View;
 import android.widget.Toast;
 import android.widget.TextView;
 import android.content.Intent;
+import android.widget.PopupWindow;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.view.Gravity;
+import android.view.View;
 
 public class MainActivity extends AppCompatActivity {
     private static MainActivity instance;
+
+    public void helpPopup(Activity activity) {
+        LayoutInflater inflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View popupView = inflater.inflate(R.layout.popup_help, null);
+        PopupWindow popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        popupWindow.showAtLocation(getWindow().getDecorView().getRootView(), Gravity.CENTER, 0, 0);
+
+        Button close = (Button) popupView.findViewById(R.id.close);
+        close.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View popupView) {
+                popupWindow.dismiss();
+            }
+        });
+    }
 
     Handler handler;
 
@@ -39,8 +64,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Backend.jni_print("Download location: " + Backend.getDownloads() + "\n");
+        findViewById(R.id.help_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                helpPopup(MainActivity.this);
+            }
+        });
 
+        ((TextView)findViewById(R.id.bottomText)).setText("https://github.com/petabyt/fujiapp\n" +
+                "Download location: " + Backend.getDownloads());
         // Test activity
         // Intent intent = new Intent(MainActivity.this, test.class);
         // startActivity(intent);
@@ -52,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void connectClick(View v) {
-        // Socket must be opened on WiFi - otherwise it will prefer cellular
+        // Socket must be opened on WiFi - otherwise it will prefer cellular    
         Backend.jni_print("Attempting connection...\n");
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
