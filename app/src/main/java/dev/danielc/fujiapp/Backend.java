@@ -6,6 +6,7 @@ import android.util.Log;
 import android.os.Environment;
 import java.io.File;
 import org.json.JSONObject;
+import java.util.Arrays;
 
 public class Backend {
     static {
@@ -13,13 +14,17 @@ public class Backend {
     }
 
     // In order to give the backend access to the static methods, new objects must be made
+    private static boolean haveInited = false;
     public static void init() {
-        cInit(new Backend(), new Conn());
+        if (haveInited == false) {
+            cInit(new Backend(), new Conn());
+        }
+        haveInited = true;
     }
 
     // Clear entire backend for a new connection
     public static void clear() {
-        // TODO: clear connection state? don't want to reinit connection in some places maybe.
+        Conn.connection = Conn.Status.OFF;
     }
 
     // Constants
@@ -38,12 +43,27 @@ public class Backend {
     public native synchronized static int cPtpFujiPing();
     public native synchronized static int cPtpGetPropValue(int code);
     public native synchronized static int cPtpFujiWaitUnlocked();
+    public native synchronized static int cFujiConfigVersion();
+    public native synchronized static int cFujiConfigFileTransfer();
     public native synchronized static String cPtpRun(String req);
     public native synchronized static byte[] cPtpGetThumb(int handle);
     public native synchronized static byte[] cFujiGetFile(int handle);
 
-    // This runs a text binding request from camlib - see docs/
-    public static JSONObject run(String req) throws Exception {
+    // Runs a request with integer parameters
+    public static JSONObject run(String req, int[] arr) throws Exception {
+        if (Conn.connection == Conn.Status.OFF) {
+            throw new Exception("Connection closed.");
+        }
+        // Build camlib request string (see docs/)
+        req += ";";
+        for (int i = 0; i < arr.length; i++) {
+            req += String.valueOf(arr[i]);
+            if (i != arr.length - 1) {
+                req += ",";
+            }
+        }
+        req += ";";
+
         String resp = cPtpRun(req);
         try {
             JSONObject jsonObject = new JSONObject(resp);
@@ -58,6 +78,15 @@ public class Backend {
         }
     }
 
+    public static JSONObject run(String req) throws Exception {
+        return run(req, new int[]{});
+    }
+
+
+    public static void pingUntilDisconnect() {
+        // TODO: good idea?
+    }
+
     // JNI -> UI log communication
 
     public static String logLocation = "main";
@@ -70,8 +99,18 @@ public class Backend {
     // debug function for both Java frontend and JNI backend
     private static String basicLog = "";
     public static void jni_print(String arg) {
-        Log.d("jni_print", arg);
+        Log.d("fujiapp-dbg", arg);
         basicLog += arg;
+
+        String[] lines = basicLog.split("\n");
+        if (lines.length > 5) {
+            basicLog = String.join("\n", Arrays.copyOfRange(lines, 1, lines.length)) + "\n";
+        }
+
+        log_update();
+    }
+
+    public static void log_update() {
         if (MainActivity.getInstance() != null) {
             MainActivity.getInstance().setErrorText(basicLog);
         }
@@ -86,3 +125,4 @@ public class Backend {
         return fujifilm;
     }
 }
+

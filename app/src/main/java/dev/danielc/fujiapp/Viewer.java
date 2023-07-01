@@ -138,7 +138,7 @@ public class Viewer extends AppCompatActivity {
             @Override
             public void run() {
                 try {
-                    JSONObject jsonObject = Backend.run("ptp_get_object_info;" + String.valueOf(handle) + ";");
+                    JSONObject jsonObject = Backend.run("ptp_get_object_info", new int[]{handle});
                     if (jsonObject == null) {
                         handler.post(new Runnable() {
                             @Override
@@ -205,3 +205,4 @@ public class Viewer extends AppCompatActivity {
         thread.start();
     }
 }
+

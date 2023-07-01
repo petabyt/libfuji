@@ -11,19 +11,19 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <Button
-            android:id="@+id/disconnect"
+        <TextView
+            android:id="@+id/textView3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Disconnect"
-            tools:visibility="gone" />
+            android:text="Gallery"
+            android:textSize="24sp" />
 
         <TextView
             android:id="@+id/gallery_logs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="..."
-            tools:visibility="gone" />
+            tools:visibility="visible" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/galleryView"

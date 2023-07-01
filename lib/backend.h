@@ -15,6 +15,9 @@ struct AndroidBackend {
 
 	// Global one connection runtime
     struct PtpRuntime r;
+
+    // Version of Fuji's protocol (has different quirks)
+    int function_version;
 };
 
 extern struct AndroidBackend backend;

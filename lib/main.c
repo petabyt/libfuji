@@ -36,6 +36,9 @@ void android_err(char *fmt, ...) {
 }
 
 JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
+    // For good measure
+    memset(&backend, 0, sizeof(backend));
+
     backend.env = env;
     jclass thizClass = (*env)->GetObjectClass(env, thiz);
     jclass pacClass = (*env)->GetObjectClass(env, pac);
@@ -72,6 +75,11 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
 int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
     if (length <= 0) {
         return PTP_IO_ERR;
+    }
+
+    if (length > 50000000) {
+        jni_print("Camera is trying to send too much data - breaking connection.\n");
+        return -1;
     }
 
     jbyteArray data = (*backend.env)->NewByteArray(backend.env, length);

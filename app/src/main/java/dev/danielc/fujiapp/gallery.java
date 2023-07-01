@@ -59,7 +59,7 @@ public class gallery extends AppCompatActivity {
                 }
 
                 try {
-                    Backend.run("ptp_open_session;");
+                    Backend.run("ptp_open_session");
                 } catch (Exception e) {
                     Backend.jni_print("Failed to open session\n");
                     return;
@@ -81,12 +81,14 @@ public class gallery extends AppCompatActivity {
                     return;
                 }
 
-                try {
-                    // TODO: Move to JNI
-                    Backend.run("ptp_set_property;\"PTP_PC_FUJI_Mode\",2;");
-                    Backend.run("ptp_set_property;\"PTP_PC_FUJI_FunctionVersion\",2;");
-                } catch (Exception e) {
-                    Backend.jni_print("Failed to set modes\n");
+                // Camera mode must be set before anything else
+                if (Backend.cFujiConfigFileTransfer() != 0) {
+                    Backend.jni_print("Failed to initiate file transfer with camera.\n");
+                    return;
+                }
+
+                if (Backend.cFujiConfigVersion() != 0) {
+                    Backend.jni_print("Failed to configure protocol version.\n");
                     return;
                 }
 
@@ -94,24 +96,28 @@ public class gallery extends AppCompatActivity {
                 int storageId;
 
                 try {
-                    Backend.jni_print("Getting some stuff\n");
-                    JSONObject jsonObject = Backend.run("ptp_get_storage_ids;");
-
+                    JSONObject jsonObject = Backend.run("ptp_get_storage_ids", new int[]{});
                     storageId = jsonObject.getJSONArray("resp").getInt(0);
+                } catch (Exception e) {
+                    Backend.jni_print("Failed to detect camera SD card! (" + e.toString() + ")\n");
+                    return;
+                }
 
-                    jsonObject = Backend.run("ptp_get_object_handles;" + String.valueOf(storageId) + "," + String.valueOf(0) + "," + String.valueOf(Backend.PTP_OF_JPEG) + ";");
-                    JSONArray respArray = jsonObject.getJSONArray("resp");
-                    objectHandles = new int[respArray.length()];
-                    for (int i = 0; i < respArray.length(); i++) {
-                        objectHandles[i] = respArray.getInt(i);
+                try {
+                    JSONObject jsonObject = Backend.run("ptp_get_object_handles", new int[]{storageId, 0, Backend.PTP_OF_JPEG});
+
+                    JSONArray resp = jsonObject.getJSONArray("resp");
+                    objectHandles = new int[resp.length()];
+                    for (int i = 0; i < resp.length(); i++) {
+                        objectHandles[i] = resp.getInt(i);
                     }
                 } catch (Exception e) {
-                    Backend.jni_print("Error getting storage info: " + e.toString());
+                    Backend.jni_print("Falied to find images on the SD card! (" + e.toString() + ")\n");
                     return;
                 }
 
                 if (objectHandles.length == 0) {
-                    Backend.jni_print("No JPEG images available. Might figure out how to download RAW, eventually.");
+                    Backend.jni_print("No JPEG images available. Might figure this out in the future. :)\n");
                 } else {
                     handler.post(new Runnable() {
                         @Override
@@ -134,7 +140,11 @@ public class gallery extends AppCompatActivity {
                         handler.post(new Runnable() {
                         @Override
                             public void run() {
+                                Intent intent = new Intent(gallery.this, MainActivity.class);
+                                startActivity(intent);
+                                // TODO: Choose between these two?
                                 Toast.makeText(gallery.this, "Failed to ping, disconnected", Toast.LENGTH_SHORT).show();
+                                Backend.jni_print("Disconnected.\n");
                             }
                         });
                         return;
@@ -145,10 +155,10 @@ public class gallery extends AppCompatActivity {
         thread.start();
     }
 
-//    @Override
-//    public void onBackPressed() {
-//        Backend.logLocation = "main";
-//        Intent intent = new Intent(gallery.this, MainActivity.class);
-//        startActivity(intent);
-//    }
+    // When back pressed in gallery, do nothing
+    @Override
+    public void onBackPressed() {
+        //super.onBackPressed();
+    }
 }
+

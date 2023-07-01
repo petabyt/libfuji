@@ -51,10 +51,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         instance = this;
+        handler = new Handler(Looper.getMainLooper());
 
         Backend.init();
 
-        handler = new Handler(Looper.getMainLooper());
+        Backend.log_update();
 
         findViewById(R.id.reconnect).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -72,7 +73,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         ((TextView)findViewById(R.id.bottomText)).setText("https://github.com/petabyt/fujiapp\n" +
-                "Download location: " + Backend.getDownloads());
+                "Download location: " + Backend.getDownloads() + "\n" +
+                "Beta testing release! Plz report bugs!");
         // Test activity
         // Intent intent = new Intent(MainActivity.this, test.class);
         // startActivity(intent);
@@ -84,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void connectClick(View v) {
-        // Socket must be opened on WiFi - otherwise it will prefer cellular    
+        // Socket must be opened on WiFi - otherwise it will prefer cellular
         Backend.jni_print("Attempting connection...\n");
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();

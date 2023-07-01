@@ -120,20 +120,29 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
     }
 }
 
-JNI_FUNC(jint, cFujiSetVersion)(JNIEnv *env, jobject thiz) {
+// NOTE: cFujiConfigFileTransfer *must* be called before cFujiConfigVersion, or anything else.
+// If not, it will break up the connection and destroy packets for any file operation.
+JNI_FUNC(jint, cFujiConfigFileTransfer)(JNIEnv *env, jobject thiz) {
+    backend.env = env;
+
+    int rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Mode, 2);
+
+    return rc;
+}
+
+JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
     backend.env = env;
 
     int rc = ptp_get_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion);
-    if (rc < 0) return rc;
+    if (rc) return rc;
 
     int version = ptp_parse_prop_value(&backend.r);
 
-    if (version == 2) {
-        ptp_set_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion, 2);
-    } else {
-        jni_print("Sorry, unsupported protocol version %d.\n", version);
-        return PTP_RUNTIME_ERR;
-    }
+    backend.function_version = version;
+
+    // The property must be set again (to it's own value) to tell the camera
+    // that the current version is supported.
+    ptp_set_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion, version);
 
     return 0;
 }
