@@ -142,7 +142,8 @@ JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
 
     // The property must be set again (to it's own value) to tell the camera
     // that the current version is supported.
-    ptp_set_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion, version);
+    rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion, version);
+    if (rc) return rc;
 
     return 0;
 }

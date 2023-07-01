@@ -16,6 +16,8 @@ struct AndroidBackend {
 	// Global one connection runtime
     struct PtpRuntime r;
 
+    FILE *log_fp;
+
     // Version of Fuji's protocol (has different quirks)
     int function_version;
 };

@@ -49,6 +49,10 @@ public class Backend {
     public native synchronized static byte[] cPtpGetThumb(int handle);
     public native synchronized static byte[] cFujiGetFile(int handle);
 
+    // Enable disable verbose logging to file
+    public native synchronized static int cRouteLogs(String filename);
+    public native synchronized static void cEndLogs();
+
     // Runs a request with integer parameters
     public static JSONObject run(String req, int[] arr) throws Exception {
         if (Conn.connection == Conn.Status.OFF) {

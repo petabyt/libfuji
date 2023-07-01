@@ -14,6 +14,15 @@
 
 struct AndroidBackend backend;
 
+void ptp_verbose_log(char *fmt, ...) {
+    if (backend.log_fp == NULL) return;
+
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(backend.log_fp, fmt, args);
+    va_end(args);
+}
+
 void jni_print(char *fmt, ...) {
     char buffer[512];
     va_list args;
@@ -36,7 +45,7 @@ void android_err(char *fmt, ...) {
 }
 
 JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
-    // For good measure
+    // Already zero-ed in BSS, but for good measure:
     memset(&backend, 0, sizeof(backend));
 
     backend.env = env;
@@ -56,6 +65,27 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
 
     ptp_generic_init(&backend.r);
     backend.r.connection_type = PTP_IP;
+}
+
+JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz, jstring path) {
+    backend.env = env;
+    const char *req = (*env)->GetStringUTFChars(env, path, 0);
+    if (req == NULL) return 1;
+
+    FILE *f = fopen(path, "w");
+    if (f == NULL) return 1;
+
+    backend.log_fp = f;
+
+    return 0;
+}
+
+JNI_FUNC(void, cEndLogs)(JNIEnv *env, jobject thiz) {
+    backend.env = env;
+
+    fclose(backend.log_fp);
+
+    backend.log_fp = NULL;
 }
 
 int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
