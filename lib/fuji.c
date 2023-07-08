@@ -1,4 +1,5 @@
-// JNI PTP/IP interface for camlib Fuji functionality
+// Fujifilm WiFi connection library - this code is a portable extension to camlib -
+// don't add any iOS, JNI, or Dart stuff to it
 // Copyright 2023 (c) Unofficial fujiapp
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,143 +8,63 @@
 #include <jni.h>
 #include <camlib.h>
 
-#include "jni.h"
-#include "backend.h"
+#include "models.h"
 
-// TODO: Rename to cl____?
+// TODO: Construct a standard device info from bits and pieces of info
 
-JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
-    backend.env = env;
-    int rc = ptpip_fuji_init(&backend.r, "fujiapp");
+// Holds vital info about the camera
+struct FujiDeviceKnowledge {
+	int function_version;
+}fuji_known;
 
-    struct PtpFujiInitResp resp;
-    ptp_fuji_get_init_info(&backend.r, &resp);
+// Handles critical init sequence. This is after initing the socket, and opening session.
+// If this isn't called right after opening session, the camera will hang the connection.
+int fuji_config_init_mode(struct PtpRuntime *r) {
+	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_Mode);
+	if (rc) return rc;
 
-    jni_print("Connecting to %s\n", resp.cam_name);
+	// TODO: might need quirks for different modes preset by camera
+	int mode = ptp_parse_prop_value(r);
+	switch (mode) {
+		case 1:
+		case 2: // 2015
+		case 3:
+		case 4:
+		case 5: // 2020
+		// ...
+		case 14: // latest mode (?)
+	}
 
-    return rc;
+	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteVersion);
+	if (rc) return rc;
+
+	int remote_version = ptp_parse_prop_value(r);
+
+	ptp_verbose_log("Version uint32 was %X\n", remote_version);
+
+	// RemoteVersion is actually two words. The old app gave 11.2, so we'll try that
+	uint16_t version[] = {
+		11, 2
+	};
+
+	rc = ptp_set_prop_value_data(r, PTP_PC_FUJI_RemoteVersion, (void *)(&version), sizeof(version));
+	if (rc) return rc;
+
+	return 0;
 }
 
-JNI_FUNC(jstring, cPtpRun)(JNIEnv *env, jobject thiz, jstring string) {
-    backend.env = env;
-    const char *req = (*env)->GetStringUTFChars(env, string, 0);
+int fuji_config_version(struct PtpRuntime *r) {
+	// Get the FunctionVersion from the camera - 
+	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_FunctionVersion);
+	if (rc) return rc;
 
-    char *buffer = malloc(PTP_BIND_DEFAULT_SIZE);
+	int version = ptp_parse_prop_value(r);
 
-    int r = bind_run(&backend.r, (char *)req, buffer, PTP_BIND_DEFAULT_SIZE);
+	fuji_known.function_version = version;
 
-    if (r == -1) {
-        return (*env)->NewStringUTF(env, "{\"error\": -1}");
-    }
-
-    jstring ret = (*env)->NewStringUTF(env, buffer);
-    free(buffer);
-    return ret;
-}
-
-JNI_FUNC(jint, cPtpFujiWaitUnlocked)(JNIEnv *env, jobject thiz) {
-    backend.env = env;
-    return ptpip_fuji_wait_unlocked(&backend.r);
-}
-
-JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
-    backend.env = env;
-    return ptpip_fuji_get_events(&backend.r);
-}
-
-JNI_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
-    backend.env = env;
-    int rc = ptp_get_thumbnail(&backend.r, (int)handle);
-    if (rc) {
-        return NULL;
-    }
-
-    jbyteArray ret = (*env)->NewByteArray(env, ptp_get_payload_length(&backend.r));
-    (*env)->SetByteArrayRegion(env, ret, 0, ptp_get_payload_length(&backend.r), (const jbyte *)(ptp_get_payload(&backend.r)));
-    return ret;
-}
-
-JNI_FUNC(jint, cPtpGetPropValue)(JNIEnv *env, jobject thiz, jint code) {
-    backend.env = env;
-
-    int rc = ptp_get_prop_value(&backend.r, code);
-    if (rc < 0) {
-        return rc;
-    }
-
-    return ptp_parse_prop_value(&backend.r);
-}
-
-JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
-    backend.env = env;
-
-    // Set the compression prop (allows full images to go through, otherwise puts
-    // extra data in ObjectInfo and cuts off image downloads)
-    int rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Compression, 1);
-    if (rc) {
-        return NULL;
-    }
-
-    int max = backend.r.data_length;
-
-    struct PtpObjectInfo oi;
-    rc = ptp_get_object_info(&backend.r, (int)handle, &oi);
-    if (rc) {
-        return NULL;
-    }
-
-    jbyteArray ret = (*env)->NewByteArray(env, oi.compressed_size);
-
-    // Makes sure to set the compression prop back to 0 after finished
-    // (extra data won't go through for some reason)
-    int read = 0;
-    while (1) {
-        rc = ptp_get_partial_object(&backend.r, handle, read, max);
-        if (rc) {
-            ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Compression, 0);
-            return NULL;
-        }
-
-        if (ptp_get_payload_length(&backend.r) == 0) {
-            ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Compression, 0);
-            return NULL;
-        }
-
-        (*env)->SetByteArrayRegion(env, ret, read, ptp_get_payload_length(&backend.r), (const jbyte *)(ptp_get_payload(&backend.r)));
-
-        read += ptp_get_payload_length(&backend.r);
-
-        if (read >= oi.compressed_size) {
-            ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Compression, 0);
-            return ret;
-        }
-    }
-}
-
-// NOTE: cFujiConfigFileTransfer *must* be called before cFujiConfigVersion, or anything else.
-// If not, it will break up the connection and destroy packets for any file operation.
-JNI_FUNC(jint, cFujiConfigFileTransfer)(JNIEnv *env, jobject thiz) {
-    backend.env = env;
-
-    int rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Mode, 2);
-
-    return rc;
-}
-
-JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
-    backend.env = env;
-
-    int rc = ptp_get_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion);
-    if (rc) return rc;
-
-    int version = ptp_parse_prop_value(&backend.r);
-
-    backend.function_version = version;
-
-    // The property must be set again (to it's own value) to tell the camera
-    // that the current version is supported.
-    rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion, version);
-    if (rc) return rc;
-
-    return 0;
+	// The property must be set again (to it's own value) to tell the camera
+	// that the current version is supported.
+	rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion, version);
+	if (rc) return rc;
+	return 0;
 }

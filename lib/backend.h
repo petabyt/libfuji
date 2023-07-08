@@ -11,7 +11,6 @@ struct AndroidBackend {
     jmethodID jni_print;
     jmethodID cmd_read;
     jmethodID cmd_write;
-    //jfieldID progress;
 
 	// Global one connection runtime
     struct PtpRuntime r;

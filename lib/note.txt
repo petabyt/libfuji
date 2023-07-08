@@ -1,0 +1,28 @@
+X-A2
+- Device is older, wait until access unlocked
+- Set mode to 2
+- Set protocol version
+
+X-S10
+- Set mode to 5 (?)
+- Get RemoteVersion
+- Set RemoteVersion (11.2)
+- opencapture stuff (?)
+- Set Unlocked to 6
+- Get DF25, D244 (unknown)
+- Set mode to 14 (transfer mode?)
+- Get DF25, set to 0x4
+
+Get Info:
+- Set D227 (Compression) to 0x1
+- GetObjectInfo
+- Set D227 (Compression) to 0x0
+
+Download:
+- Set D227 (Compression) to 0x1
+- GetObjectInfo
+- GetThumb
+- GetObjectInfo
+- Get D235 (?)
+- GetPartialObject
+- Set D227 (Compression) to 0x0
