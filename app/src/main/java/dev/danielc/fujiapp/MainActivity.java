@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.widget.Button;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Toast;
 import android.widget.TextView;
 import android.content.Intent;
 import android.widget.PopupWindow;
@@ -22,7 +21,6 @@ import android.view.ViewGroup;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.view.Gravity;
-import android.view.View;
 
 public class MainActivity extends AppCompatActivity {
     private static MainActivity instance;
@@ -97,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
                 ConnectivityManager.setProcessDefaultNetwork(network);
                 if (!Conn.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
                     Backend.logLocation = "gallery";
-                    Intent intent = new Intent(MainActivity.this, gallery.class);
+                    Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);
                 }
                 connectivityManager.unregisterNetworkCallback(this);

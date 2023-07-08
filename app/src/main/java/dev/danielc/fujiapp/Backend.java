@@ -1,7 +1,6 @@
 // Custom Java bindings to camlib
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
-import android.graphics.Bitmap;
 import android.util.Log;
 import android.os.Environment;
 import java.io.File;
@@ -118,8 +117,8 @@ public class Backend {
         if (MainActivity.getInstance() != null) {
             MainActivity.getInstance().setErrorText(basicLog);
         }
-        if (gallery.getInstance() != null) {
-            gallery.getInstance().setErrorText(basicLog);
+        if (Gallery.getInstance() != null) {
+            Gallery.getInstance().setErrorText(basicLog);
         }
     }
 

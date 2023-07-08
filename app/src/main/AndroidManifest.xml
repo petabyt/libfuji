@@ -21,10 +21,10 @@
             android:name=".Viewer"
             android:exported="false" />
         <activity
-            android:name=".test"
+            android:name=".Tester"
             android:exported="false" />
         <activity
-            android:name=".gallery"
+            android:name=".Gallery"
             android:exported="false" />
         <activity
             android:name=".MainActivity"

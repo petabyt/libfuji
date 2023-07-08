@@ -15,10 +15,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.widget.TextView;
 
-public class gallery extends AppCompatActivity {
-    private static gallery instance;
+public class Gallery extends AppCompatActivity {
+    private static Gallery instance;
 
-    public static gallery getInstance() {
+    public static Gallery getInstance() {
         return instance;
     }
 
@@ -122,7 +122,7 @@ public class gallery extends AppCompatActivity {
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            imageAdapter = new ImageAdapter(gallery.this, objectHandles);
+                            imageAdapter = new ImageAdapter(Gallery.this, objectHandles);
                             recyclerView.setAdapter(imageAdapter);
                         }
                     });                    
@@ -140,10 +140,10 @@ public class gallery extends AppCompatActivity {
                         handler.post(new Runnable() {
                         @Override
                             public void run() {
-                                Intent intent = new Intent(gallery.this, MainActivity.class);
+                                Intent intent = new Intent(Gallery.this, MainActivity.class);
                                 startActivity(intent);
                                 // TODO: Choose between these two?
-                                Toast.makeText(gallery.this, "Failed to ping, disconnected", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(Gallery.this, "Failed to ping, disconnected", Toast.LENGTH_SHORT).show();
                                 Backend.jni_print("Disconnected.\n");
                             }
                         });

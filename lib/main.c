@@ -107,6 +107,7 @@ int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
         return PTP_IO_ERR;
     }
 
+    // Sanity checks :)
     if (length > 50000000) {
         jni_print("Camera is trying to send too much data - breaking connection.\n");
         return -1;
