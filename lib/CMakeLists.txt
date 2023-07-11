@@ -23,6 +23,7 @@ main.c
 jni.c
 lib.c
 fuji.c
+tester.c
 )
 
 find_library(log-lib log)

@@ -28,16 +28,17 @@
 
         <Button
             android:id="@+id/reconnect"
+            style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Connect" />
 
         <Button
-            android:id="@+id/connect_bluetooth"
+            android:id="@+id/test_suite"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Connect To Bluetooth"
-            android:visibility="gone" />
+            android:text="Run test suite"
+            android:visibility="visible" />
 
         <Button
             android:id="@+id/help_button"

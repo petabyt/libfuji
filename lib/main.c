@@ -14,6 +14,14 @@
 
 struct AndroidBackend backend;
 
+void jni_verbose_log(char *str) {
+    if (backend.log_fp == NULL) return;
+
+    fputs(str, backend.log_fp);
+    fputs("\n", backend.log_fp);
+    fflush(backend.log_fp);
+}
+
 void ptp_verbose_log(char *fmt, ...) {
     if (backend.log_fp == NULL) return;
 
@@ -21,6 +29,7 @@ void ptp_verbose_log(char *fmt, ...) {
     va_start(args, fmt);
     vfprintf(backend.log_fp, fmt, args);
     va_end(args);
+    fflush(backend.log_fp);
 }
 
 void jni_print(char *fmt, ...) {
@@ -61,7 +70,7 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
     backend.jni_print = (*backend.env)->GetStaticMethodID(backend.env, pacClass, "jni_print", "(Ljava/lang/String;)V");
     backend.cmd_write = (*backend.env)->GetStaticMethodID(backend.env, connClass, "write", "([B)I");
     backend.cmd_read = (*backend.env)->GetStaticMethodID(backend.env, connClass, "read", "([BI)I");
-    //backend.progress = (*backend.env)->GetStaticFieldID(backend.env, pacClass, "transferProgress", "I");
+    // TODO: cmd_close
 
     ptp_generic_init(&backend.r);
     backend.r.connection_type = PTP_IP;
@@ -72,16 +81,23 @@ JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz, jstring path) {
     const char *req = (*env)->GetStringUTFChars(env, path, 0);
     if (req == NULL) return 1;
 
-    FILE *f = fopen(path, "w");
+    FILE *f = fopen(req, "w");
     if (f == NULL) return 1;
 
     backend.log_fp = f;
+
+    ptp_verbose_log("Fujiapp log file - Send this to devs!\n");
+    ptp_verbose_log("ABI: %s\n", ABI);
+    ptp_verbose_log("Compile date: %s\n", __DATE__);
+    ptp_verbose_log("https://github.com/petabyt/fujiapp\n");
 
     return 0;
 }
 
 JNI_FUNC(void, cEndLogs)(JNIEnv *env, jobject thiz) {
     backend.env = env;
+
+    if (backend.log_fp == NULL) return;
 
     fclose(backend.log_fp);
 

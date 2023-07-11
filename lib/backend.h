@@ -12,6 +12,10 @@ struct AndroidBackend {
     jmethodID cmd_read;
     jmethodID cmd_write;
 
+    jobject tester; // Tester class
+    jmethodID tester_log;
+    jmethodID tester_fail;
+
 	// Global one connection runtime
     struct PtpRuntime r;
 
@@ -28,5 +32,8 @@ void jni_print(char *fmt, ...);
 
 // printf to kernel
 void android_err(char *fmt, ...);
+
+// Verbose print to log file
+void jni_verbose_log(char *str);
 
 #endif

@@ -1,4 +1,4 @@
-// Custom image adapter to show an image from JPEG byte[]
+// Custom image adapter to download and show an image from byte[]
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
@@ -27,6 +27,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         this.object_ids = object_ids;
     }
 
+    // Set up click event - navigate to viewer and send object handle
     @Override
     public ImageViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         ImageViewHolder holder = ImageViewHolder.inflate(parent);
@@ -42,12 +43,9 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         return holder;
     }
 
+    // When image is scrolled into view, it will be downloaded
     @Override
     public void onBindViewHolder(ImageViewHolder holder, int position) {
-        if (position > 100) {
-            return;
-        }
-
         holder.handle = object_ids[position];
 
         new Thread(new Runnable() {
@@ -87,9 +85,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         public ImageView image;
         public int handle;
 
-        public void setSource() {
-
-        }
+        // public void setSource() {}
 
         public ImageViewHolder(@NonNull View itemView) {
             super(itemView);

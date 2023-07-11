@@ -2,6 +2,8 @@
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
+import android.app.Activity;
+import android.content.Context;
 import android.util.Log;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,6 +11,10 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import android.util.Log;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 
 public class Conn {
     private static Socket socket;
@@ -22,11 +28,6 @@ public class Conn {
 
     public static String errReason = null;
     public static Status connection = Status.OFF;
-
-    // public static void emergencyExit(String reason) {
-        // connection = Status.OFF;
-        // errReason = reason;
-    // }
 
     public static boolean connect(String ipAddress, int port, int timeout) {
         try {

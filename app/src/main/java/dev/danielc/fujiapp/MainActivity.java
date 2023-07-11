@@ -73,9 +73,14 @@ public class MainActivity extends AppCompatActivity {
         ((TextView)findViewById(R.id.bottomText)).setText("https://github.com/petabyt/fujiapp\n" +
                 "Download location: " + Backend.getDownloads() + "\n" +
                 "Beta testing release! Plz report bugs!");
-        // Test activity
-        // Intent intent = new Intent(MainActivity.this, test.class);
-        // startActivity(intent);
+
+        findViewById(R.id.test_suite).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, Tester.class);
+                startActivity(intent);
+            }
+        });
     }
 
     @Override
@@ -85,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void connectClick(View v) {
         // Socket must be opened on WiFi - otherwise it will prefer cellular
+        // TODO: Implement a timeout (If WiFi is disabled)
         Backend.jni_print("Attempting connection...\n");
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();

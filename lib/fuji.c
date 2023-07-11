@@ -23,6 +23,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_Mode);
 	if (rc) return rc;
 
+#if 0
 	// TODO: might need quirks for different modes preset by camera
 	int mode = ptp_parse_prop_value(r);
 	switch (mode) {
@@ -34,7 +35,9 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 		// ...
 		case 14: // latest mode (?)
 	}
+#endif
 
+	// TODO: If mode > 5?
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteVersion);
 	if (rc) return rc;
 
@@ -64,7 +67,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 
 	// The property must be set again (to it's own value) to tell the camera
 	// that the current version is supported.
-	rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion, version);
+	rc = ptp_set_prop_value(r, PTP_PC_FUJI_FunctionVersion, version);
 	if (rc) return rc;
 	return 0;
 }

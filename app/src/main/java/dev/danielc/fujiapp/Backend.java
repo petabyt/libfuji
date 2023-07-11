@@ -1,5 +1,6 @@
 // Custom Java bindings to camlib
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
+
 package dev.danielc.fujiapp;
 import android.util.Log;
 import android.os.Environment;
@@ -37,13 +38,14 @@ public class Backend {
     // Note that all these native functions are synchronized (they can only be called by Java
     // by one thread at a time - necessary for a socket connection)
     public native synchronized static void cInit(Backend b, Conn c);
+    public native synchronized static void cTesterInit(Tester t);
     public native synchronized static String cTestFunc();
     public native synchronized static int cPtpFujiInit();
     public native synchronized static int cPtpFujiPing();
     public native synchronized static int cPtpGetPropValue(int code);
     public native synchronized static int cPtpFujiWaitUnlocked();
     public native synchronized static int cFujiConfigVersion();
-    public native synchronized static int cFujiConfigFileTransfer();
+    public native synchronized static int cFujiConfigInitMode();
     public native synchronized static String cPtpRun(String req);
     public native synchronized static byte[] cPtpGetThumb(int handle);
     public native synchronized static byte[] cFujiGetFile(int handle);
@@ -51,6 +53,8 @@ public class Backend {
     // Enable disable verbose logging to file
     public native synchronized static int cRouteLogs(String filename);
     public native synchronized static void cEndLogs();
+
+    public native synchronized static int cFujiTestSuite();
 
     // Runs a request with integer parameters
     public static JSONObject run(String req, int[] arr) throws Exception {
@@ -84,7 +88,6 @@ public class Backend {
     public static JSONObject run(String req) throws Exception {
         return run(req, new int[]{});
     }
-
 
     public static void pingUntilDisconnect() {
         // TODO: good idea?
@@ -125,6 +128,12 @@ public class Backend {
     public static String getDownloads() {
         String mainStorage = Environment.getExternalStorageDirectory().getAbsolutePath();
         String fujifilm = mainStorage + File.separator + "DCIM" + File.separator + "fuji";
+        return fujifilm;
+    }
+
+    public static String getLogPath() {
+        String mainStorage = Environment.getExternalStorageDirectory().getAbsolutePath();
+        String fujifilm = mainStorage + File.separator + "Documents" + File.separator + "fujiapp.txt";
         return fujifilm;
     }
 }

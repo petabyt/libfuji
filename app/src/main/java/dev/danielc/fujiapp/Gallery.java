@@ -82,13 +82,13 @@ public class Gallery extends AppCompatActivity {
                 }
 
                 // Camera mode must be set before anything else
-                if (Backend.cFujiConfigFileTransfer() != 0) {
-                    Backend.jni_print("Failed to initiate file transfer with camera.\n");
+                if (Backend.cFujiConfigInitMode() != 0) {
+                    Backend.jni_print("Failed to configure mode with the camera.\n");
                     return;
                 }
 
                 if (Backend.cFujiConfigVersion() != 0) {
-                    Backend.jni_print("Failed to configure protocol version.\n");
+                    Backend.jni_print("Failed to configure camera function version.\n");
                     return;
                 }
 
