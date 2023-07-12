@@ -123,7 +123,7 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 JNI_FUNC(jint, cFujiConfigInitMode)(JNIEnv *env, jobject thiz) {
     backend.env = env;
 
-    int rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Mode, 2);
+    int rc = fuji_config_init_mode(&backend.r);
 
     return rc;
 }
@@ -131,17 +131,5 @@ JNI_FUNC(jint, cFujiConfigInitMode)(JNIEnv *env, jobject thiz) {
 JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
     backend.env = env;
 
-    int rc = ptp_get_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion);
-    if (rc) return rc;
-
-    int version = ptp_parse_prop_value(&backend.r);
-
-    backend.function_version = version;
-
-    // The property must be set again (to it's own value) to tell the camera
-    // that the current version is supported.
-    rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_FunctionVersion, version);
-    if (rc) return rc;
-
-    return 0;
+    return fuji_config_version(&backend.r);
 }
