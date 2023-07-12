@@ -1,12 +1,23 @@
 # fujiapp
-This is an alternative reverse-engineered app to communicate with Fujifilm X cameras. It's written in Java,
-with the backend being written in C, with [camlib](https://github.com/petabyt/camlib).
+This is an alternative reverse-engineered app to Fujifilm's official WiFi app. This is an Android-only app with a very simple goal to serve as a photo viewer
+and downloader. It will also serve as a testbed for portable implementation Fujifilm's superset of PTP/IP, and possibly a more advanced and cross-platform app in the future.
 
-This app isn't finished yet, so don't expect anything usable. It will be available [here](https://play.google.com/store/apps/details?id=dev.danielc.fujiapp) once finished.
+![screenshots](https://eggnog.danielc.dev/f/76-s9xg1g9bj8rm7u1r604z92yy4xyitc.png)
+
+This app isn't finished yet, so don't set high expectations. I'm currently testing it on a 2015 X-A2, but the quirks for newer camera will slowly be implemented. Bluetooth communication,
+which is required on the newer models, isn't implemented yet but is on the roadmap.
+
+It will be available [here](https://play.google.com/store/apps/details?id=dev.danielc.fujiapp) once finished.
+
+## Tech stack
+- Java & native Android activities
+- JNI & Portable C99
+- [camlib](https://github.com/petabyt/camlib) with Java communication backend
 
 ## Help needed
 - UI polishing (animations?)
-- WiFi Packet dumps of using the official app (send to me brikbusters@gmail.com)
+- WiFi Packet dumps of using either of the official apps (send to brikbusters@gmail.com)
+- Writing a complete cross-platform reimplementation of Fujifilm's Xapp (with more features) would be a much larger and more complicated effort - email me (brikbusters@gmail.com) if you're interested in making it happen.
 
 ## TODO:
 - [x] Stable communication with camera (connect, disconnect, ping)
@@ -22,4 +33,5 @@ This app isn't finished yet, so don't expect anything usable. It will be availab
 - [ ] Implement 100s of Fuji property codes (?)
 - [ ] Implement liveview (view stream on another port)
 - [ ] Redo logo/artwork :)
+- [ ] Reimplement UI & in Dart/Flutter, port comm code to iOS and Android
 
