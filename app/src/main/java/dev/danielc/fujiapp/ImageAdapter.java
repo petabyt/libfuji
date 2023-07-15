@@ -43,15 +43,18 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         return holder;
     }
 
-    // When image is scrolled into view, it will be downloaded
+    // When image is scrolled into view, it will be downloaded TODO: store images in a 10mb(?) stack
+    // to prevent re-downloading (slow)
     @Override
     public void onBindViewHolder(ImageViewHolder holder, int position) {
-        holder.handle = object_ids[position];
+        int adapterPosition = holder.getAdapterPosition();
+        if (adapterPosition >= object_ids.length) return;
+        holder.handle = object_ids[adapterPosition];
 
         new Thread(new Runnable() {
             @Override
             public void run() {
-                int id = object_ids[position];
+                int id = object_ids[adapterPosition];
                 byte[] jpegByteArray = Backend.cPtpGetThumb(id);
                 if (jpegByteArray == null) {
                     Backend.jni_print("Failed to get image thumbnail, stopping connection\n");
