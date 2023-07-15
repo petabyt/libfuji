@@ -11,6 +11,7 @@
 #include "jni.h"
 #include "backend.h"
 #include "fuji.h"
+#include "models.h"
 
 // Init commands 
 JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
@@ -77,6 +78,7 @@ int fuji_test_get_props(struct PtpRuntime *r) {
 		PTP_PC_FUJI_RemotePhotoViewVersion,
 		PTP_PC_FUJI_PhotoRecieveReservedVersion,
 		PTP_PC_FUJI_VersionGPS,
+		0xdf44
 	};
 
 	for (int i = 0; i < (int)(sizeof(test_props) / sizeof(uint16_t)); i++) {
@@ -85,7 +87,7 @@ int fuji_test_get_props(struct PtpRuntime *r) {
 			tester_fail("Err getting prop 0x%X - rc: %d", test_props[i], rc);
 			return rc;
 		} else {
-			tester_log("Read property 0x%X (%d bytes)", test_props[i], ptp_get_payload_length(r));
+			tester_log("Read property 0x%X %s (%d bytes)", test_props[i], ptp_get_enum_all(test_props[i]), ptp_get_payload_length(r));
 		}
 
 		log_payload(r);
@@ -125,6 +127,24 @@ int fuji_init_setup(struct PtpRuntime *r) {
 		return rc;
 	} else {
 		tester_log("Configured FunctionMode, no errors detected (yet)");
+	}
+
+	rc = fuji_config_device_info_routine(r);
+	if (rc == PTP_CHECK_CODE) {
+		tester_fail("Camera didn't like the device info test, will keep on going");
+	} else if (rc) {
+		tester_fail("Failed to try device info routine");
+		return rc;
+	} else {
+		tester_log("Device passed device info routine");
+	}
+
+	rc = fuji_config_remote_photo_viewer(r);
+	if (rc) {
+		tester_fail("Failed to config remote photo viewier");
+		return rc;
+	} else {
+		tester_log("Configured remote photo viewer");
 	}
 
 	return 0;
@@ -168,7 +188,36 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 int fuji_test_suite(struct PtpRuntime *r) {
 	tester_log("Running test suite from C");
 
-	int rc = ptp_open_session(r);
+    int rc = ptpip_fuji_init(&backend.r, "fujiapp-test");
+    if (rc) {
+    	tester_fail("Failed to initialize command socket");
+    } else {
+    	tester_log("Initialized command socket");
+    }
+
+    struct PtpFujiInitResp resp;
+    ptp_fuji_get_init_info(r, &resp);
+
+    tester_log("Connected to %s", resp.cam_name);
+
+    fuji_known.info = fuji_get_model_info(resp.cam_name);
+	if (fuji_known.info == NULL) {
+		tester_fail("Couldn't get model info from database");
+	} else {
+		if (fuji_known.info->gps_support)
+			tester_log("- Supports gps");
+		if (fuji_known.info->has_bluetooth)
+			tester_log("- Has bluetooth");
+		if (fuji_known.info->capture_support)
+			tester_log("- Supports remote capture");
+		if (fuji_known.info->firm_update_support)
+			tester_log("- Supports firmware updates");
+	}
+
+	tester_log("sleep 500ms for good measure...");
+    CAMLIB_SLEEP(500);
+
+	rc = ptp_open_session(r);
 	if (rc) {
 		tester_fail("Failed to open session");
 		return rc;

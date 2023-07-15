@@ -9,6 +9,7 @@
 
 #include "jni.h"
 #include "backend.h"
+#include "fuji.h"
 
 JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
     backend.env = env;

@@ -1,5 +1,6 @@
 // Basic model feature support table
 // Copyright 2023 (c) Unofficial fujiapp
+#include <string.h>
 #include "models.h"
 
 struct FujiCameraInfo fuji_cameras[] = {
@@ -60,5 +61,14 @@ struct FujiCameraInfo fuji_cameras[] = {
 { "X-T200", 1, 1, 1, 1 },
 { "X-T4", 1, 1, 1, 1 },
 { "X-S10", 1, 1, 1, 1 },
-{ 0, 0, 0, 0, 0 },
 };
+
+struct FujiCameraInfo *fuji_get_model_info(char *name) {
+	for (int i = 0; i < (int)(sizeof(fuji_cameras) / sizeof(fuji_cameras[0])); i++) {
+		if (!strcmp(fuji_cameras[i].name, name)) {
+			return &(fuji_cameras[i]);
+		}
+	}
+
+	return NULL;
+}

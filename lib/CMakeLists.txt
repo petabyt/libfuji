@@ -24,6 +24,7 @@ jni.c
 lib.c
 fuji.c
 tester.c
+models.c
 )
 
 find_library(log-lib log)

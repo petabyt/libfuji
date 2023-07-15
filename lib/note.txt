@@ -8,10 +8,9 @@ X-S10
 - Get RemoteVersion
 - Set RemoteVersion (11.2)
 - opencapture stuff (?)
-- See Capture magic
-- Set Unlocked to 6
+- Set Unlocked to 6 (itself)
 - Get DF25, D244 (unknown)
-- Set mode to 14 (transfer mode?)
+- Set mode to 11 (0xb) (transfer mode?)
 - Get DF25, set to 0x4
 
 Get Info:
@@ -30,7 +29,7 @@ Download:
 
 Capture magic:
 - FujiGetDeviceInfo
-InitOpenCapture
-FujiGetDeviceInfo
-TerminateOpenCapture(7)
-TerminateOpenCapture(7)
+- InitOpenCapture
+- FujiGetDeviceInfo
+- TerminateOpenCapture(7)
+- TerminateOpenCapture(7)
