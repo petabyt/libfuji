@@ -32,5 +32,5 @@ It will be available [here](https://play.google.com/store/apps/details?id=dev.da
 - [ ] Implement 100s of Fuji property codes (?)
 - [ ] Implement liveview (view stream on another port)
 - [ ] Redo logo/artwork :)
-- [ ] Reimplement UI & in Dart/Flutter, port comm code to iOS and Android
+- [ ] Reimplement UI in a cross-platform framework ([onsen](https://onsen.io/), [framework7](https://framework7.io/))
 
