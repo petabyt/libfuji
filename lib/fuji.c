@@ -77,19 +77,9 @@ int fuji_config_version(struct PtpRuntime *r) {
 
 // Very weird init routine seen on older cameras
 int fuji_config_device_info_routine(struct PtpRuntime *r) {
-	int rc = fuji_get_device_info(r);
-	if (rc == PTP_CHECK_CODE) {
-		ptp_verbose_log("no device info\n");
-	} else if (rc) {
-		return rc;
-	}
-
-	ptp_verbose_log("Device info: length:%d\n", ptp_get_payload_length(r));
-
-
 	if (fuji_known.function_version > 3) {
 		int trans = r->transaction;
-		rc = ptp_init_open_capture(r, 0, 0);
+		int rc = ptp_init_open_capture(r, 0, 0);
 		if (rc) return rc;
 
 		rc = ptpip_fuji_get_events(r);
@@ -127,15 +117,16 @@ int fuji_config_remote_photo_viewer(struct PtpRuntime *r) {
 		rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemotePhotoViewVersion);
 		if (rc) return rc;
 
+		// For X-T2, the value is 2
+		// For X-A2, there is no payload given (-1)
+
 		int view_version = ptp_parse_prop_value(r);
 		if (view_version == -1) {
+			// Camera doesn't have this property - return silently
 			return 0;
 		}
 
 		ptp_verbose_log("PTP_PC_FUJI_RemotePhotoViewVersion: %d\n", view_version);
-
-		// For X-T2, the value is 2
-		// For X-A2, there is no payload given (-1)
 
 		// Set to photo viewer mode (?)
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_Mode, 11);

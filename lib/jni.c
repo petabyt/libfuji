@@ -132,5 +132,11 @@ JNI_FUNC(jint, cFujiConfigInitMode)(JNIEnv *env, jobject thiz) {
 JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
     backend.env = env;
 
-    return fuji_config_version(&backend.r);
+    int rc = fuji_config_version(&backend.r);
+    if (rc) return rc;
+
+    rc = fuji_config_remote_photo_viewer(&backend.r);
+    if (rc) return rc;
+
+    return 0;
 }
