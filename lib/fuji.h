@@ -6,6 +6,9 @@
 int fuji_config_version(struct PtpRuntime *r);
 int fuji_config_init_mode(struct PtpRuntime *r);
 
+int fuji_config_remote_photo_viewer(struct PtpRuntime *r);
+int fuji_config_device_info_routine(struct PtpRuntime *r);
+
 // Holds vital info about the camera
 struct FujiDeviceKnowledge {
 	struct FujiCameraInfo *info;

@@ -10,6 +10,7 @@
 #include <camlib.h>
 
 #include "jni.h"
+#include "fuji.h"
 #include "backend.h"
 
 struct AndroidBackend backend;
