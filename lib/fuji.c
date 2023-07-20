@@ -77,12 +77,17 @@ int fuji_config_version(struct PtpRuntime *r) {
 
 // Very weird init routine seen on older cameras
 int fuji_config_device_info_routine(struct PtpRuntime *r) {
+	int rc = fuji_get_device_info(r);
+	if (rc == PTP_CHECK_CODE) {
+		ptp_verbose_log("no device info\n");
+	} else if (rc) {
+		return rc;
+	}
+
+	ptp_verbose_log("Device info: length:%d\n", ptp_get_payload_length(r));
+
+
 	if (fuji_known.function_version > 3) {
-		int rc = fuji_get_device_info(r);
-		if (rc) return rc;
-
-		ptp_verbose_log("Device info: length:%d\n", ptp_get_payload_length(r));
-
 		int trans = r->transaction;
 		rc = ptp_init_open_capture(r, 0, 0);
 		if (rc) return rc;

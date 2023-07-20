@@ -24,6 +24,7 @@ public class Bluetooth {
     private String FUJI_GET_BLE_VERSION = "389363E4-712E-4CF2-A72E-BFCF7FB6ADC1";
     private String FUJI_GET_SSID = "BF6DC9CF-3606-4EC9-A4C8-D77576E93EA4";
 
+    // Return an Intent that is to be run by the caller
     public Intent getIntent() throws Exception {
         try {
             adapter = BluetoothAdapter.getDefaultAdapter();
@@ -34,7 +35,6 @@ public class Bluetooth {
         try {
             if (!adapter.isEnabled()) {
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                // Needs to be run in activity
                 return enableBtIntent;
             }
         } catch (Exception e) {

@@ -117,13 +117,6 @@ public class Tester extends AppCompatActivity {
     }
 
     public void mainTest() {    
-        if (Backend.cPtpFujiInit() == 0) {
-            log("Successfully initialized command socket");
-        } else {
-            fail("Failed to init socket");
-            return;
-        }
-
         int rc = Backend.cFujiTestSuite();
         log("Return code: " + rc);
         Backend.cEndLogs();
