@@ -94,9 +94,14 @@ public class Tester extends AppCompatActivity {
                 }
                 connectivityManager.unregisterNetworkCallback(this);
             }
+
+            @Override
+            public void onUnavailable () {
+                fail("WiFi is not available, or turned off");
+            }
         };
 
-        connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
+        connectivityManager.requestNetwork(requestBuilder.build(), networkCallback, 500);
     }
 
     private String currentLogs = "";
