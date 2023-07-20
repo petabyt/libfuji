@@ -205,4 +205,3 @@ public class Viewer extends AppCompatActivity {
         thread.start();
     }
 }
-

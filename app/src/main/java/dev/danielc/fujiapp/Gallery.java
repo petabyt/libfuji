@@ -58,6 +58,8 @@ public class Gallery extends AppCompatActivity {
                     return;
                 }
 
+                Thread.sleep(500);
+
                 try {
                     Backend.run("ptp_open_session");
                 } catch (Exception e) {
