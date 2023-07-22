@@ -10,7 +10,7 @@ struct FujiCameraInfo {
 	uint8_t capture_support;
 	uint8_t firm_update_support;
 
-	// TODO: Release date (last resort guessing)
+	int16_t preferred_function_version; // TODO: Maybe release year?
 };
 
 struct FujiCameraInfo *fuji_get_model_info(char *name);
