@@ -1,12 +1,29 @@
 #ifndef FUJIPTP_H
 #define FUJIPTP_H
 
-// Extra PTP defs for Fuifilm - from libgphoto2 ptp.h
+// Extra PTP defs for Fuifilm
 
+// Function Modes
+#define FUJI_VIEW_ONE_IMG	1
+#define FUJI_VIEW_ALL_IMGS	2
+#define FUJI_REMOTE_MODE	5
+#define FUJI_CAMERA_ERR		7
+#define FUJI_SELECTED_FRAME	8
+#define FUJI_IN_CAM_VIEWING	9
+#define FUJI_GPS_ASSIST		10
+#define FUJI_SD_HOT_SWAP	11
+#define FUJI_GPS_ASSIST_MODE	17
+#define FUJI_RESERVED_IMG_TRANSMISSION	18
+
+// Restriction (Unlocked) codes
+#define FUJI_WAIT_FOR_ACCESS	0
+#define FUJI_SINGLE_MULTIPLE_TRANSFER	1
+#define FUJI_FULL_ACCESS	2
+#define FUJI_REMOTE_ACCESS	6
+
+// Stuff from libgphoto2 ptp.h
 #define PTP_EC_FUJI_PreviewAvailable		0xC001
 #define PTP_EC_FUJI_ObjectAdded			0xC004
-
-/* Fuji specific */
 
 #define PTP_DPC_FUJI_FilmSimulation			0xD001
 #define PTP_DPC_FUJI_FilmSimulationTune			0xD002
