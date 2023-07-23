@@ -19,6 +19,8 @@ struct FujiDeviceKnowledge {
 	int photo_view_version;
 	int photo_get_version;
 	int remote_version;
+
+	int num_objects;
 };
 
 extern struct FujiDeviceKnowledge fuji_known;

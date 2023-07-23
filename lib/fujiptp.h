@@ -4,7 +4,7 @@
 // Extra PTP defs for Fuifilm
 
 // Function Modes
-#define FUJI_VIEW_ONE_IMG	1
+#define FUJI_VIEW_MULTIPLE	1
 #define FUJI_VIEW_ALL_IMGS	2
 #define FUJI_REMOTE_MODE	5
 #define FUJI_CAMERA_ERR		7
@@ -14,10 +14,11 @@
 #define FUJI_SD_HOT_SWAP	11
 #define FUJI_GPS_ASSIST_MODE	17
 #define FUJI_RESERVED_IMG_TRANSMISSION	18
+#define FUJI_LIVEVIEW	20 // ?????
 
 // Restriction (Unlocked) codes
 #define FUJI_WAIT_FOR_ACCESS	0
-#define FUJI_SINGLE_MULTIPLE_TRANSFER	1
+#define FUJI_MULTIPLE_TRANSFER	1
 #define FUJI_FULL_ACCESS	2
 #define FUJI_REMOTE_ACCESS	6
 

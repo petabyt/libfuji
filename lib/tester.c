@@ -78,7 +78,7 @@ int fuji_test_get_props(struct PtpRuntime *r) {
 		PTP_PC_FUJI_RemotePhotoViewVersion,
 		PTP_PC_FUJI_PhotoRecieveReservedVersion,
 		PTP_PC_FUJI_VersionGPS,
-		0xdf44
+		PTP_PC_FUJI_PartialSize,
 	};
 
 	for (int i = 0; i < (int)(sizeof(test_props) / sizeof(uint16_t)); i++) {
@@ -98,7 +98,7 @@ int fuji_test_get_props(struct PtpRuntime *r) {
 
 int fuji_test_init_access(struct PtpRuntime *r) {
 	tester_log("Waiting for device access...");
-	int rc = ptpip_fuji_wait_unlocked(r);
+	int rc = fuji_wait_for_access(r);
 	if (rc) {
 		tester_fail("Error trying to gain device access: %d", rc);
 		return rc;
@@ -179,7 +179,21 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 	char buffer[512];
 	ptp_storage_info_json(&so, buffer, sizeof(buffer));
 
-	tester_log("storage info: %s", buffer);
+	tester_log("storage info: %s\n", buffer);
+
+	tester_log("Attempting to get object info for 1...");
+	struct PtpObjectInfo oi;
+	rc = ptp_get_object_info(r, 1, &oi);
+	if (rc) {
+		tester_fail("Failed to get object info: %d", rc);
+		return rc;
+	}
+
+	log_payload(r);
+
+	ptp_object_info_json(&oi, buffer, sizeof(buffer));
+
+	tester_log("Object info: %s\n", buffer);
 
 	return 0;
 }

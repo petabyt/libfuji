@@ -10,6 +10,7 @@
 #include "jni.h"
 #include "backend.h"
 #include "fuji.h"
+#include "fujiptp.h"
 
 JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
     backend.env = env;
@@ -143,4 +144,10 @@ JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
     if (rc) return rc;
 
     return 0;
+}
+
+JNI_FUNC(jboolean, cIsMultipleMode)(JNIEnv *env, jobject thiz) {
+    backend.env = env;
+
+    return fuji_known.unlocked_mode == FUJI_MULTIPLE_TRANSFER;
 }

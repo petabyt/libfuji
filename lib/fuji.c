@@ -34,6 +34,7 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 		return PTP_RUNTIME_ERR;
 	}
 
+	ptp_verbose_log("unlocked %d\n", value);
 	fuji_known.unlocked_mode = value;
 
 	// We don't need to poll the device
@@ -52,7 +53,7 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 		for (int i = 0; i < ev->length; i++) {
 			ptp_verbose_log("%X changed to %d\n", ev->events[i].code, ev->events[i].value);
 		}
-
+		
 		for (int i = 0; i < ev->length; i++) {
 			if (ev->events[i].code == PTP_PC_FUJI_Unlocked && (ev->events[i].value != FUJI_WAIT_FOR_ACCESS)) {
 				fuji_known.unlocked_mode = ev->events[i].value;
@@ -109,9 +110,21 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	if (rc) return rc;
 	fuji_known.remote_version = ptp_parse_prop_value(r);
 
+	ptp_verbose_log("Unlocked mode is %d\n", fuji_known.unlocked_mode);
+
+	// Determine function mode from Unlocked state
 	int mode = 0;
-	if (fuji_known.photo_get_version == 1) {
-		mode = FUJI_VIEW_ALL_IMGS;
+	if (fuji_known.unlocked_mode == FUJI_MULTIPLE_TRANSFER) {
+		mode = FUJI_VIEW_MULTIPLE;
+	} else if (fuji_known.unlocked_mode == FUJI_FULL_ACCESS) {
+		// Guess
+		if (fuji_known.photo_get_version == 1) {
+			mode = FUJI_VIEW_ALL_IMGS;
+		} else {
+			mode = FUJI_REMOTE_MODE;
+		}
+	} else if (fuji_known.unlocked_mode == FUJI_REMOTE_ACCESS) {
+		mode = FUJI_REMOTE_MODE;
 	} else {
 		mode = FUJI_REMOTE_MODE;
 	}

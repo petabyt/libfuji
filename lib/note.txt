@@ -33,3 +33,14 @@ Capture magic:
 - FujiGetDeviceInfo
 - TerminateOpenCapture(7)
 - TerminateOpenCapture(7)
+
+Also,
+Connect to wifi
+open capture app
+start record for fuji app
+open fujiapp
+try connection
+close app
+restart connection
+open app again
+
