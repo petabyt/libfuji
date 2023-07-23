@@ -42,7 +42,7 @@ JNI_FUNC(jstring, cPtpRun)(JNIEnv *env, jobject thiz, jstring string) {
 
 JNI_FUNC(jint, cPtpFujiWaitUnlocked)(JNIEnv *env, jobject thiz) {
     backend.env = env;
-    return ptpip_fuji_wait_unlocked(&backend.r);
+    return fuji_wait_for_access(&backend.r);
 }
 
 JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
@@ -78,7 +78,7 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 
     // Set the compression prop (allows full images to go through, otherwise puts
     // extra data in ObjectInfo and cuts off image downloads)
-    int rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Compression, 1);
+    int rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_NoCompression, 1);
     if (rc) {
         return NULL;
     }
@@ -98,13 +98,17 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
     int read = 0;
     while (1) {
         rc = ptp_get_partial_object(&backend.r, handle, read, max);
-        if (rc) {
-            ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Compression, 0);
+        if (rc == PTP_CHECK_CODE) {
+            ptp_set_prop_value(&backend.r, PTP_PC_FUJI_NoCompression, 0);
+            return NULL;
+        } else if (rc) {
             return NULL;
         }
 
         if (ptp_get_payload_length(&backend.r) == 0) {
-            ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Compression, 0);
+            ptp_set_prop_value(&backend.r, PTP_PC_FUJI_NoCompression, 0);
+            return NULL;
+        } else if (rc) {
             return NULL;
         }
 
@@ -113,7 +117,7 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
         read += ptp_get_payload_length(&backend.r);
 
         if (read >= oi.compressed_size) {
-            ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Compression, 0);
+            ptp_set_prop_value(&backend.r, PTP_PC_FUJI_NoCompression, 0);
             return ret;
         }
     }
