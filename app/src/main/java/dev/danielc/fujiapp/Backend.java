@@ -49,6 +49,7 @@ public class Backend {
     public native synchronized static String cPtpRun(String req);
     public native synchronized static byte[] cPtpGetThumb(int handle);
     public native synchronized static byte[] cFujiGetFile(int handle);
+    public native synchronized static boolean cIsMultipleMode();
 
     // Enable disable verbose logging to file
     public native synchronized static int cRouteLogs(String filename);

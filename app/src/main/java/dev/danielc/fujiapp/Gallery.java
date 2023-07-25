@@ -58,7 +58,11 @@ public class Gallery extends AppCompatActivity {
                     return;
                 }
 
-                Thread.sleep(500);
+                try {
+                    Thread.sleep(500);
+                } catch (Exception e) {
+                    return;
+                }
 
                 try {
                     Backend.run("ptp_open_session");
@@ -67,12 +71,8 @@ public class Gallery extends AppCompatActivity {
                     return;
                 }
 
-                try {
-                    Backend.jni_print("Fuji_Mode: " + Backend.cPtpGetPropValue(0xdf01) + "\n");
-                    Backend.jni_print("Fuji_TransferMode: " + Backend.cPtpGetPropValue(0xdf22) + "\n");
-                    Backend.jni_print("Fuji_Unlocked: " + Backend.cPtpGetPropValue(0xdf00) + "\n");
-                } catch (Exception e) {
-                    Backend.jni_print("Failed to get some access info\n");
+                if (Backend.cIsMultipleMode()) {
+                    Backend.jni_print("Multiple/single import is unsupported, don't expect it to work");
                 }
 
                 Backend.jni_print("Waiting for device access...\n");
@@ -127,10 +127,10 @@ public class Gallery extends AppCompatActivity {
                             imageAdapter = new ImageAdapter(Gallery.this, objectHandles);
                             recyclerView.setAdapter(imageAdapter);
                         }
-                    });                    
+                    });
                 }
 
-                // Use this thread to ping the camera for events
+                // After init, use this thread to ping the camera for events
                 while (true) {
                     if (Backend.cPtpFujiPing() == 0) {
                         try {
