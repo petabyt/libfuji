@@ -9,7 +9,8 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/cardview_dark_background">
+        android:background="@color/cardview_dark_background"
+        app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
             android:id="@+id/linearLayout3"
@@ -41,6 +42,7 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <ImageButton
+                android:contentDescription="Download button"
                 android:id="@+id/download_button"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
@@ -49,6 +51,7 @@
                 app:srcCompat="@drawable/download" />
 
             <ImageButton
+                android:contentDescription="Share button"
                 android:id="@+id/share_button"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
