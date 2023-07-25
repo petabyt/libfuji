@@ -21,6 +21,7 @@ import android.view.ViewGroup;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.view.Gravity;
+import android.os.Build;
 
 public class MainActivity extends AppCompatActivity {
     private static MainActivity instance;
@@ -108,7 +109,11 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
+        if (Build.VERSION.SDK_INT >= 26) {
+            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback, 500);
+        } else {
+            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
+        }
     }
 
     public static MainActivity getInstance() {

@@ -26,6 +26,7 @@ import android.widget.PopupWindow;
 import android.os.Handler;
 import android.view.ViewTreeObserver;
 import android.widget.ProgressBar;
+import android.os.Build;
 
 public class Tester extends AppCompatActivity {
     private Handler handler;
@@ -101,7 +102,11 @@ public class Tester extends AppCompatActivity {
             }
         };
 
-        connectivityManager.requestNetwork(requestBuilder.build(), networkCallback, 500);
+        if (Build.VERSION.SDK_INT >= 26) {
+            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback, 500);
+        } else {
+            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
+        }
     }
 
     private String currentLogs = "";
