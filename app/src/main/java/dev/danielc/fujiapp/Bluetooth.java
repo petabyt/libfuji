@@ -10,6 +10,7 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothProfile;
 import android.content.Intent;
 
 public class Bluetooth {
@@ -18,11 +19,54 @@ public class Bluetooth {
     private BluetoothDevice dev;
     public BluetoothGatt gatt;
 
-    private String FUJI_BLE_DEVICE_INFO = "91F1DE68-DFF6-466E-8B65-FF13B0F16FB8";
+    private String FUJI_DEVICE_INFO = "91F1DE68-DFF6-466E-8B65-FF13B0F16FB8";
     private String FUJI_WIFI_LAUNCH_REQUEST = "FB15C357-364F-49D3-B5C5-1E32C0DED038";
     private String FUJI_GET_WIFI_STATE = "FB15C357-364F-49D3-B5C5-1E32C0DED038";
     private String FUJI_GET_BLE_VERSION = "389363E4-712E-4CF2-A72E-BFCF7FB6ADC1";
     private String FUJI_GET_SSID = "BF6DC9CF-3606-4EC9-A4C8-D77576E93EA4";
+
+    // Dummy
+    private final BluetoothGattCallback callback = new BluetoothGattCallback() {
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                log("Bluetooth Connected");
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                log("Bluetooth disconnected");
+            }
+
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+
+            }
+        }
+
+        public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
+            gatt.discoverServices();
+        }
+
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+
+        }
+
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+
+        }
+
+        public void onCharacteristicRead (BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+
+        }
+
+        public void onCharacteristicWrite (BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+
+        }
+
+        public void onDescriptorRead (BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+
+        }
+
+        public void onDescriptorWrite (BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+
+        }
+    }
 
     // Return an Intent that is to be run by the caller
     public Intent getIntent() throws Exception {
@@ -44,9 +88,7 @@ public class Bluetooth {
         throw new Exception("Bluetooth adapter is disabled");
     }
 
-    public void readCharacteristic() {
-
+    public connectGATT() {
+        // Connected to adapter.getName();
     }
-
-// BluetoothGattService service = bluetoothGatt.getService(UUID.fromString(BTManagerService.SERVICE_FF_CONNECTED_DEVICE_INFORMATION));
 }
