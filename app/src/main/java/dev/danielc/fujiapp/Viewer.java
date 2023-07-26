@@ -1,5 +1,8 @@
 // Download the image, button for share and download
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
+
+// TODO: prevent back arrow when downloading image
+
 package dev.danielc.fujiapp;
 
 import android.util.Log;

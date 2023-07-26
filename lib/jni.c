@@ -151,3 +151,11 @@ JNI_FUNC(jboolean, cIsMultipleMode)(JNIEnv *env, jobject thiz) {
 
     return fuji_known.unlocked_mode == FUJI_MULTIPLE_TRANSFER;
 }
+
+JNI_FUNC(jint, cTestStuff)(JNIEnv *env, jobject thiz) {
+    backend.env = env;
+
+    int rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Mode, FUJI_CAMERA_ERR);
+
+    return rc;
+}

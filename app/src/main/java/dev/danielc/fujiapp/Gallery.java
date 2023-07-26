@@ -8,6 +8,8 @@ import org.json.JSONArray;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import android.view.View;
 import android.widget.Toast;
 import android.content.Intent;
 import android.os.Bundle;
@@ -42,6 +44,19 @@ public class Gallery extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallery);
         instance = this;
+
+        findViewById(R.id.blowup).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Thread testThread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Backend.jni_print("Attempted to detonate internal camera time bomb: " + Backend.cTestStuff());
+                    }
+                });
+                testThread.start();
+            }
+        });
 
         recyclerView = findViewById(R.id.galleryView);
         recyclerView.setLayoutManager(new GridLayoutManager(this, 4));
@@ -160,7 +175,7 @@ public class Gallery extends AppCompatActivity {
     // When back pressed in gallery, do nothing
     @Override
     public void onBackPressed() {
-        //super.onBackPressed();
+        // TODO: Press again to terminate connection
     }
 }
 

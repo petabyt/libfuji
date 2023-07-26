@@ -22,7 +22,7 @@
 #define FUJI_FULL_ACCESS	2
 #define FUJI_REMOTE_ACCESS	6
 
-// Stuff from libgphoto2 ptp.h
+// Stuff from libgphoto2 ptp.h - a lot of USB stuff
 #define PTP_EC_FUJI_PreviewAvailable		0xC001
 #define PTP_EC_FUJI_ObjectAdded			0xC004
 

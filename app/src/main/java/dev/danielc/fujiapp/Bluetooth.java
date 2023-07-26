@@ -29,9 +29,9 @@ public class Bluetooth {
     private final BluetoothGattCallback callback = new BluetoothGattCallback() {
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                log("Bluetooth Connected");
+                //log("Bluetooth Connected");
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                log("Bluetooth disconnected");
+                //log("Bluetooth disconnected");
             }
 
             if (status == BluetoothGatt.GATT_SUCCESS) {
@@ -66,7 +66,7 @@ public class Bluetooth {
         public void onDescriptorWrite (BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
 
         }
-    }
+    };
 
     // Return an Intent that is to be run by the caller
     public Intent getIntent() throws Exception {
@@ -88,7 +88,7 @@ public class Bluetooth {
         throw new Exception("Bluetooth adapter is disabled");
     }
 
-    public connectGATT() {
+    public void connectGATT() {
         // Connected to adapter.getName();
     }
 }

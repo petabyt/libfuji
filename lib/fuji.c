@@ -34,7 +34,7 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 		return PTP_RUNTIME_ERR;
 	}
 
-	ptp_verbose_log("unlocked %d\n", value);
+	ptp_verbose_log("unlocked_mode: %d\n", value);
 	fuji_known.unlocked_mode = value;
 
 	// We don't need to poll the device
@@ -48,7 +48,6 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 
 		// Apply events structure to payload, and check for unlocked event (PTP_PC_FUJI_Unlocked)
 		struct PtpFujiEvents *ev = (struct PtpFujiEvents *)(ptp_get_payload(r));
-
 		ptp_verbose_log("Found %d events\n", ev->length);
 		for (int i = 0; i < ev->length; i++) {
 			ptp_verbose_log("%X changed to %d\n", ev->events[i].code, ev->events[i].value);

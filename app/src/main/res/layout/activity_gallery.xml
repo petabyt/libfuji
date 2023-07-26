@@ -42,7 +42,7 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <Button
-                android:id="@+id/button"
+                android:id="@+id/blowup"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -76,5 +76,4 @@
         </androidx.recyclerview.widget.RecyclerView>
     </LinearLayout>
 
-</LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
