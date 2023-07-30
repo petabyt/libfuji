@@ -39,6 +39,25 @@ public class Gallery extends AppCompatActivity {
         });
     }
 
+    void showWarning(String text) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                TextView warn_msg = findViewById(R.id.bottomDialogText);
+                warn_msg.setText(text);
+
+                View b = findViewById(R.id.bottomDialog);
+                b.setVisibility(View.VISIBLE);
+            }
+        });
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            return;
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,7 +86,7 @@ public class Gallery extends AppCompatActivity {
             @Override
             public void run() {
                 if (Backend.cPtpFujiInit() == 0) {
-                    Backend.jni_print("Successfully initialized command socket\n");
+                    Backend.jni_print("Initialized connection.\n");
                 } else {
                     Backend.jni_print("Failed to init socket\n");
                     return;
@@ -82,12 +101,8 @@ public class Gallery extends AppCompatActivity {
                 try {
                     Backend.run("ptp_open_session");
                 } catch (Exception e) {
-                    Backend.jni_print("Failed to open session\n");
+                    Backend.jni_print("Failed to open session.\n");
                     return;
-                }
-
-                if (Backend.cIsMultipleMode()) {
-                    Backend.jni_print("Multiple/single import is unsupported, don't expect it to work");
                 }
 
                 Backend.jni_print("Waiting for device access...\n");
@@ -102,6 +117,12 @@ public class Gallery extends AppCompatActivity {
                 if (Backend.cFujiConfigInitMode() != 0) {
                     Backend.jni_print("Failed to configure mode with the camera.\n");
                     return;
+                }
+
+                if (Backend.cIsMultipleMode()) {
+                    showWarning("Multiple/single import is unsupported, don't expect it to work.");
+                } else if (Backend.cIsUntestedMode()) {
+                    showWarning("This camera is untested, don't expect it to work.");
                 }
 
                 if (Backend.cFujiConfigVersion() != 0) {

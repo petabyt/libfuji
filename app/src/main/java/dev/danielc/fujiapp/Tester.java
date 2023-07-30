@@ -51,7 +51,7 @@ public class Tester extends AppCompatActivity {
                 return;
             }
 
-            log("");
+            log("Gained access to bluetooth");
 
             // TODO: Finish bluetooth tests
         }
@@ -72,7 +72,7 @@ public class Tester extends AppCompatActivity {
             fail("Couldn't route logs to " + Backend.getLogPath() + ", running test anyway");
         }
 
-        //connectBluetooth();
+        connectBluetooth();
 
         Thread thread = new Thread(new Runnable() {
             @Override

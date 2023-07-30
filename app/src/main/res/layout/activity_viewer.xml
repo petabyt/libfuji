@@ -7,6 +7,7 @@
     tools:context=".Viewer">
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintLayout3"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/cardview_dark_background"
@@ -41,20 +42,20 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <ImageButton
-                android:contentDescription="Download button"
                 android:id="@+id/download_button"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:clickable="true"
+                android:contentDescription="Download button"
                 android:focusable="true"
                 app:srcCompat="@drawable/download" />
 
             <ImageButton
-                android:contentDescription="Share button"
                 android:id="@+id/share_button"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:clickable="true"
+                android:contentDescription="Share button"
                 android:focusable="true"
                 app:srcCompat="@drawable/share" />
 
@@ -62,9 +63,11 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintLayout2"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="50dp">
+        android:layout_marginTop="50dp"
+        app:layout_constraintTop_toTopOf="parent">
 
         <com.jsibbold.zoomage.ZoomageView
             android:id="@+id/zoom_view"
@@ -78,7 +81,10 @@
             app:zoomage_minScale="0.6"
             app:zoomage_restrictBounds="false"
             app:zoomage_translatable="true"
-            app:zoomage_zoomable="true" />
+            app:zoomage_zoomable="true"
+            tools:layout_editor_absoluteX="184dp"
+            tools:layout_editor_absoluteY="175dp" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

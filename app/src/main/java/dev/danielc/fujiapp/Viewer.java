@@ -43,6 +43,8 @@ public class Viewer extends AppCompatActivity {
     public static PopupWindow popupWindow = null;
     public static ProgressBar progressBar = null;
 
+    public static boolean inProgress = false;
+
     // Create a popup - will set popupWindow, will be closed when finished
     public ProgressBar downloadPopup(Activity activity) {
         LayoutInflater inflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -154,7 +156,9 @@ public class Viewer extends AppCompatActivity {
 
                     String filename = jsonObject.getJSONObject("resp").getString("filename");
 
+                    inProgress = true;
                     byte[] file = Backend.cFujiGetFile(handle);
+                    inProgress = false;
 
                     handler.post(new Runnable() {
                     @Override
