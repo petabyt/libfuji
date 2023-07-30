@@ -55,7 +55,7 @@ void android_err(char *fmt, ...) {
 }
 
 JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
-    // Already zero-ed in BSS, but for good measure:
+    // Already zero-ed in BSS, but to be *extra* sure...
     memset(&backend, 0, sizeof(backend));
 
     backend.env = env;

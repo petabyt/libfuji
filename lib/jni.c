@@ -19,7 +19,7 @@ JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
     struct PtpFujiInitResp resp;
     ptp_fuji_get_init_info(&backend.r, &resp);
 
-    jni_print("Connecting to %s\n", resp.cam_name);
+    fuji_known.info = fuji_get_model_info(resp.cam_name);
 
     return rc;
 }
@@ -146,6 +146,20 @@ JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
     return 0;
 }
 
+JNI_FUNC(jboolean, cIsUntestedMode)(JNIEnv *env, jobject thiz) {
+    backend.env = env;
+
+    if (fuji_known.info == NULL) {
+        return 1;
+    }
+
+    if (fuji_known.function_version != FUJI_FULL_ACCESS) {
+        return 1;
+    }
+
+    return 0;
+}
+
 JNI_FUNC(jboolean, cIsMultipleMode)(JNIEnv *env, jobject thiz) {
     backend.env = env;
 
@@ -155,7 +169,7 @@ JNI_FUNC(jboolean, cIsMultipleMode)(JNIEnv *env, jobject thiz) {
 JNI_FUNC(jint, cTestStuff)(JNIEnv *env, jobject thiz) {
     backend.env = env;
 
-    int rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_Mode, FUJI_CAMERA_ERR);
+    int rc = ptpip_fuji_get_events(&backend.r);
 
     return rc;
 }

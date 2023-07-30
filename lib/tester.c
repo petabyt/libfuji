@@ -25,6 +25,7 @@ JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
 }
 
 void tester_log(char *fmt, ...) {
+	if (backend.tester_log == NULL) return;
     char buffer[512];
     va_list args;
     va_start(args, fmt);
@@ -37,6 +38,7 @@ void tester_log(char *fmt, ...) {
 }
 
 void tester_fail(char *fmt, ...) {
+	if (backend.tester_fail == NULL) return;
     char buffer[512];
     va_list args;
     va_start(args, fmt);
@@ -70,10 +72,8 @@ static void log_payload(struct PtpRuntime *r) {
 int fuji_test_get_props(struct PtpRuntime *r) {
 	uint16_t test_props[] = {
 		PTP_PC_FUJI_Unlocked,
-		PTP_PC_FUJI_Mode,
 		PTP_PC_FUJI_PhotoGetVersion,
 		PTP_PC_FUJI_FunctionVersion,
-		PTP_PC_FUJI_Unknown10,
 		PTP_PC_FUJI_RemoteVersion,
 		PTP_PC_FUJI_RemotePhotoViewVersion,
 		PTP_PC_FUJI_PhotoRecieveReservedVersion,

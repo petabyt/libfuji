@@ -109,7 +109,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	if (rc) return rc;
 	fuji_known.remote_version = ptp_parse_prop_value(r);
 
-	ptp_verbose_log("Unlocked mode is %d\n", fuji_known.unlocked_mode);
+	tester_log("Unlocked mode is %d\n", fuji_known.unlocked_mode);
 
 	// Determine function mode from Unlocked state
 	int mode = 0;
@@ -128,7 +128,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 		mode = FUJI_REMOTE_MODE;
 	}
 
-	ptp_verbose_log("Setting mode to %d\n", mode);
+	tester_log("Setting mode to %d\n", mode);
 
 	rc = ptp_set_prop_value(r, PTP_PC_FUJI_Mode, mode);
 	if (rc) return rc;

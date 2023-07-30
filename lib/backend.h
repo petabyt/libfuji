@@ -36,4 +36,8 @@ void android_err(char *fmt, ...);
 // Verbose print to log file
 void jni_verbose_log(char *str);
 
+// Test suite verbose logging
+void tester_log(char *fmt, ...);
+void tester_fail(char *fmt, ...);
+
 #endif
