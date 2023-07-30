@@ -14,8 +14,9 @@ int fuji_wait_for_access(struct PtpRuntime *r);
 // Holds vital info about the camera
 struct FujiDeviceKnowledge {
 	struct FujiCameraInfo *info;
-	int unlocked_mode;
+	int camera_state;
 	int function_version;
+	int remote_photo_view_version;
 	int photo_view_version;
 	int photo_get_version;
 	int remote_version;

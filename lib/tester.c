@@ -71,12 +71,12 @@ static void log_payload(struct PtpRuntime *r) {
 
 int fuji_test_get_props(struct PtpRuntime *r) {
 	uint16_t test_props[] = {
-		PTP_PC_FUJI_Unlocked,
+		PTP_PC_FUJI_CameraState,
 		PTP_PC_FUJI_PhotoGetVersion,
-		PTP_PC_FUJI_FunctionVersion,
+		PTP_PC_FUJI_PhotoViewVersion,
 		PTP_PC_FUJI_RemoteVersion,
 		PTP_PC_FUJI_RemotePhotoViewVersion,
-		PTP_PC_FUJI_PhotoRecieveReservedVersion,
+		PTP_PC_FUJI_PhotoGetLimitedVersion,
 		PTP_PC_FUJI_VersionGPS,
 		PTP_PC_FUJI_PartialSize,
 	};

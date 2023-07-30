@@ -163,7 +163,7 @@ JNI_FUNC(jboolean, cIsUntestedMode)(JNIEnv *env, jobject thiz) {
 JNI_FUNC(jboolean, cIsMultipleMode)(JNIEnv *env, jobject thiz) {
     backend.env = env;
 
-    return fuji_known.unlocked_mode == FUJI_MULTIPLE_TRANSFER;
+    return fuji_known.camera_state == FUJI_MULTIPLE_TRANSFER;
 }
 
 JNI_FUNC(jint, cTestStuff)(JNIEnv *env, jobject thiz) {
