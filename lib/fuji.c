@@ -90,12 +90,12 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	// Try and learn about the camera
 
 	// Get photo viewer version
-	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_PhotoViewVersion);
+	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageExploreVersion);
 	if (rc) return rc;
 	fuji_known.function_version = ptp_parse_prop_value(r);
 
 	// Get photo viewer version for remote
-	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemotePhotoViewVersion);
+	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion);
 	if (rc) return rc;
 	fuji_known.remote_photo_view_version = ptp_parse_prop_value(r);
 
@@ -141,7 +141,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 
 // TODO: rename config photo view version
 int fuji_config_version(struct PtpRuntime *r) {
-	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_PhotoViewVersion);
+	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageExploreVersion);
 	if (rc) return rc;
 
 	int version = ptp_parse_prop_value(r);
@@ -150,7 +150,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 
 	// The property must be set again (to it's own value) to tell the camera
 	// that the current version is supported - this may or may not be necessary
-	rc = ptp_set_prop_value(r, PTP_PC_FUJI_PhotoViewVersion, version);
+	rc = ptp_set_prop_value(r, PTP_PC_FUJI_ImageExploreVersion, version);
 	if (rc) return rc;
 	return 0;
 }
@@ -176,7 +176,7 @@ int fuji_config_remote_photo_viewer(struct PtpRuntime *r) {
 		int rc = ptp_set_prop_value(r, PTP_PC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
 		if (rc) return rc;
 
-		rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemotePhotoViewVersion);
+		rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion);
 		if (rc) return rc;
 
 		// For X-T2, the value is 2
@@ -187,21 +187,21 @@ int fuji_config_remote_photo_viewer(struct PtpRuntime *r) {
 		// Camera doesn't have this property - return silently
 		if (view_version == -1) return 0;
 
-		ptp_verbose_log("PTP_PC_FUJI_RemotePhotoViewVersion: %d\n", view_version);
+		ptp_verbose_log("PTP_PC_FUJI_RemoteImageExploreVersion: %d\n", view_version);
 
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_FunctionMode, FUJI_MODE_REMOTE_IMG_VIEW);
 		if (rc) return rc;
 
 		// Try to get the version again
-		rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemotePhotoViewVersion);
+		rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion);
 		if (rc) return rc;
 
 		view_version = ptp_parse_prop_value(r);
 
-		ptp_verbose_log("PTP_PC_FUJI_RemotePhotoViewVersion: %d\n", view_version);
+		ptp_verbose_log("PTP_PC_FUJI_RemoteImageExploreVersion: %d\n", view_version);
 
 		// Assume the version is correct, verify it by setting
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemotePhotoViewVersion, view_version);
+		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion, view_version);
 		if (rc) return rc;
 		
 	}

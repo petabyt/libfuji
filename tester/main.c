@@ -6,16 +6,7 @@
 
 #include <camlib/camlib.h>
 
-int ptp_set_prop_value_16(struct PtpRuntime *r, int code, int value) {
-	struct PtpCommand cmd;
-	cmd.code = PTP_OC_SetDevicePropValue;
-	cmd.param_length = 1;
-	cmd.params[0] = code;
-
-	uint16_t dat[] = {(uint16_t)value};
-
-	return ptp_generic_send_data(r, &cmd, dat, sizeof(dat));
-}
+#include <models.h>
 
 int main() {
 	struct PtpRuntime r;
@@ -39,12 +30,8 @@ int main() {
 
 	ptpip_fuji_wait_unlocked(&r);
 
-	ptp_set_prop_value(&r, PTP_PC_FUJI_Mode, 2); // set 16 bit
-	ptp_set_prop_value(&r, PTP_PC_FUJI_FunctionVersion, 2); // set 32 bit
+	ptp_set_prop_value(&r, PTP_PC_FUJI_Mode, 7); // set 16 bit
+	//ptp_set_prop_value(&r, PTP_PC_FUJI_FunctionVersion, 2); // set 32 bit
 
-	ptpip_close(&r);
-
-	free(r.data);
 	return 0;
 }
-

@@ -22,12 +22,6 @@ public class Bluetooth {
     private BluetoothDevice dev;
     public BluetoothGatt gatt;
 
-    private String FUJI_DEVICE_INFO = "91F1DE68-DFF6-466E-8B65-FF13B0F16FB8";
-    private String FUJI_WIFI_LAUNCH_REQUEST = "FB15C357-364F-49D3-B5C5-1E32C0DED038";
-    private String FUJI_GET_WIFI_STATE = "FB15C357-364F-49D3-B5C5-1E32C0DED038";
-    private String FUJI_GET_BLE_VERSION = "389363E4-712E-4CF2-A72E-BFCF7FB6ADC1";
-    private String FUJI_GET_SSID = "BF6DC9CF-3606-4EC9-A4C8-D77576E93EA4";
-
     private final BluetoothGattCallback callback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -45,16 +39,16 @@ public class Bluetooth {
                 // Services discovered, you can now read/write characteristics or enable notifications
 
                 // Example: Reading a characteristic
-                BluetoothGattService service = gatt.getService(UUID.fromString(FUJI_DEVICE_INFO));
-                BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(FUJI_GET_BLE_VERSION));
+                BluetoothGattService service = gatt.getService(UUID.fromString(XX));
+                BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(XX));
                 gatt.readCharacteristic(characteristic);
 
                 // Example: Enabling notifications for a characteristic
-                BluetoothGattCharacteristic notifyCharacteristic = service.getCharacteristic(UUID.fromString(FUJI_WIFI_LAUNCH_REQUEST));
+                BluetoothGattCharacteristic notifyCharacteristic = service.getCharacteristic(UUID.fromString(XX));
                 gatt.setCharacteristicNotification(notifyCharacteristic, true);
 
                 // Example: Writing to a characteristic
-                BluetoothGattCharacteristic writeCharacteristic = service.getCharacteristic(UUID.fromString(FUJI_GET_WIFI_STATE));
+                BluetoothGattCharacteristic writeCharacteristic = service.getCharacteristic(UUID.fromString(XX));
                 byte[] dataToWrite = {0x01, 0x02}; // Sample data to write
                 writeCharacteristic.setValue(dataToWrite);
                 gatt.writeCharacteristic(writeCharacteristic);
