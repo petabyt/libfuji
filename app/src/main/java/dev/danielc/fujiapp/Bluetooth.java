@@ -39,19 +39,19 @@ public class Bluetooth {
                 // Services discovered, you can now read/write characteristics or enable notifications
 
                 // Example: Reading a characteristic
-                BluetoothGattService service = gatt.getService(UUID.fromString(XX));
-                BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(XX));
-                gatt.readCharacteristic(characteristic);
-
-                // Example: Enabling notifications for a characteristic
-                BluetoothGattCharacteristic notifyCharacteristic = service.getCharacteristic(UUID.fromString(XX));
-                gatt.setCharacteristicNotification(notifyCharacteristic, true);
-
-                // Example: Writing to a characteristic
-                BluetoothGattCharacteristic writeCharacteristic = service.getCharacteristic(UUID.fromString(XX));
-                byte[] dataToWrite = {0x01, 0x02}; // Sample data to write
-                writeCharacteristic.setValue(dataToWrite);
-                gatt.writeCharacteristic(writeCharacteristic);
+//                BluetoothGattService service = gatt.getService(UUID.fromString(XX));
+//                BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(XX));
+//                gatt.readCharacteristic(characteristic);
+//
+//                // Example: Enabling notifications for a characteristic
+//                BluetoothGattCharacteristic notifyCharacteristic = service.getCharacteristic(UUID.fromString(XX));
+//                gatt.setCharacteristicNotification(notifyCharacteristic, true);
+//
+//                // Example: Writing to a characteristic
+//                BluetoothGattCharacteristic writeCharacteristic = service.getCharacteristic(UUID.fromString(XX));
+//                byte[] dataToWrite = {0x01, 0x02}; // Sample data to write
+//                writeCharacteristic.setValue(dataToWrite);
+//                gatt.writeCharacteristic(writeCharacteristic);
             }
         }
 

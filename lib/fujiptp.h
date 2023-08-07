@@ -9,7 +9,7 @@
 
 #define PTP_PC_FUJI_Unknown4		0xD228
 #define PTP_PC_FUJI_Unknown15		0xD22B
-#define PTP_PC_FUJI_CheckBeforeDownload		0xD235
+#define PTP_PC_FUJI_CompressionCutOff	0xD235
 #define PTP_PC_FUJI_StorageID		0xd244
 #define PTP_PC_FUJI_DriveMode		0xd246
 #define PTP_PC_FUJI_ObjectCount2	0xd401
@@ -19,12 +19,12 @@
 #define PTP_PC_FUJI_Unknown8		0xd407
 #define PTP_PC_FUJI_Unknown5		0xd500
 #define PTP_PC_FUJI_Unknown6		0xd52f
-#define PTP_PC_FUJI_Unknown9		0xdf21
+#define PTP_PC_FUJI_PhotoGetVersion	0xdf21
 #define PTP_PC_FUJI_ImageExploreVersion	0xdf22
 #define PTP_PC_FUJI_Unknown10		0xdf23 // another version prop?
 #define PTP_PC_FUJI_RemoteVersion	0xdf24
 #define PTP_PC_FUJI_RemoteImageExploreVersion	0xdf25
-#define PTP_PC_FUJI_Unknown12		0xdf26
+#define PTP_PC_FUJI_PhotoGetLimitedVersion	0xdf26
 #define PTP_PC_FUJI_Unknown13		0xdf27
 #define PTP_PC_FUJI_Unknown16		0xdf28
 #define PTP_PC_FUJI_Unknown14		0xdf31

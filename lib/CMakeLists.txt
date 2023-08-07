@@ -19,6 +19,8 @@ camlib/src/operations.c
 camlib/src/packet.c
 camlib/src/util.c
 camlib/src/ml.c
+camlib/src/conv.c
+
 main.c
 jni.c
 lib.c

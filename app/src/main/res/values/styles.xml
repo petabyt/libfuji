@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="GreyButton">
+        <item name="android:background">@drawable/light_button</item>
+        <item name="android:foreground">@drawable/ripple</item>
+        <item name="android:textSize">14dp</item>
+        <item name="android:clickable">true</item>
+    </style>
+    <style name="GoButton">
+        <item name="android:background">@drawable/go_button</item>
+        <item name="android:foreground">@drawable/ripple</item>
+        <item name="android:textSize">14dp</item>
+        <item name="android:clickable">true</item>
+    </style>
+</resources>

@@ -12,6 +12,7 @@
 #include "backend.h"
 #include "fuji.h"
 #include "models.h"
+#include "fujiptp.h"
 
 // Init commands 
 JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
@@ -73,12 +74,11 @@ int fuji_test_get_props(struct PtpRuntime *r) {
 	uint16_t test_props[] = {
 		PTP_PC_FUJI_CameraState,
 		PTP_PC_FUJI_PhotoGetVersion,
-		PTP_PC_FUJI_PhotoViewVersion,
+		PTP_PC_FUJI_ImageExploreVersion,
 		PTP_PC_FUJI_RemoteVersion,
-		PTP_PC_FUJI_RemotePhotoViewVersion,
+		PTP_PC_FUJI_RemoteImageExploreVersion,
 		PTP_PC_FUJI_PhotoGetLimitedVersion,
-		PTP_PC_FUJI_VersionGPS,
-		PTP_PC_FUJI_PartialSize,
+		PTP_PC_FUJI_CompressionCutOff,
 	};
 
 	for (int i = 0; i < (int)(sizeof(test_props) / sizeof(uint16_t)); i++) {
