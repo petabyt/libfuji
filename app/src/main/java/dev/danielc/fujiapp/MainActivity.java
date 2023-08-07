@@ -26,23 +26,6 @@ import android.os.Build;
 public class MainActivity extends AppCompatActivity {
     private static MainActivity instance;
 
-    public void helpPopup(Activity activity) {
-        LayoutInflater inflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        View popupView = inflater.inflate(R.layout.popup_help, null);
-        PopupWindow popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-
-        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-
-        popupWindow.showAtLocation(getWindow().getDecorView().getRootView(), Gravity.CENTER, 0, 0);
-
-        Button close = (Button) popupView.findViewById(R.id.close);
-        close.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View popupView) {
-                popupWindow.dismiss();
-            }
-        });
-    }
-
     Handler handler;
 
     @Override
@@ -67,7 +50,8 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.help_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                helpPopup(MainActivity.this);
+                Intent intent = new Intent(MainActivity.this, Help.class);
+                startActivity(intent);
             }
         });
 
