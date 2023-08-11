@@ -17,7 +17,7 @@
             android:id="@+id/textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Fudge"
+            android:text="@string/app_name"
             android:textSize="34sp" />
 
         <TextView
@@ -31,7 +31,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:singleLine="false"
-            android:text="Troubleshooting:"
+            android:text="@string/help_text2"
             android:textAllCaps="false"
             android:textSize="20sp" />
 
@@ -40,7 +40,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:singleLine="false"
-            android:text="Your camera\'s WiFi menu should be accessible from the \'Fn\' button on the top of the body."
+            android:text="@string/help_text3"
             android:textAllCaps="false"
             android:textSize="14sp" />
 
@@ -49,7 +49,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:singleLine="false"
-            android:text="Sorry, modern cameras with Bluetooth aren\'t supported yet. That's on the roadmap!"
+            android:text="@string/help_text4"
             android:textAllCaps="false"
             android:textSize="14sp" />
 
@@ -57,7 +57,7 @@
             android:id="@+id/textView13"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="If you aren't satisfied with the app, then you can return your copy for a full refund." />
+            android:text="@string/help_text5" />
 
         <Space
             android:layout_width="match_parent"
@@ -68,7 +68,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:singleLine="false"
-            android:text="Credits:"
+            android:text="@string/help_text6"
             android:textAllCaps="false"
             android:textSize="20sp" />
 
@@ -76,25 +76,25 @@
             android:id="@+id/textView7"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Made using camlib (Apache license)" />
+            android:text="@string/help_text7" />
 
         <TextView
             android:id="@+id/textView8"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="com.jsibbold.zoomage.ZoomageView (Apache)" />
+            android:text="@string/help_text8" />
 
         <TextView
             android:id="@+id/textView9"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Google Material Icons (Apache)" />
+            android:text="@string/help_text8" />
 
         <TextView
             android:id="@+id/textView10"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Default image landscape painting is by me :)" />
+            android:text="@string/help_text9" />
 
     </LinearLayout>
 
