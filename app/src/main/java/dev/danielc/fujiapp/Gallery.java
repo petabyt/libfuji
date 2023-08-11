@@ -92,6 +92,7 @@ public class Gallery extends AppCompatActivity {
                     return;
                 }
 
+                // Sleep because Fuji camera is sensitive
                 try {
                     Thread.sleep(500);
                 } catch (Exception e) {
@@ -99,7 +100,7 @@ public class Gallery extends AppCompatActivity {
                 }
 
                 try {
-                    Backend.run("ptp_open_session");
+                    Camera.openSession();
                 } catch (Exception e) {
                     Backend.jni_print("Failed to open session.\n");
                     return;

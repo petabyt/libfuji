@@ -1,4 +1,4 @@
-// Custom Java bindings to camlib
+// Custom Java bindings to Fujifilm/camlib
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 
 package dev.danielc.fujiapp;
@@ -13,18 +13,20 @@ public class Backend {
         System.loadLibrary("fujiapp");
     }
 
+    // TODO: implement Conn/WiFiComm here
+
     // In order to give the backend access to the static methods, new objects must be made
     private static boolean haveInited = false;
     public static void init() {
         if (haveInited == false) {
-            cInit(new Backend(), new Conn());
+            cInit(new Backend(), new WiFiComm());
         }
         haveInited = true;
     }
 
     // Clear entire backend for a new connection
     public static void clear() {
-        Conn.connection = Conn.Status.OFF;
+        WiFiComm.connection = WiFiComm.Status.OFF;
     }
 
     // Constants
@@ -37,7 +39,7 @@ public class Backend {
 
     // Note that all these native functions are synchronized (they can only be called by Java
     // by one thread at a time - necessary for a socket connection)
-    public native synchronized static void cInit(Backend b, Conn c);
+    public native synchronized static void cInit(Backend b, WiFiComm c);
     public native synchronized static void cTesterInit(Tester t);
     public native synchronized static String cTestFunc();
     public native synchronized static int cPtpFujiInit();
@@ -52,16 +54,17 @@ public class Backend {
     public native synchronized static boolean cIsMultipleMode();
     public native synchronized static boolean cIsUntestedMode();
     public native synchronized static int cTestStuff();
+    public native synchronized static int cFujiTestSuite();
 
     // Enable disable verbose logging to file
     public native synchronized static int cRouteLogs(String filename);
     public native synchronized static void cEndLogs();
 
-    public native synchronized static int cFujiTestSuite();
+    public native static boolean cIsUsingEmulator();
 
     // Runs a request with integer parameters
     public static JSONObject run(String req, int[] arr) throws Exception {
-        if (Conn.connection == Conn.Status.OFF) {
+        if (WiFiComm.connection == WiFiComm.Status.OFF) {
             throw new Exception("Connection closed.");
         }
         // Build camlib request string (see docs/)
@@ -92,12 +95,7 @@ public class Backend {
         return run(req, new int[]{});
     }
 
-    public static void pingUntilDisconnect() {
-        // TODO: good idea?
-    }
-
     // JNI -> UI log communication
-
     public static String logLocation = "main";
 
     public static void jni_print_clear() {

@@ -1,7 +1,6 @@
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
-import android.app.Activity;
 import android.os.Handler;
 import android.os.Looper;
 import android.content.Context;
@@ -10,17 +9,11 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import androidx.appcompat.app.AppCompatActivity;
-import android.widget.Button;
+
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 import android.content.Intent;
-import android.widget.PopupWindow;
-import android.view.LayoutInflater;
-import android.view.ViewGroup;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
-import android.view.Gravity;
 import android.os.Build;
 
 public class MainActivity extends AppCompatActivity {
@@ -55,9 +48,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        ((TextView)findViewById(R.id.bottomText)).setText("https://github.com/petabyt/fujiapp\n" +
+        ((TextView)findViewById(R.id.bottomText)).setText(getString(R.string.url) + "\n" +
                 "Download location: " + Backend.getDownloads() + "\n" +
-                "Beta testing release! Plz report bugs!");
+                getString(R.string.motd_thing));
 
         findViewById(R.id.test_suite).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -74,6 +67,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void connectClick(View v) {
+        if (Backend.cIsUsingEmulator()) {
+            Backend.logLocation = "gallery";
+            Intent intent = new Intent(MainActivity.this, Gallery.class);
+            startActivity(intent);
+            return;
+        }
+    
         // Socket must be opened on WiFi - otherwise it will prefer cellular
         // TODO: Implement a timeout (If WiFi is disabled)
         Backend.jni_print("Attempting connection...\n");
@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onAvailable(Network network) {
                 ConnectivityManager.setProcessDefaultNetwork(network);
-                if (!Conn.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
+                if (!WiFiComm.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
                     Backend.logLocation = "gallery";
                     Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);

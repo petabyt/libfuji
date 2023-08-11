@@ -8,24 +8,13 @@ import android.content.Intent;
 import android.text.Html;
 import android.widget.TextView;
 import android.os.Looper;
-import android.app.Activity;
 import android.os.Bundle;
-import android.app.Activity;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
-import android.view.Gravity;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.PopupWindow;
 import android.os.Handler;
-import android.view.ViewTreeObserver;
-import android.widget.ProgressBar;
 import android.os.Build;
 
 public class Tester extends AppCompatActivity {
@@ -81,6 +70,11 @@ public class Tester extends AppCompatActivity {
             }
         });
 
+        if (Backend.cIsUsingEmulator()) {
+            thread.start();
+            return;
+        }
+
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
         requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
@@ -89,7 +83,7 @@ public class Tester extends AppCompatActivity {
             public void onAvailable(Network network) {
                 ConnectivityManager.setProcessDefaultNetwork(network);
                 log("Attempting to connect through WiFi: " + Backend.FUJI_IP + ":" + Backend.FUJI_CMD_PORT);
-                if (!Conn.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
+                if (!WiFiComm.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
                     log("Established connection, starting test thread");
                     thread.start();
                 } else {
