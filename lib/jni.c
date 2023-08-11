@@ -173,3 +173,10 @@ JNI_FUNC(jint, cTestStuff)(JNIEnv *env, jobject thiz) {
 
     return rc;
 }
+
+// TODO: finish
+// JNI_FUNC(jint, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
+    // backend.env = env;
+// 
+    // return rc;
+// }
