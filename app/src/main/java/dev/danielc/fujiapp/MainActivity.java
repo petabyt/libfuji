@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
     
         // Socket must be opened on WiFi - otherwise it will prefer cellular
         // TODO: Implement a timeout (If WiFi is disabled)
-        Backend.jni_print("Attempting connection...\n");
+        Backend.print("Attempting connection...\n");
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
         requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onAvailable(Network network) {
                 ConnectivityManager.setProcessDefaultNetwork(network);
-                if (!WiFiComm.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
+                if (!Backend.wifi.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
                     Backend.logLocation = "gallery";
                     Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);

@@ -68,9 +68,10 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
 
     backend.main = (*env)->NewGlobalRef(env, thiz);
 
-    backend.jni_print = (*backend.env)->GetStaticMethodID(backend.env, pacClass, "jni_print", "(Ljava/lang/String;)V");
-    backend.cmd_write = (*backend.env)->GetStaticMethodID(backend.env, connClass, "write", "([B)I");
-    backend.cmd_read = (*backend.env)->GetStaticMethodID(backend.env, connClass, "read", "([BI)I");
+    backend.jni_print = (*backend.env)->GetStaticMethodID(backend.env, pacClass, "print", "(Ljava/lang/String;)V");
+
+    backend.cmd_write = (*backend.env)->GetMethodID(backend.env, connClass, "write", "([B)I");
+    backend.cmd_read = (*backend.env)->GetMethodID(backend.env, connClass, "read", "([BI)I");
     // TODO: cmd_close
 
     ptp_generic_init(&backend.r);

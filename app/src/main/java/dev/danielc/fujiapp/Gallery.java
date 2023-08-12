@@ -70,7 +70,7 @@ public class Gallery extends AppCompatActivity {
                 Thread testThread = new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        Backend.jni_print("Attempted to detonate internal camera time bomb: " + Backend.cTestStuff());
+                        Backend.print("Attempted to detonate internal camera time bomb: " + Backend.cTestStuff());
                     }
                 });
                 testThread.start();
@@ -86,9 +86,9 @@ public class Gallery extends AppCompatActivity {
             @Override
             public void run() {
                 if (Backend.cPtpFujiInit() == 0) {
-                    Backend.jni_print("Initialized connection.\n");
+                    Backend.print("Initialized connection.\n");
                 } else {
-                    Backend.jni_print("Failed to init socket\n");
+                    Backend.print("Failed to init socket\n");
                     return;
                 }
 
@@ -102,21 +102,21 @@ public class Gallery extends AppCompatActivity {
                 try {
                     Camera.openSession();
                 } catch (Exception e) {
-                    Backend.jni_print("Failed to open session.\n");
+                    Backend.print("Failed to open session.\n");
                     return;
                 }
 
-                Backend.jni_print("Waiting for device access...\n");
+                Backend.print("Waiting for device access...\n");
                 if (Backend.cPtpFujiWaitUnlocked() == 0) {
-                    Backend.jni_print("Gained access to device.\n");
+                    Backend.print("Gained access to device.\n");
                 } else {
-                    Backend.jni_print("Failed to gain access to device.");
+                    Backend.print("Failed to gain access to device.");
                     return;
                 }
 
                 // Camera mode must be set before anything else
                 if (Backend.cFujiConfigInitMode() != 0) {
-                    Backend.jni_print("Failed to configure mode with the camera.\n");
+                    Backend.print("Failed to configure mode with the camera.\n");
                     return;
                 }
 
@@ -127,7 +127,7 @@ public class Gallery extends AppCompatActivity {
                 }
 
                 if (Backend.cFujiConfigVersion() != 0) {
-                    Backend.jni_print("Failed to configure camera function version.\n");
+                    Backend.print("Failed to configure camera function version.\n");
                     return;
                 }
 
@@ -138,7 +138,7 @@ public class Gallery extends AppCompatActivity {
                     JSONObject jsonObject = Backend.run("ptp_get_storage_ids", new int[]{});
                     storageId = jsonObject.getJSONArray("resp").getInt(0);
                 } catch (Exception e) {
-                    Backend.jni_print("Failed to detect camera SD card! (" + e.toString() + ")\n");
+                    Backend.print("Failed to detect camera SD card! (" + e.toString() + ")\n");
                     return;
                 }
 
@@ -151,12 +151,12 @@ public class Gallery extends AppCompatActivity {
                         objectHandles[i] = resp.getInt(i);
                     }
                 } catch (Exception e) {
-                    Backend.jni_print("Falied to find images on the SD card! (" + e.toString() + ")\n");
+                    Backend.print("Falied to find images on the SD card! (" + e.toString() + ")\n");
                     return;
                 }
 
                 if (objectHandles.length == 0) {
-                    Backend.jni_print("No JPEG images available. Might figure this out in the future. :)\n");
+                    Backend.print("No JPEG images available. Might figure this out in the future. :)\n");
                 } else {
                     handler.post(new Runnable() {
                         @Override
@@ -183,7 +183,7 @@ public class Gallery extends AppCompatActivity {
                                 startActivity(intent);
                                 // TODO: Choose between these two?
                                 Toast.makeText(Gallery.this, "Failed to ping, disconnected", Toast.LENGTH_SHORT).show();
-                                Backend.jni_print("Disconnected.\n");
+                                Backend.print("Disconnected.\n");
                             }
                         });
                         return;

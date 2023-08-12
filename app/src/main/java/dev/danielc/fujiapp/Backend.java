@@ -13,20 +13,41 @@ public class Backend {
         System.loadLibrary("fujiapp");
     }
 
-    // TODO: implement Conn/WiFiComm here
+    public static class PtpErr extends Exception {
+        int rc;
+        public PtpErr(int code) {
+            rc = code;
+        }
+    }
+
+    public static WiFiComm wifi;
+
+    // Block all communication in UsbComm and WiFiComm
+    // Write reason + code, and reconnect popup
+    public static void reportError(int code, String reason) {
+        if (wifi.killSwitch == false) {
+            wifi.killSwitch = true;
+
+            print("Safely killed connection: " + code);
+            if (reason != null) {
+                print("Reason: " + reason);
+            }
+        }
+    }
 
     // In order to give the backend access to the static methods, new objects must be made
     private static boolean haveInited = false;
     public static void init() {
+        wifi = new WiFiComm();
         if (haveInited == false) {
-            cInit(new Backend(), new WiFiComm());
+            cInit(new Backend(), wifi);
         }
         haveInited = true;
     }
 
     // Clear entire backend for a new connection
     public static void clear() {
-        WiFiComm.connection = WiFiComm.Status.OFF;
+        //wifi.connection = WiFiComm.Status.OFF;
     }
 
     // Constants
@@ -35,10 +56,8 @@ public class Backend {
     public static final int TIMEOUT = 1000;
     public static final int PTP_OF_JPEG = 0x3801;
 
-    //public static Bitmap bitmaps[] = null;
-
-    // Note that all these native functions are synchronized (they can only be called by Java
-    // by one thread at a time - necessary for a socket connection)
+    // Note: 'synchronized' means only one of these methods can be used at time -
+    // java's version of a mutex
     public native synchronized static void cInit(Backend b, WiFiComm c);
     public native synchronized static void cTesterInit(Tester t);
     public native synchronized static String cTestFunc();
@@ -64,9 +83,6 @@ public class Backend {
 
     // Runs a request with integer parameters
     public static JSONObject run(String req, int[] arr) throws Exception {
-        if (WiFiComm.connection == WiFiComm.Status.OFF) {
-            throw new Exception("Connection closed.");
-        }
         // Build camlib request string (see docs/)
         req += ";";
         for (int i = 0; i < arr.length; i++) {
@@ -81,7 +97,7 @@ public class Backend {
         try {
             JSONObject jsonObject = new JSONObject(resp);
             if (jsonObject.getInt("error") != 0) {
-                Backend.jni_print("Non zero error: " + Integer.toString(jsonObject.getInt("error")) + "\n");
+                Backend.print("Non zero error: " + Integer.toString(jsonObject.getInt("error")) + "\n");
                 throw new Exception("Error code");
             }
 
@@ -105,8 +121,8 @@ public class Backend {
 
     // debug function for both Java frontend and JNI backend
     private static String basicLog = "";
-    public static void jni_print(String arg) {
-        Log.d("fujiapp-dbg", arg);
+    public static void print(String arg) {
+        Log.d("fudge", arg);
         basicLog += arg;
 
         String[] lines = basicLog.split("\n");

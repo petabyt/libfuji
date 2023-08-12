@@ -83,7 +83,7 @@ public class Tester extends AppCompatActivity {
             public void onAvailable(Network network) {
                 ConnectivityManager.setProcessDefaultNetwork(network);
                 log("Attempting to connect through WiFi: " + Backend.FUJI_IP + ":" + Backend.FUJI_CMD_PORT);
-                if (!WiFiComm.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
+                if (!Backend.wifi.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
                     log("Established connection, starting test thread");
                     thread.start();
                 } else {

@@ -1,18 +1,15 @@
 // Java class to connect to Fujiiflm's Bluetooth, and enable wifi
 // Copyright 2023 fujiapp by Daniel C et al - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
-import android.util.Log;
-import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
-import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothProfile;
 import android.content.Intent;
-import 	java.util.UUID;
+
 import 	java.util.Set;
 import android.content.Context;
 
@@ -112,7 +109,7 @@ public class Bluetooth {
         Set<BluetoothDevice> bondedDevices = adapter.getBondedDevices();
         if (bondedDevices != null) {
             for (BluetoothDevice device : bondedDevices) {
-                Backend.jni_print("Currently connected to " + device.getName());
+                Backend.print("Currently connected to " + device.getName());
             }
         }
         return null; // No connected device found

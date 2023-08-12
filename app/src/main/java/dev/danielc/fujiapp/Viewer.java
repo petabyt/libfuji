@@ -5,7 +5,6 @@
 
 package dev.danielc.fujiapp;
 
-import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -15,15 +14,13 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.widget.Toast;
-import android.graphics.Bitmap;
+
 import com.jsibbold.zoomage.ZoomageView;
 import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import org.json.JSONObject;
-import android.os.Environment;
-import android.content.Intent;
+
 import android.net.Uri;
 import android.app.Activity;
 import android.content.Context;
@@ -35,7 +32,6 @@ import android.view.ViewGroup;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.view.Gravity;
-import android.widget.Button;
 import android.view.ViewTreeObserver;
 
 public class Viewer extends AppCompatActivity {
@@ -203,7 +199,7 @@ public class Viewer extends AppCompatActivity {
                         @Override
                         public void run() {
                             Toast.makeText(Viewer.this, "Exception in download", Toast.LENGTH_SHORT).show();
-                            Backend.jni_print(e.toString());
+                            Backend.print(e.toString());
                         }
                     });
                 }

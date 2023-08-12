@@ -53,14 +53,14 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                 int id = object_ids[adapterPosition];
                 byte[] jpegByteArray = Backend.cPtpGetThumb(id);
                 if (jpegByteArray == null) {
-                    Backend.jni_print("Failed to get image thumbnail, stopping connection\n");
-                    WiFiComm.close();
+                    Backend.print("Failed to get image thumbnail, stopping connection\n");
+                    Backend.wifi.close();
                     return;
                 }
                 try {
                     Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length);
                     if (bitmap == null) {
-                        Backend.jni_print("Image decode error\n");
+                        Backend.print("Image decode error\n");
                     }
                     holder.itemView.post(new Runnable() {
                         @Override
@@ -69,7 +69,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                         }
                     });
                 } catch (OutOfMemoryError e) {
-                    Backend.jni_print("Out of memory\n");
+                    Backend.print("Out of memory\n");
                 }
             }
         }).start();
