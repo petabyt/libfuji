@@ -30,12 +30,12 @@ public class MainActivity extends AppCompatActivity {
 
         Backend.init();
 
-        Backend.log_update();
+        Backend.updateLog();
 
         findViewById(R.id.reconnect).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Backend.jni_print_clear();
+                Backend.clearPrint();
                 connectClick(v);
             }
         });

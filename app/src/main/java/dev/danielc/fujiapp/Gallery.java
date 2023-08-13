@@ -131,32 +131,10 @@ public class Gallery extends AppCompatActivity {
                     return;
                 }
 
-                int[] objectHandles;
-                int storageId;
+                int[] objectHandles = Backend.cGetObjectHandles();
 
-                try {
-                    JSONObject jsonObject = Backend.run("ptp_get_storage_ids", new int[]{});
-                    storageId = jsonObject.getJSONArray("resp").getInt(0);
-                } catch (Exception e) {
-                    Backend.print("Failed to detect camera SD card! (" + e.toString() + ")\n");
-                    return;
-                }
-
-                try {
-                    JSONObject jsonObject = Backend.run("ptp_get_object_handles", new int[]{storageId, 0, Backend.PTP_OF_JPEG});
-
-                    JSONArray resp = jsonObject.getJSONArray("resp");
-                    objectHandles = new int[resp.length()];
-                    for (int i = 0; i < resp.length(); i++) {
-                        objectHandles[i] = resp.getInt(i);
-                    }
-                } catch (Exception e) {
-                    Backend.print("Falied to find images on the SD card! (" + e.toString() + ")\n");
-                    return;
-                }
-
-                if (objectHandles.length == 0) {
-                    Backend.print("No JPEG images available. Might figure this out in the future. :)\n");
+                if (objectHandles == null) {
+                    Backend.print("No JPEG images available.\n");
                 } else {
                     handler.post(new Runnable() {
                         @Override

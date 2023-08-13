@@ -53,8 +53,12 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                 int id = object_ids[adapterPosition];
                 byte[] jpegByteArray = Backend.cPtpGetThumb(id);
                 if (jpegByteArray == null) {
-                    Backend.print("Failed to get image thumbnail, stopping connection\n");
-                    Backend.wifi.close();
+                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to get image thumbnail, stopping connection\n");
+                    return;
+                } else if (jpegByteArray.length == 0) {
+                    // Unable to find thumbnail - assume it's a folder or non-jpeg
+                    holder.itemView.setOnClickListener(null);
+                    // TODO: reset the image to unknown or default
                     return;
                 }
                 try {

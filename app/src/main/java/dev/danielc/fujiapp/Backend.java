@@ -13,6 +13,18 @@ public class Backend {
         System.loadLibrary("fujiapp");
     }
 
+    // camlib error codes
+    public static final int PTP_OK = 0;
+    public static final int PTP_NO_DEVICE = -1;
+    public static final int PTP_NO_PERM = -2;
+    public static final int PTP_OPEN_FAIL = -3;
+    public static final int PTP_OUT_OF_MEM = -4;
+    public static final int PTP_IO_ERR = -5;
+    public static final int PTP_RUNTIME_ERR = -6;
+    public static final int PTP_UNSUPPORTED = -7;
+    public static final int PTP_CHECK_CODE = -8;
+
+
     public static class PtpErr extends Exception {
         int rc;
         public PtpErr(int code) {
@@ -32,6 +44,8 @@ public class Backend {
             if (reason != null) {
                 print("Reason: " + reason);
             }
+
+            Backend.wifi.close();
         }
     }
 
@@ -72,6 +86,7 @@ public class Backend {
     public native synchronized static byte[] cFujiGetFile(int handle);
     public native synchronized static boolean cIsMultipleMode();
     public native synchronized static boolean cIsUntestedMode();
+    public native synchronized static int[] cGetObjectHandles();
     public native synchronized static int cTestStuff();
     public native synchronized static int cFujiTestSuite();
 
@@ -114,7 +129,7 @@ public class Backend {
     // JNI -> UI log communication
     public static String logLocation = "main";
 
-    public static void jni_print_clear() {
+    public static void clearPrint() {
         basicLog = "";
         MainActivity.getInstance().setErrorText("");
     }
@@ -130,10 +145,10 @@ public class Backend {
             basicLog = String.join("\n", Arrays.copyOfRange(lines, 1, lines.length)) + "\n";
         }
 
-        log_update();
+        updateLog();
     }
 
-    public static void log_update() {
+    public static void updateLog() {
         if (MainActivity.getInstance() != null) {
             MainActivity.getInstance().setErrorText(basicLog);
         }
