@@ -1,6 +1,9 @@
 #ifndef CUSTOM_JNI_H
 #define CUSTOM_JNI_H
 
+#include <jni.h>
+#include <android/log.h>
+
 #if defined(__arm__)
 #if defined(__ARM_ARCH_7A__)
 #if defined(__ARM_NEON__)

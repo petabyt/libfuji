@@ -4,10 +4,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <jni.h>
 #include <camlib.h>
 
-#include "jni.h"
+#include "myjni.h"
 #include "backend.h"
 #include "fuji.h"
 #include "fujiptp.h"
@@ -48,13 +47,17 @@ JNI_FUNC(jint, cPtpFujiWaitUnlocked)(JNIEnv *env, jobject thiz) {
 
 JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
     backend.env = env;
-    return ptpip_fuji_get_events(&backend.r);
+    return fuji_get_events(&backend.r);
 }
 
 JNI_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
     backend.env = env;
     int rc = ptp_get_thumbnail(&backend.r, (int)handle);
-    if (rc) {
+    if (rc == PTP_CHECK_CODE) {
+        android_err("Thumbnail returned error");
+        // If an error code is returned - allow it to fall
+        // through and return a zero-length array
+    } else if (rc) {
         return NULL;
     }
 
@@ -140,7 +143,7 @@ JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
     int rc = fuji_config_version(&backend.r);
     if (rc) return rc;
 
-    rc = fuji_config_remote_photo_viewer(&backend.r);
+    rc = fuji_config_remote_image_viewer(&backend.r);
     if (rc) return rc;
 
     return 0;
@@ -153,7 +156,7 @@ JNI_FUNC(jboolean, cIsUntestedMode)(JNIEnv *env, jobject thiz) {
         return 1;
     }
 
-    if (fuji_known.function_version != FUJI_FULL_ACCESS) {
+    if (fuji_known.function_version != 2) {
         return 1;
     }
 
@@ -175,8 +178,23 @@ JNI_FUNC(jint, cTestStuff)(JNIEnv *env, jobject thiz) {
 }
 
 // TODO: finish
-// JNI_FUNC(jint, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
-    // backend.env = env;
-// 
-    // return rc;
-// }
+JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
+    backend.env = env;
+
+    // By this point num_objects should be known - by get_events and init_mode
+    if (fuji_known.num_objects == 0 || fuji_known.num_objects == -1) {
+        return NULL;
+    }
+
+    // Object #0 seems to always be DCIM or invalid (can't get thumbnail) - is this standard?
+    int *list = malloc(sizeof(int) * fuji_known.num_objects);
+    for (int i = 0; i < fuji_known.num_objects; i++) {
+        list[i] = i + 0;
+    }
+
+    jintArray result = (*env)->NewIntArray(env, fuji_known.num_objects);
+    (*env)->SetIntArrayRegion(env, result, 0, fuji_known.num_objects, list);
+    free(list);
+
+    return result;
+}

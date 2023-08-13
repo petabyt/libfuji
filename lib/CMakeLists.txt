@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.22.1)
 project("fujiapp")
 
 include_directories(camlib/src)
+include_directories(.)
+
+add_definitions(-D FUJI_VUSB)
 
 set(CORE
 	camlib/src/backend.c

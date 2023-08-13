@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <jni.h>
 #include <camlib.h>
 
+#include "myjni.h"
 #include "models.h"
 #include "fuji.h"
 #include "fujiptp.h"
@@ -22,6 +22,34 @@ int fuji_get_device_info(struct PtpRuntime *r) {
 	cmd.param_length = 0;
 
 	return ptp_generic_send(r, &cmd);
+}
+
+int fuji_get_events(struct PtpRuntime *r) {
+	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_EventsList);
+	if (rc) return rc;
+
+	struct PtpFujiEvents *ev = (struct PtpFujiEvents *)(ptp_get_payload(r));
+
+	ptp_verbose_log("Found %d events\n", ev->length);
+	for (int i = 0; i < ev->length; i++) {
+		ptp_verbose_log("%X changed to %d\n", ev->events[i].code, ev->events[i].value);
+	}
+
+	for (int i = 0; i < ev->length; i++) {
+		switch (ev->events[i].code) {
+		case PTP_PC_FUJI_SelectedImgsMode:
+			fuji_known.selected_imgs_mode = ev->events[i].value;
+			break;
+		case PTP_PC_FUJI_ObjectCount:
+			fuji_known.num_objects = ev->events[i].value;
+			break;
+		case PTP_PC_FUJI_CameraState:
+			fuji_known.camera_state = ev->events[i].value;
+			break;
+		}
+	}
+
+	return 0;
 }
 
 // Call this immediately after session init
@@ -43,45 +71,39 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 	}
 
 	while (1) {
-		rc = ptp_get_prop_value(r, PTP_PC_FUJI_EventsList);
+		rc = fuji_get_events(r);
 		if (rc) return rc;
 
-		// Apply events structure to payload, and check for unlocked event (PTP_PC_FUJI_CameraState)
-		struct PtpFujiEvents *ev = (struct PtpFujiEvents *)(ptp_get_payload(r));
-		ptp_verbose_log("Found %d events\n", ev->length);
-		for (int i = 0; i < ev->length; i++) {
-			ptp_verbose_log("%X changed to %d\n", ev->events[i].code, ev->events[i].value);
-		}
-		
-		for (int i = 0; i < ev->length; i++) {
-			if (ev->events[i].code == PTP_PC_FUJI_CameraState && (ev->events[i].value != FUJI_WAIT_FOR_ACCESS)) {
-				fuji_known.camera_state = ev->events[i].value;
-				return 0;
-			}
+		// Wait until camera state is unlocked
+		if (fuji_known.camera_state != FUJI_WAIT_FOR_ACCESS) {
+			return 0;
 		}
 
-		struct PtpDevPropDesc *pc = (struct PtpDevPropDesc *)(ptp_get_payload(r));
 		CAMLIB_SLEEP(100);
 	}
 }
 
 // X-App doesn't do this, but the old app did
 int fuji_set_remote_version(struct PtpRuntime *r) {
-	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteVersion);
-	if (rc) return rc;
+	if (fuji_known.remote_version != -1) {
+		int rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteVersion);
+		if (rc) return rc;
 
-	int remote_version = ptp_parse_prop_value(r);
+		int remote_version = ptp_parse_prop_value(r);
 
-	ptp_verbose_log("RemoteVersion was %X\n", remote_version);
+		ptp_verbose_log("RemoteVersion was %X\n", remote_version);
 
-	// RemoteVersion is actually two words. The old app gave 11.2, so we'll try that
-	uint16_t new_remote_version[] = {
-		11, 2
-	};
+		// RemoteVersion is actually two words. The old app gave 11.2, so we'll try that
+		uint16_t new_remote_version[] = {
+			11, 2
+		};
 
-	rc = ptp_set_prop_value_data(r, PTP_PC_FUJI_RemoteVersion,
-		(void *)(&new_remote_version), sizeof(new_remote_version));
-	return rc;
+		rc = ptp_set_prop_value_data(r, PTP_PC_FUJI_RemoteVersion,
+			(void *)(&new_remote_version), sizeof(new_remote_version));
+		return rc;
+	}
+
+	return 0;
 }
 
 // Handles critical init sequence. This is after initing the socket, and opening session.
@@ -89,20 +111,27 @@ int fuji_set_remote_version(struct PtpRuntime *r) {
 int fuji_config_init_mode(struct PtpRuntime *r) {
 	// Try and learn about the camera
 
-	// Get photo viewer version
+	// Get image viewer version
 	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageExploreVersion);
 	if (rc) return rc;
 	fuji_known.function_version = ptp_parse_prop_value(r);
 
-	// Get photo viewer version for remote
+	// If we haven't gotten number of objects from get_events
+	if (fuji_known.num_objects == 0) {
+		rc = ptp_get_prop_value(r, PTP_PC_FUJI_ObjectCount);
+		if (rc) return rc;
+		fuji_known.num_objects = ptp_parse_prop_value(r);	
+	}
+
+	// Get image viewer version for remote
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion);
 	if (rc) return rc;
-	fuji_known.remote_photo_view_version = ptp_parse_prop_value(r);
+	fuji_known.remote_image_view_version = ptp_parse_prop_value(r);
 
-	// Get photo downloader version
-	rc = ptp_get_prop_value(r, PTP_PC_FUJI_PhotoGetVersion);
+	// Get image downloader version
+	rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageGetVersion);
 	if (rc) return rc;
-	fuji_known.photo_get_version = ptp_parse_prop_value(r);
+	fuji_known.image_get_version = ptp_parse_prop_value(r);
 
 	// Get remote version (might be none)
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteVersion);
@@ -117,7 +146,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 		mode = FUJI_VIEW_MULTIPLE;
 	} else if (fuji_known.camera_state == FUJI_FULL_ACCESS) {
 		// Guess
-		if (fuji_known.photo_get_version == 1) {
+		if (fuji_known.image_get_version == 1) {
 			mode = FUJI_VIEW_ALL_IMGS;
 		} else {
 			mode = FUJI_REMOTE_MODE;
@@ -139,14 +168,14 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	return 0;
 }
 
-// TODO: rename config photo view version
+// TODO: rename config image view version
 int fuji_config_version(struct PtpRuntime *r) {
 	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageExploreVersion);
 	if (rc) return rc;
 
 	int version = ptp_parse_prop_value(r);
 
-	fuji_known.photo_view_version = version;
+	fuji_known.image_view_version = version;
 
 	// The property must be set again (to it's own value) to tell the camera
 	// that the current version is supported - this may or may not be necessary
@@ -158,7 +187,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 // Very weird init routine seen on older cameras - this is really messed up,
 // hopefully the camera doesn't expect this, but it might
 int fuji_config_device_info_routine(struct PtpRuntime *r) {
-	// Don't want remote capture
+	// Don't want remote capture (?)
 	return 0;
 	if (fuji_known.remote_version != -1) {
 		// Begin camera remote
@@ -170,8 +199,8 @@ int fuji_config_device_info_routine(struct PtpRuntime *r) {
 	return 0;
 }
 
-int fuji_config_remote_photo_viewer(struct PtpRuntime *r) {
-	if (fuji_known.remote_photo_view_version != -1) {
+int fuji_config_remote_image_viewer(struct PtpRuntime *r) {
+	if (fuji_known.remote_image_view_version != -1) {
 		// Tell the camera that we actually want that mode
 		int rc = ptp_set_prop_value(r, PTP_PC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
 		if (rc) return rc;

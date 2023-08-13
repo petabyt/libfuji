@@ -7,7 +7,7 @@
 
 #include <camlib.h>
 
-#include "jni.h"
+#include "myjni.h"
 #include "fuji.h"
 #include "backend.h"
 
@@ -41,7 +41,7 @@ int ptpip_connection_init() {
 	android_err("Allocated vusb connection");
 	port = malloc(sizeof(GPPort));
 	C_MEM (port->pl = calloc (1, sizeof (GPPortPrivateLibrary)));
-	port->pl->vcamera = vcamera_new(CANON_1300D);
+	port->pl->vcamera = vcamera_new(FUJI_X_A2);
 	port->pl->vcamera->init(port->pl->vcamera);
 
 	if (port->pl->isopen)
@@ -53,7 +53,7 @@ int ptpip_connection_init() {
 }
 
 int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
-	android_err("WRITE");
+	CAMLIB_SLEEP(10);
 	static int first_write = 1;
 
 	if (first_write) {
@@ -71,7 +71,7 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
 }
 
 int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
-	android_err("READ");
+	CAMLIB_SLEEP(10);
 	static int left_of_init_packet = sizeof(socket_init_resp);
 
 	if (left_of_init_packet) {

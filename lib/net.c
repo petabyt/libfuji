@@ -2,12 +2,10 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <android/log.h>
-#include <jni.h>
 
 #include <camlib.h>
 
-#include "jni.h"
+#include "myjni.h"
 #include "fuji.h"
 #include "backend.h"
 
@@ -20,7 +18,7 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
     jbyteArray data = (*backend.env)->NewByteArray(backend.env, length);
     (*backend.env)->SetByteArrayRegion(backend.env, data, 0, length, (const jbyte *)(to));
 
-    int ret = (*backend.env)->CallStaticIntMethod(backend.env, backend.conn, backend.cmd_write, data);
+    int ret = (*backend.env)->CallIntMethod(backend.env, backend.conn, backend.cmd_write, data);
 
     if (ret < 0) {
         // TODO: debug
@@ -43,7 +41,7 @@ int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
 
     jbyteArray data = (*backend.env)->NewByteArray(backend.env, length);
 
-    int ret = (*backend.env)->CallStaticIntMethod(backend.env, backend.conn, backend.cmd_read, data, length);
+    int ret = (*backend.env)->CallIntMethod(backend.env, backend.conn, backend.cmd_read, data, length);
 
     if (ret < 0) {
         android_err("failed to recieve packet, %d", ret);

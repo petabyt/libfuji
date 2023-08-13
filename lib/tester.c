@@ -5,10 +5,10 @@
 #include <errno.h>
 #include <string.h>
 #include <jni.h>
-#include <camlib.h>
 #include <android/log.h>
+#include <camlib.h>
 
-#include "jni.h"
+#include "myjni.h"
 #include "backend.h"
 #include "fuji.h"
 #include "models.h"
@@ -73,11 +73,11 @@ static void log_payload(struct PtpRuntime *r) {
 int fuji_test_get_props(struct PtpRuntime *r) {
 	uint16_t test_props[] = {
 		PTP_PC_FUJI_CameraState,
-		PTP_PC_FUJI_PhotoGetVersion,
+		PTP_PC_FUJI_ImageGetVersion,
 		PTP_PC_FUJI_ImageExploreVersion,
 		PTP_PC_FUJI_RemoteVersion,
 		PTP_PC_FUJI_RemoteImageExploreVersion,
-		PTP_PC_FUJI_PhotoGetLimitedVersion,
+		PTP_PC_FUJI_ImageGetLimitedVersion,
 		PTP_PC_FUJI_CompressionCutOff,
 	};
 
@@ -120,7 +120,7 @@ int fuji_init_setup(struct PtpRuntime *r) {
 		tester_log("Mode property is configured.");
 	}
 
-	tester_log("Configuring FunctionMode");
+	tester_log("Configuring version properties");
 	rc = fuji_config_version(r);
 	if (rc) {
 		tester_fail("Failed to configure FunctionMode: %d", rc);
@@ -139,51 +139,33 @@ int fuji_init_setup(struct PtpRuntime *r) {
 		tester_log("Device passed device info routine");
 	}
 
-	rc = fuji_config_remote_photo_viewer(r);
+	rc = fuji_config_remote_image_viewer(r);
 	if (rc) {
-		tester_fail("Failed to config remote photo viewier");
+		tester_fail("Failed to config remote image viewier");
 		return rc;
 	} else {
-		tester_log("Configured remote photo viewer");
+		tester_log("Configured remote image viewer");
 	}
 
 	return 0;
 }
 
 int fuji_test_filesystem(struct PtpRuntime *r) {
-	tester_log("Trying to get SD card info...");
-
-	struct UintArray *arr;
-	int rc = ptp_get_storage_ids(r, &arr);
-	if (rc) {
-		tester_fail("Failed to get storage devices: %d", rc);
-		return rc;
+	if (fuji_known.num_objects == 0) {
+		tester_fail("There are no images on the SD card!");
+		return 1;
 	}
 
-	if (arr->length == 0) {
-		tester_fail("No storage devices found!");
-		return 0;
-	} else {
-		tester_log("Found %d storage device(s).", arr->length);
+	if (fuji_known.num_objects == -1) {
+		tester_fail("The camera return didn't want to give access to num_objects property!");
+		return 1;
 	}
 
-	int id = arr->data[0];
-
-	struct PtpStorageInfo so;
-	rc = ptp_get_storage_info(r, id, &so);
-	if (rc) {
-		tester_fail("Failed to obtain storage info for %X: %d", id, rc);
-		return rc;
-	}
-
-	char buffer[512];
-	ptp_storage_info_json(&so, buffer, sizeof(buffer));
-
-	tester_log("storage info: %s\n", buffer);
+	tester_log("There are %d images on the SD card.", fuji_known.num_objects);
 
 	tester_log("Attempting to get object info for 1...");
 	struct PtpObjectInfo oi;
-	rc = ptp_get_object_info(r, 1, &oi);
+	int rc = ptp_get_object_info(r, 1, &oi);
 	if (rc) {
 		tester_fail("Failed to get object info: %d", rc);
 		return rc;
@@ -191,6 +173,7 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 
 	log_payload(r);
 
+	char buffer[1024];
 	ptp_object_info_json(&oi, buffer, sizeof(buffer));
 
 	tester_log("Object info: %s\n", buffer);
@@ -205,6 +188,7 @@ int fuji_test_suite(struct PtpRuntime *r) {
     int rc = ptpip_fuji_init(&backend.r, "fujiapp-test");
     if (rc) {
     	tester_fail("Failed to initialize command socket");
+    	return rc;
     } else {
     	tester_log("Initialized command socket");
     }

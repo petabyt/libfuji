@@ -4,12 +4,10 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <android/log.h>
-#include <jni.h>
 
 #include <camlib.h>
 
-#include "jni.h"
+#include "myjni.h"
 #include "fuji.h"
 #include "backend.h"
 
@@ -60,11 +58,13 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
 
     backend.env = env;
     jclass thizClass = (*env)->GetObjectClass(env, thiz);
+
     jclass pacClass = (*env)->GetObjectClass(env, pac);
+
     backend.pac = (*env)->NewGlobalRef(env, pacClass);
 
     jclass connClass = (*env)->GetObjectClass(env, conn);
-    backend.conn = (*env)->NewGlobalRef(env, connClass);
+    backend.conn = (*env)->NewGlobalRef(env, conn);
 
     backend.main = (*env)->NewGlobalRef(env, thiz);
 
