@@ -5,34 +5,38 @@
 
 package dev.danielc.fujiapp;
 
-import androidx.appcompat.app.AppCompatActivity;
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
 import android.os.Bundle;
-import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.StrictMode;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.widget.PopupWindow;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.jsibbold.zoomage.ZoomageView;
+
 import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import android.net.Uri;
-import android.app.Activity;
-import android.content.Context;
-import android.os.StrictMode;
-import android.widget.ProgressBar;
-import android.widget.PopupWindow;
-import android.view.LayoutInflater;
-import android.view.ViewGroup;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
-import android.view.Gravity;
-import android.view.ViewTreeObserver;
+import javax.microedition.khronos.opengles.GL10;
 
 public class Viewer extends AppCompatActivity {
     public static Handler handler = null;
@@ -40,6 +44,8 @@ public class Viewer extends AppCompatActivity {
     public static ProgressBar progressBar = null;
 
     public static boolean inProgress = false;
+
+    public Bitmap bitmap = null;
 
     // Create a popup - will set popupWindow, will be closed when finished
     public ProgressBar downloadPopup(Activity activity) {
@@ -56,6 +62,7 @@ public class Viewer extends AppCompatActivity {
 
     public void createDir(String directoryPath) {
         File directory = new File(directoryPath);
+        Backend.print(directoryPath);
         if (!directory.exists()) {
             if (!directory.mkdirs()) {
                 return;
@@ -67,10 +74,10 @@ public class Viewer extends AppCompatActivity {
 
     // Must be ran on UI thread
     public void writeFile(String filename, byte[] data) {
-        String fujifilm = Backend.getDownloads();
-        createDir(fujifilm);
+        String saveDir = Backend.getDownloads();
+        createDir(saveDir);
 
-        downloadedFilename = fujifilm + File.separator + filename;
+        downloadedFilename = saveDir + File.separator + filename;
         File file = new File(downloadedFilename);
         FileOutputStream fos = null;
 
@@ -99,7 +106,6 @@ public class Viewer extends AppCompatActivity {
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
         shareIntent.setType("image/jpeg");
 
-        // TODO: Some apps (discord) just sends a raw file (maybe needs lowercase?)
         Uri imageUri = Uri.parse("file://" + downloadedFilename);
         shareIntent.putExtra(Intent.EXTRA_STREAM, imageUri);
 
@@ -154,6 +160,18 @@ public class Viewer extends AppCompatActivity {
 
                     inProgress = true;
                     byte[] file = Backend.cFujiGetFile(handle);
+
+                    bitmap = BitmapFactory.decodeByteArray(file, 0, file.length);
+                    if (bitmap.getWidth() > GL10.GL_MAX_TEXTURE_SIZE) {
+                        float ratio = ((float) bitmap.getHeight()) / ((float) bitmap.getWidth());
+                        bitmap = Bitmap.createScaledBitmap(bitmap,
+                                (int)(4096),
+                                (int)((4096) * ratio),
+                                false);
+                    }
+
+                    Runtime.getRuntime().gc();
+
                     inProgress = false;
 
                     handler.post(new Runnable() {
@@ -175,7 +193,6 @@ public class Viewer extends AppCompatActivity {
                             @Override
                             public void run() {
                                 ZoomageView zoomageView = findViewById(R.id.zoom_view);
-                                Bitmap bitmap = BitmapFactory.decodeByteArray(file, 0, file.length);
                                 zoomageView.setImageBitmap(bitmap);
 
                                 findViewById(R.id.download_button).setOnClickListener(new View.OnClickListener() {
@@ -206,5 +223,12 @@ public class Viewer extends AppCompatActivity {
             }
         });
         thread.start();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        bitmap = null;
+        Runtime.getRuntime().gc();
     }
 }

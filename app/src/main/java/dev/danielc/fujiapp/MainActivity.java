@@ -1,20 +1,24 @@
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
-import android.os.Handler;
-import android.os.Looper;
+import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
-import androidx.appcompat.app.AppCompatActivity;
-
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.TextView;
-import android.content.Intent;
-import android.os.Build;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
     private static MainActivity instance;
@@ -59,6 +63,11 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+
+        // Require legacy Android write permissions
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+        }
     }
 
     @Override
@@ -75,7 +84,6 @@ public class MainActivity extends AppCompatActivity {
         }
     
         // Socket must be opened on WiFi - otherwise it will prefer cellular
-        // TODO: Implement a timeout (If WiFi is disabled)
         Backend.print("Attempting connection...\n");
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
@@ -85,9 +93,12 @@ public class MainActivity extends AppCompatActivity {
             public void onAvailable(Network network) {
                 ConnectivityManager.setProcessDefaultNetwork(network);
                 if (!Backend.wifi.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
+                    Backend.print("connection success\n");
                     Backend.logLocation = "gallery";
                     Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);
+                } else {
+                    Backend.print("connection fail\n");
                 }
                 connectivityManager.unregisterNetworkCallback(this);
             }

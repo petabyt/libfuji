@@ -9,9 +9,9 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 
 public class WiFiComm {
-    private Socket socket;
-    private InputStream inputStream;
-    private OutputStream outputStream;
+    private Socket socket = null;
+    private InputStream inputStream = null;
+    private OutputStream outputStream = null;
 
     public boolean killSwitch = true;
 
@@ -28,6 +28,11 @@ public class WiFiComm {
             Backend.print("No connection found.\n");
         } catch (IOException e) {
             Backend.print("Error connecting to the server: " + e.getMessage() + "\n");
+        }
+        try {
+            socket.close();
+        } catch (Exception e) {
+
         }
         return true;
     }

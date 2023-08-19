@@ -61,7 +61,7 @@ public class Tester extends AppCompatActivity {
             fail("Couldn't route logs to " + Backend.getLogPath() + ", running test anyway");
         }
 
-        connectBluetooth();
+        //connectBluetooth();
 
         Thread thread = new Thread(new Runnable() {
             @Override
