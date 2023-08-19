@@ -1,5 +1,5 @@
-// Fujifilm WiFi connection library - this code is a portable extension to camlib -
-// don't add any iOS, JNI, or Dart stuff to it
+// Fujifilm WiFi connection library - this code is a portable extension to camlib.
+// Don't add any iOS, JNI, or Dart stuff to it
 // Copyright 2023 (c) Unofficial fujiapp
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,7 +7,7 @@
 #include <string.h>
 #include <camlib.h>
 
-#include "myjni.h"
+//#include "myjni.h"
 #include "models.h"
 #include "fuji.h"
 #include "fujiptp.h"

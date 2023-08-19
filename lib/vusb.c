@@ -53,7 +53,7 @@ int ptpip_connection_init() {
 }
 
 int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
-	CAMLIB_SLEEP(10);
+	CAMLIB_SLEEP(5);
 	static int first_write = 1;
 
 	if (first_write) {
@@ -62,7 +62,8 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
 		first_write = 0;
 
 		ptpip_connection_init();
-		
+
+		// Pretend like we read the packet	
 		return length;
 	}
 
@@ -71,7 +72,7 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
 }
 
 int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
-	CAMLIB_SLEEP(10);
+	CAMLIB_SLEEP(5);
 	static int left_of_init_packet = sizeof(socket_init_resp);
 
 	if (left_of_init_packet) {

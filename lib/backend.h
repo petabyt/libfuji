@@ -40,4 +40,6 @@ void jni_verbose_log(char *str);
 void tester_log(char *fmt, ...);
 void tester_fail(char *fmt, ...);
 
+void reset_connection();
+
 #endif

@@ -13,6 +13,12 @@
 
 struct AndroidBackend backend;
 
+void reset_connection() {
+    memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
+    ptp_generic_reset(&backend.r);
+    backend.r.connection_type = PTP_IP;
+}
+
 void jni_verbose_log(char *str) {
     if (backend.log_fp == NULL) return;
 
@@ -75,7 +81,7 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
     // TODO: cmd_close
 
     ptp_generic_init(&backend.r);
-    backend.r.connection_type = PTP_IP;
+    reset_connection();
 }
 
 JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz, jstring path) {

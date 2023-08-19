@@ -13,6 +13,10 @@
 
 JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
     backend.env = env;
+
+    // Take this as an opportunity to reset all the structures for a new connection
+    reset_connection();
+
     int rc = ptpip_fuji_init(&backend.r, "fujiapp");
 
     struct PtpFujiInitResp resp;

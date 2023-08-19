@@ -43,20 +43,22 @@
 
             <ImageButton
                 android:id="@+id/download_button"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:clickable="true"
-                android:contentDescription="Download button"
-                android:focusable="true"
+                style="@style/GreyButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="2dp"
+                android:padding="10dp"
+                app:tint="@color/white"
                 app:srcCompat="@drawable/download" />
 
             <ImageButton
                 android:id="@+id/share_button"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:clickable="true"
-                android:contentDescription="Share button"
-                android:focusable="true"
+                style="@style/GreyButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="2dp"
+                android:padding="10dp"
+                app:tint="@color/white"
                 app:srcCompat="@drawable/share" />
 
         </LinearLayout>
