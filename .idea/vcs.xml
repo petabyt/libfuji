@@ -3,5 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/lib/camlib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/vusb" vcs="Git" />
   </component>
 </project>

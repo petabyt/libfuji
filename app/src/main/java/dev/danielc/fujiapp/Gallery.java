@@ -67,7 +67,12 @@ public class Gallery extends AppCompatActivity {
         findViewById(R.id.disconnectButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Backend.reportError(Backend.PTP_OK, "Graceful disconnect\n");
+                if (Backend.wifi.killSwitch) {
+                    Intent intent = new Intent(Gallery.this, MainActivity.class);
+                    startActivity(intent);
+                } else {
+                    Backend.reportError(Backend.PTP_OK, "Graceful disconnect\n");
+                }
             }
         });
 
@@ -83,6 +88,7 @@ public class Gallery extends AppCompatActivity {
                     Backend.print("Initialized connection.\n");
                 } else {
                     Backend.print("Failed to init socket\n");
+                    Backend.reportError(Backend.PTP_IO_ERR, "Graceful disconnect\n");
                     return;
                 }
 
@@ -97,6 +103,7 @@ public class Gallery extends AppCompatActivity {
                     Camera.openSession();
                 } catch (Exception e) {
                     Backend.print("Failed to open session.\n");
+                    Backend.reportError(Backend.PTP_IO_ERR, "Graceful disconnect\n");
                     return;
                 }
 
@@ -105,12 +112,14 @@ public class Gallery extends AppCompatActivity {
                     Backend.print("Gained access to device.\n");
                 } else {
                     Backend.print("Failed to gain access to device.");
+                    Backend.reportError(Backend.PTP_IO_ERR, "Graceful disconnect\n");
                     return;
                 }
 
                 // Camera mode must be set before anything else
                 if (Backend.cFujiConfigInitMode() != 0) {
                     Backend.print("Failed to configure mode with the camera.\n");
+                    Backend.reportError(Backend.PTP_IO_ERR, "Graceful disconnect\n");
                     return;
                 }
 
@@ -120,8 +129,10 @@ public class Gallery extends AppCompatActivity {
                     showWarning("This camera is untested, don't expect it to work.");
                 }
 
+                Backend.print("Configuring versions and stuff..\n");
                 if (Backend.cFujiConfigVersion() != 0) {
-                    Backend.print("Failed to configure camera function version.\n");
+                    Backend.print("Failed to configure camera versions.\n");
+                    Backend.reportError(Backend.PTP_IO_ERR, "Graceful disconnect\n");
                     return;
                 }
 
@@ -155,7 +166,7 @@ public class Gallery extends AppCompatActivity {
                                 startActivity(intent);
                                 // TODO: Choose between these two?
                                 Toast.makeText(Gallery.this, "Failed to ping, disconnected", Toast.LENGTH_SHORT).show();
-                                Backend.print("Disconnected.\n");
+                                Backend.reportError(Backend.PTP_IO_ERR, "Failed to ping camera\n");
                             }
                         });
                         return;

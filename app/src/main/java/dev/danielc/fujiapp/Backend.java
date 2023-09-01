@@ -39,9 +39,9 @@ public class Backend {
         if (wifi.killSwitch == false) {
             wifi.killSwitch = true;
 
-            print("Safely killed connection: " + code);
+            print("Safely killed connection: " + code + "\n");
             if (reason != null) {
-                print("Reason: " + reason);
+                print("Reason: " + reason + "\n");
             }
 
             Backend.wifi.close();
@@ -51,8 +51,8 @@ public class Backend {
     // In order to give the backend access to the static methods, new objects must be made
     private static boolean haveInited = false;
     public static void init() {
-        wifi = new WiFiComm();
         if (haveInited == false) {
+            wifi = new WiFiComm();
             cInit(new Backend(), wifi);
         }
         haveInited = true;
@@ -64,12 +64,13 @@ public class Backend {
     }
 
     // Constants
-    public static final String FUJI_IP = "192.168.1.33";
-    //public static final String FUJI_IP = "192.168.0.1";
+    //public static final String FUJI_IP = "192.168.1.33";
+    public static final String FUJI_IP = "192.168.0.1";
     public static final int FUJI_CMD_PORT = 55740;
     public static final int FUJI_EVENT_PORT = 55741;
     public static final int FUJI_VIDEO_PORT = 55742;
-    public static final int TIMEOUT = 1000;
+    public static final int OPEN_TIMEOUT = 1000;
+    public static final int TIMEOUT = 2000;
     public static final int PTP_OF_JPEG = 0x3801;
 
     // Note: 'synchronized' means only one of these methods can be used at time -

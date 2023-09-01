@@ -8,6 +8,10 @@ public class Camera {
 		return Backend.run("ptp_open_session");
 	}
 
+	public static JSONObject closeSession() throws Exception {
+		return Backend.run("ptp_close_session");
+	}
+
 	public static JSONObject getObjectInfo(int handle) throws Exception {
 		JSONObject jsonObject = Backend.run("ptp_get_object_info", new int[]{handle});
 		return jsonObject;

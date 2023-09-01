@@ -58,13 +58,16 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                 } else if (jpegByteArray.length == 0) {
                     // Unable to find thumbnail - assume it's a folder or non-jpeg
                     holder.itemView.setOnClickListener(null);
+                    Backend.print("Failed to get image #" + id + "\n");
                     // TODO: reset the image to unknown or default
+                    // Maybe run getobjinfo to see what it is
                     return;
                 }
                 try {
                     Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length);
                     if (bitmap == null) {
                         Backend.print("Image decode error\n");
+                        return;
                     }
                     holder.itemView.post(new Runnable() {
                         @Override
@@ -74,6 +77,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                     });
                 } catch (OutOfMemoryError e) {
                     Backend.print("Out of memory\n");
+                    return;
                 }
             }
         }).start();

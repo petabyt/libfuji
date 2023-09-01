@@ -56,17 +56,20 @@ JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
 
 JNI_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
     backend.env = env;
-    int rc = ptp_get_thumbnail(&backend.r, (int)handle);
-    if (rc == PTP_CHECK_CODE) {
-        android_err("Thumbnail returned error");
+    void *data = NULL;
+    int length = 0;
+    int rc = ptp_get_thumbnail_smart_cache(&backend.r, handle, &data, &length);
+    if (rc == PTP_CHECK_CODE || length == 0 || data == NULL) {
         // If an error code is returned - allow it to fall
         // through and return a zero-length array
+        length = 0;
+        data = ptp_get_payload(&backend.r); // is this necessary? hmm
     } else if (rc) {
         return NULL;
     }
 
-    jbyteArray ret = (*env)->NewByteArray(env, ptp_get_payload_length(&backend.r));
-    (*env)->SetByteArrayRegion(env, ret, 0, ptp_get_payload_length(&backend.r), (const jbyte *)(ptp_get_payload(&backend.r)));
+    jbyteArray ret = (*env)->NewByteArray(env, length);
+    (*env)->SetByteArrayRegion(env, ret, 0, length, (const jbyte *)(data));
     return ret;
 }
 
@@ -98,6 +101,8 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
     if (rc) {
         return NULL;
     }
+
+    android_err("Compressed Size: %d", oi.compressed_size);
 
     jbyteArray ret = (*env)->NewByteArray(env, oi.compressed_size);
 
@@ -195,7 +200,7 @@ JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
     // Object #0 seems to always be DCIM or invalid (can't get thumbnail) - is this standard?
     int *list = malloc(sizeof(int) * fuji_known.num_objects);
     for (int i = 0; i < fuji_known.num_objects; i++) {
-        list[i] = i + 0;
+        list[i] = i + 1;
     }
 
     jintArray result = (*env)->NewIntArray(env, fuji_known.num_objects);

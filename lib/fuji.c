@@ -265,3 +265,78 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 	return 0;
 }
 
+// Temporary RAM-based thumbnail 'cache'. Rolls over a 'tape' like buffer
+int ptp_get_thumbnail_smart_cache(struct PtpRuntime *r, int handle, void **ptr, int *length) {
+    #define SMART_CACHE_MAX 100
+
+	// smart cache (static)    
+    static struct PtpSmartThumbCache {
+        int length;
+        int loop;
+        struct PtpSmartThumbCacheEntry {
+            int handle;
+            int length;
+            void *bytes;
+        }entries[SMART_CACHE_MAX];
+    }cache = {
+        .length = 0,
+        .loop = 0,
+    };
+
+	// Shouldn't exceed 1mb
+#if 0
+    android_err("smart cache");
+	int total = 0;
+    for (int i = 0; i < cache.length; i++) {
+    	total += cache.entries[i].length;
+    }
+    android_err("Totaling %d bytes of cache\n", total);
+#endif
+
+    // Search for cached thumb
+    for (int i = 0; i < cache.length; i++) {
+        if (handle == cache.entries[i].handle) {
+            (*ptr) = cache.entries[i].bytes;
+            (*length) = cache.entries[i].length;
+            return 0;
+        }
+    }
+
+    // We do not have thumbnail, so we must get it
+    int rc = ptp_get_thumbnail(r, (int)handle);
+    if (rc) return rc;
+
+    if (handle % 2) {
+		(*ptr) = ptp_get_payload(r);
+		(*length) = ptp_get_payload_length(r);
+		return 0;
+    }
+
+	// Figure out where to put the thumbnail
+    int real_index = 0;
+    if (cache.length < SMART_CACHE_MAX) {
+        real_index = cache.length;
+        cache.length++;
+        cache.loop++;
+    } else if (cache.length >= SMART_CACHE_MAX || cache.loop >= SMART_CACHE_MAX) {
+        // Ran out of spots, begin at the top
+        cache.loop = 0;
+        free(cache.entries[0].bytes);
+        real_index = 0;
+    } else if (cache.loop < SMART_CACHE_MAX) {
+        // Still out of spots, but freeing and replacing as user scrolls along
+        free(cache.entries[cache.loop].bytes);
+        real_index = cache.loop;
+        cache.loop++;
+    }
+
+    cache.entries[real_index].handle = handle;
+    cache.entries[real_index].length = ptp_get_payload_length(r);
+    cache.entries[real_index].bytes = malloc(ptp_get_payload_length(r));
+    memcpy(cache.entries[real_index].bytes, ptp_get_payload(r), ptp_get_payload_length(r));
+
+    (*ptr) = cache.entries[real_index].bytes;
+    (*length) = cache.entries[real_index].length;
+
+    return 0;
+}

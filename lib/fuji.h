@@ -3,6 +3,8 @@
 
 #include "models.h"
 
+int ptp_get_thumbnail_smart_cache(struct PtpRuntime *r, int handle, void **ptr, int *length);
+
 int fuji_config_version(struct PtpRuntime *r);
 int fuji_config_init_mode(struct PtpRuntime *r);
 

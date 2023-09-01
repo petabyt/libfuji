@@ -83,15 +83,19 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-
-        if (Backend.wifi.fujiConnectToCmd((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE))) {
-            Backend.print("Failed to connect\n");
-        } else {
-            Backend.print("Connection success\n");
-            Backend.logLocation = "gallery";
-            Intent intent = new Intent(MainActivity.this, Gallery.class);
-            startActivity(intent);
-        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (Backend.wifi.fujiConnectToCmd((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE))) {
+                    Backend.print("Failed to connect\n");
+                } else {
+                    Backend.print("Connection success\n");
+                    Backend.logLocation = "gallery";
+                    Intent intent = new Intent(MainActivity.this, Gallery.class);
+                    startActivity(intent);
+                }
+            }
+        }).start();
     }
 
     public static MainActivity getInstance() {

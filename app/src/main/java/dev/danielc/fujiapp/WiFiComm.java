@@ -16,30 +16,42 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 
 public class WiFiComm {
+    private static final String TAG = "wificomm";
     private Socket socket = null;
     private InputStream inputStream = null;
     private OutputStream outputStream = null;
 
     public boolean killSwitch = true;
 
+    // Request to open a socket over WiFi - LTE connection is often preferred by Android,
+    // since Fuji's IP is 192.168.0.1
     // Don't run this in the UI thread, and don't run more than once at a time
     static int currentNetworkCallbackDone = 0;
     static Socket currentNetworkCallbackSocket = null;
     public static Socket connectWiFiSocket(ConnectivityManager connectivityManager, String ip, int port) {
+        currentNetworkCallbackSocket = null;
+        currentNetworkCallbackDone = 0;
+
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
         requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
         ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
+                Log.d(TAG, "Wifi available");
                 ConnectivityManager.setProcessDefaultNetwork(network);
-                currentNetworkCallbackSocket = new Socket();
                 try {
-                    currentNetworkCallbackSocket.connect(new java.net.InetSocketAddress(ip, port), Backend.TIMEOUT);
+                    // Create and connect to socket
+                    currentNetworkCallbackSocket = new Socket(ip, port);
+                    currentNetworkCallbackSocket.setKeepAlive(true);
+                    currentNetworkCallbackSocket.setTcpNoDelay(true);
+                    currentNetworkCallbackSocket.setReuseAddress(true);
                 }  catch (SocketTimeoutException e) {
                     Backend.print("Connection timed out\n");
+                    Log.e(TAG, e.toString());
                     currentNetworkCallbackDone = -1;
-                } catch (IOException e) {
+                } catch (Exception e) {
                     Backend.print("Failed to connect to the camera\n");
+                    Log.e(TAG, e.toString());
                     currentNetworkCallbackDone = -1;
                 }
                 if (currentNetworkCallbackDone != -1) {
@@ -50,13 +62,21 @@ public class WiFiComm {
         };
 
         if (Build.VERSION.SDK_INT >= 26) {
-            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback, 500);
+            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback, Backend.OPEN_TIMEOUT);
         } else {
             connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
         }
+        Log.d(TAG, "Requested wifi network usage");
 
         // Low tech solution for async execution
+        int waits = 0;
         while (true) {
+            // If network is not provided within 200ms, assume WiFi is disabled
+            if (waits > 500) {
+                Backend.print("Not connected to Fuji WiFi\n");
+                return null;
+            }
+
             if (currentNetworkCallbackDone == 1) {
                 return currentNetworkCallbackSocket;
             } else if (currentNetworkCallbackDone == -1) {
@@ -64,9 +84,10 @@ public class WiFiComm {
             }
 
             try {
-                Thread.sleep(5);
+                Thread.sleep(1);
+                waits++;
             } catch (Exception e) {
-                // TODO: Handle
+                Log.e(TAG, "Sleep fail (???)");
             }
         }
     }
@@ -85,8 +106,10 @@ public class WiFiComm {
             cmdInputStream = cmdSocket.getInputStream();
             cmdOutputStream = cmdSocket.getOutputStream();
             killSwitch = false;
+            Log.d(TAG, "Successful connection established");
         } catch (Exception e) {
             // TODO: Handle
+            return true;
         }
 
         return false;
@@ -109,7 +132,10 @@ public class WiFiComm {
     }
 
     public int cmdWrite(byte[] data) {
-        if (killSwitch) return -1;
+        if (killSwitch) {
+            Log.d(TAG, "kill switch on, breaking request");
+            return -1;
+        }
         try {
             cmdOutputStream.write(data);
             cmdOutputStream.flush();
@@ -190,16 +216,26 @@ public class WiFiComm {
 
     public synchronized void close() {
         killSwitch = true;
+
+        try {
+            // Suck the remaining bytes out of socket
+            byte[] remaining = new byte[100];
+            cmdInputStream.read(remaining);
+        } catch (Exception e) {
+            // I don't care
+        }
+
         try {
             Log.e("fudge", "Closing sockets");
+
+            if (cmdSocket != null) {
+                cmdSocket.close();
+            }
             if (cmdInputStream != null) {
                 cmdInputStream.close();
             }
             if (cmdOutputStream != null) {
                 cmdOutputStream.close();
-            }
-            if (cmdSocket != null) {
-                cmdSocket.close();
             }
         } catch (IOException e) {
             Backend.print("Error closing the socket: " + e.getMessage() + "\n");

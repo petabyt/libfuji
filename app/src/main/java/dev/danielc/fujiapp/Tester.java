@@ -17,6 +17,9 @@ import android.net.NetworkRequest;
 import android.os.Handler;
 import android.os.Build;
 
+import java.net.Socket;
+import java.net.SocketTimeoutException;
+
 public class Tester extends AppCompatActivity {
     private Handler handler;
 
@@ -43,6 +46,55 @@ public class Tester extends AppCompatActivity {
             log("Gained access to bluetooth");
 
             // TODO: Finish bluetooth tests
+        }
+    }
+
+    Socket testSock = null;
+    void socketTest(ConnectivityManager m) {
+        try {
+            NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
+            requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
+            ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onAvailable(Network network) {
+                    Log.e("sad", "Wifi available");
+                    ConnectivityManager.setProcessDefaultNetwork(network);
+
+                    try {
+                        Socket s = new Socket(Backend.FUJI_IP, Backend.FUJI_CMD_PORT);
+                        s.setKeepAlive(true);
+                        s.setTcpNoDelay(true);
+                        s.setReuseAddress(true);
+                        testSock = s;
+                        log("Success socket");
+                    } catch (Exception e) {
+                        fail(e.toString());
+                    }
+
+                    m.unregisterNetworkCallback(this);
+                }
+            };
+
+            if (Build.VERSION.SDK_INT >= 26) {
+                m.requestNetwork(requestBuilder.build(), networkCallback, Backend.OPEN_TIMEOUT);
+            } else {
+                m.requestNetwork(requestBuilder.build(), networkCallback);
+            }
+        } catch (Exception e) {
+            fail(e.toString());
+        }
+
+        try {
+            Thread.sleep(1000);
+            if (testSock != null) {
+                byte[] data = {12, 12, 12, 12};
+                testSock.getOutputStream().write(data);
+                testSock.getOutputStream().flush();
+
+                testSock.close();
+            }
+        } catch (Exception e) {
+            fail(e.toString());
         }
     }
 
@@ -124,5 +176,11 @@ public class Tester extends AppCompatActivity {
 
         rc = Backend.cFujiTestSetupImageGallery();
         if (rc != 0) return;
+
+        try {
+            Camera.closeSession();
+        } catch (Exception e) {
+            fail("Failed to close session");
+        }
     }
 }
