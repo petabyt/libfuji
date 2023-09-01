@@ -51,6 +51,13 @@ void tester_fail(char *fmt, ...) {
     (*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_fail, (*backend.env)->NewStringUTF(backend.env, buffer));
 }
 
+static void ptp_verbose_print_events(struct PtpRuntime *r) {
+	struct PtpFujiEvents *ev = (struct PtpFujiEvents *)(ptp_get_payload(r));
+	for (int i = 0; i < ev->length; i++) {
+		tester_log("%X is %d", ev->events[i].code, ev->events[i].value);
+	}
+}
+
 static void log_payload(struct PtpRuntime *r) {
 	char buffer[512];
 	uint8_t *data = ptp_get_payload(r);
@@ -72,7 +79,6 @@ static void log_payload(struct PtpRuntime *r) {
 
 int fuji_test_get_props(struct PtpRuntime *r) {
 	uint16_t test_props[] = {
-		PTP_PC_FUJI_CameraState,
 		PTP_PC_FUJI_ImageGetVersion,
 		PTP_PC_FUJI_ImageExploreVersion,
 		PTP_PC_FUJI_RemoteVersion,
@@ -130,21 +136,11 @@ int fuji_init_setup(struct PtpRuntime *r) {
 	}
 
 	rc = fuji_config_device_info_routine(r);
-	if (rc == PTP_CHECK_CODE) {
-		tester_fail("Camera didn't like the device info test, will keep on going");
-	} else if (rc) {
-		tester_fail("Failed to try device info routine");
-		return rc;
-	} else {
-		tester_log("Device passed device info routine");
-	}
-
-	rc = fuji_config_remote_image_viewer(r);
 	if (rc) {
-		tester_fail("Failed to config remote image viewier");
+		tester_fail("Failed to get device info");
 		return rc;
 	} else {
-		tester_log("Configured remote image viewer");
+		tester_log("Received device info");
 	}
 
 	return 0;
@@ -182,7 +178,7 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 }
 
 // Portable Fujifilm test suite
-int fuji_test_suite(struct PtpRuntime *r) {
+int fuji_test_setup(struct PtpRuntime *r) {
 	tester_log("Running test suite from C");
 
     int rc = ptpip_fuji_init(&backend.r, "fujiapp-test");
@@ -223,17 +219,19 @@ int fuji_test_suite(struct PtpRuntime *r) {
 		tester_log("Opened session");
 	}
 	
-	rc = ptpip_fuji_get_events(r);
-	if (rc) {
-		tester_fail("Failed to get events after opening session: %d", rc);
+	rc = fuji_get_first_events(r);
+	if (rc == PTP_RUNTIME_ERR) {
+		tester_fail("Camera failed to provide the props required after opening session");
 		return rc;
+	} else if (rc) {
+		tester_fail("Failed to get events after opening session: %d", rc);
 	} else {
 		tester_log("Recieved events after opening session.");
-		log_payload(r);
+		ptp_verbose_print_events(r);
 	}
 
-	rc = fuji_test_get_props(r);
-	if (rc) return rc;
+	// rc = fuji_test_get_props(r);
+	// if (rc) return rc;
 
 	rc = fuji_test_init_access(r);
 	if (rc) return rc;
@@ -241,16 +239,55 @@ int fuji_test_suite(struct PtpRuntime *r) {
 	rc = fuji_init_setup(r);
 	if (rc) return rc;
 
-	rc = fuji_test_filesystem(r);
-	if (rc) return rc;
-
-	tester_log("We got to the end of the test, and nothing broke :)");
-	tester_log("Ending test...");
+	// rc = fuji_test_filesystem(r);
+	// if (rc) return rc;
+// 
+	// tester_log("We got to the end of the test, and nothing broke :)");
+	// tester_log("Ending test...");
 
 	return 0;
 }
 
-JNI_FUNC(jint, cFujiTestSuite)(JNIEnv *env, jobject thiz) {
+JNI_FUNC(jint, cFujiTestSuiteSetup)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
-	return fuji_test_suite(&backend.r);
+	return fuji_test_setup(&backend.r);
+}
+
+JNI_FUNC(jint, cFujiTestStartRemoteSockets)(JNIEnv *env, jobject thiz) {
+	backend.env = env;
+	int rc = fuji_remote_mode_open_sockets(&backend.r);
+	if (rc) {
+		tester_fail("Failed to open sockets");
+	} else {
+		tester_log("Opened sockets in remote mode");
+	}
+
+	return rc;
+}
+
+JNI_FUNC(jint, cFujiTestEndRemoteMode)(JNIEnv *env, jobject thiz) {
+	backend.env = env;
+	int rc = fuji_remote_mode_end(&backend.r);
+	if (rc) {
+		tester_fail("Failed to end remote mode");
+	} else {
+		tester_log("Ended remote mode after setting up sockets");
+	}
+	return rc;
+}
+
+JNI_FUNC(jint, cFujiTestSetupImageGallery)(JNIEnv *env, jobject thiz) {
+	backend.env = env;
+	int rc = fuji_config_image_viewer(&backend.r);
+	if (rc) {
+		tester_fail("Failed to config remote image viewer");
+		return rc;
+	} else {
+		tester_log("Configured remote image viewer");
+	}
+
+	rc = fuji_test_filesystem(&backend.r);
+	if (rc) return rc;
+
+	return 0;
 }

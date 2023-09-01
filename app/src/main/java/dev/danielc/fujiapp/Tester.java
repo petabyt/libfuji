@@ -63,10 +63,14 @@ public class Tester extends AppCompatActivity {
 
         //connectBluetooth();
 
+        ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                mainTest();
+                mainTest(m);
+                Backend.wifi.close();
+                Backend.cEndLogs();
             }
         });
 
@@ -75,33 +79,11 @@ public class Tester extends AppCompatActivity {
             return;
         }
 
-        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
-        requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
-        ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onAvailable(Network network) {
-                ConnectivityManager.setProcessDefaultNetwork(network);
-                log("Attempting to connect through WiFi: " + Backend.FUJI_IP + ":" + Backend.FUJI_CMD_PORT);
-                if (!Backend.wifi.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
-                    log("Established connection, starting test thread");
-                    thread.start();
-                } else {
-                    fail("Failed to connect to port on WiFi");
-                }
-                connectivityManager.unregisterNetworkCallback(this);
-            }
-
-            @Override
-            public void onUnavailable () {
-                fail("WiFi is not available, or turned off");
-            }
-        };
-
-        if (Build.VERSION.SDK_INT >= 26) {
-            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback, 500);
+        if (Backend.wifi.fujiConnectToCmd(m)) {
+            fail("Failed to connect to port on WiFi");
         } else {
-            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
+            log("Established connection, starting test thread");
+            thread.start();
         }
     }
 
@@ -122,9 +104,25 @@ public class Tester extends AppCompatActivity {
         log("<font color='#EE0000'>[FAIL] " + str + "</font>");
     }
 
-    public void mainTest() {    
-        int rc = Backend.cFujiTestSuite();
+    public void mainTest(ConnectivityManager m) {
+        int rc = Backend.cFujiTestSuiteSetup();
         log("Return code: " + rc);
-        Backend.cEndLogs();
+        if (rc != 0) return;
+
+        rc = Backend.cFujiTestStartRemoteSockets();
+        if (rc != 0) return;
+
+        if (Backend.wifi.fujiConnectEventAndVideo(m)) {
+            fail("Failed to accept connections from event and video ports");
+            return;
+        } else {
+            log("Accepted connection from event and video ports");
+        }
+
+        rc = Backend.cFujiTestEndRemoteMode();
+        if (rc != 0) return;
+
+        rc = Backend.cFujiTestSetupImageGallery();
+        if (rc != 0) return;
     }
 }

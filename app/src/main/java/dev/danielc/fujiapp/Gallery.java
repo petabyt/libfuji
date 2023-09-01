@@ -64,16 +64,10 @@ public class Gallery extends AppCompatActivity {
         setContentView(R.layout.activity_gallery);
         instance = this;
 
-        findViewById(R.id.blowup).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.disconnectButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Thread testThread = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Backend.print("Attempted to detonate internal camera time bomb: " + Backend.cTestStuff());
-                    }
-                });
-                testThread.start();
+                Backend.reportError(Backend.PTP_OK, "Graceful disconnect\n");
             }
         });
 

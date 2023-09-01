@@ -145,7 +145,7 @@ public class Viewer extends AppCompatActivity {
             @Override
             public void run() {
                 try {
-                    JSONObject jsonObject = Backend.run("ptp_get_object_info", new int[]{handle});
+                    JSONObject jsonObject = Camera.getObjectInfo(handle);
                     if (jsonObject == null) {
                         handler.post(new Runnable() {
                             @Override
@@ -161,6 +161,20 @@ public class Viewer extends AppCompatActivity {
                     inProgress = true;
                     byte[] file = Backend.cFujiGetFile(handle);
 
+                    if (file == null) {
+                        // IO error in downloading
+                        throw new Backend.PtpErr(Backend.PTP_IO_ERR);
+                    } else if (file.length == 0) {
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(Viewer.this, "Failed to download", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        return;
+                    }
+
+                    // Scale image to acceptable texture size
                     bitmap = BitmapFactory.decodeByteArray(file, 0, file.length);
                     if (bitmap.getWidth() > GL10.GL_MAX_TEXTURE_SIZE) {
                         float ratio = ((float) bitmap.getHeight()) / ((float) bitmap.getWidth());
@@ -169,8 +183,6 @@ public class Viewer extends AppCompatActivity {
                                 (int)((4096) * ratio),
                                 false);
                     }
-
-                    Runtime.getRuntime().gc();
 
                     inProgress = false;
 
@@ -181,36 +193,29 @@ public class Viewer extends AppCompatActivity {
                         }
                     });
 
-                    if (file == null) {
-                        handler.post(new Runnable() {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                        ZoomageView zoomageView = findViewById(R.id.zoom_view);
+                        zoomageView.setImageBitmap(bitmap);
+
+                        findViewById(R.id.download_button).setOnClickListener(new View.OnClickListener() {
                             @Override
-                            public void run() {
-                                Toast.makeText(Viewer.this, "Failed to download", Toast.LENGTH_SHORT).show();
+                            public void onClick(View v) {
+                                writeFile(filename, file);
                             }
                         });
-                    } else {
-                        handler.post(new Runnable() {
+
+                        findViewById(R.id.share_button).setOnClickListener(new View.OnClickListener() {
                             @Override
-                            public void run() {
-                                ZoomageView zoomageView = findViewById(R.id.zoom_view);
-                                zoomageView.setImageBitmap(bitmap);
-
-                                findViewById(R.id.download_button).setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        writeFile(filename, file);
-                                    }
-                                });
-
-                                findViewById(R.id.share_button).setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        share(filename, file);
-                                    }
-                                });
+                            public void onClick(View v) {
+                                share(filename, file);
                             }
                         });
-                    }
+                        }
+                    });
+                } catch (Backend.PtpErr e) {
+                    // TODO: kill connection
                 } catch (Exception e) {
                     handler.post(new Runnable() {
                         @Override

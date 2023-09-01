@@ -6,9 +6,9 @@
     <string name="help_text4">Sorry, modern cameras with Bluetooth aren\'t supported yet. That\'s on the roadmap!</string>
     <string name="help_text5">If you aren\'t satisfied with the app, then you can return your copy for a full refund :)</string>
     <string name="help_text6">Credits:</string>
-    <string name="help_text7">Made with camlib (Apache license)</string>
-    <string name="help_text8">com.jsibbold.zoomage.ZoomageView (Apache)</string>
-    <string name="help_text9">Google Material Icons (Apache)</string>
+    <string name="help_text7">camlib (Apache license)</string>
+    <string name="help_text8">com.jsibbold.zoomage.ZoomageView (Apache license)</string>
+    <string name="help_text9">Google Material Icons (Apache license)</string>
     <string name="help_text10">Default image landscape painting is by me :)</string>
 
     <string name="url">https://github.com/petabyt/fudge</string>

@@ -34,9 +34,13 @@ set(CORE
 #set(USE_VUSB 1)
 
 if(DEFINED USE_VUSB)
+	if(CMAKE_BUILD_TYPE STREQUAL "Release")
+	    message(FATAL_ERROR "Disable vcam!")
+	endif()
+
 	add_definitions(-D VCAMERADIR="\\"test/"\\")
-	list(APPEND CORE vusb.c vusb/log.c vusb/vcamera.c vusb/libgphoto2_port/gphoto2-port-portability.c)
-	include_directories(${PROJECT_SOURCE_DIR}/vusb/)
+	list(APPEND CORE vusb.c vusb/src/log.c vusb/src/vcamera.c vusb/src/libgphoto2_port/gphoto2-port-portability.c vusb/src/fuji.c)
+	include_directories(${PROJECT_SOURCE_DIR}/vusb/src/)
 else()
 	list(APPEND CORE net.c)
 endif()

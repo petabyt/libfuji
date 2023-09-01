@@ -82,32 +82,15 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
             return;
         }
-    
-        // Socket must be opened on WiFi - otherwise it will prefer cellular
-        Backend.print("Attempting connection...\n");
-        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
-        requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
-        ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onAvailable(Network network) {
-                ConnectivityManager.setProcessDefaultNetwork(network);
-                if (!Backend.wifi.connect(Backend.FUJI_IP, Backend.FUJI_CMD_PORT, Backend.TIMEOUT)) {
-                    Backend.print("connection success\n");
-                    Backend.logLocation = "gallery";
-                    Intent intent = new Intent(MainActivity.this, Gallery.class);
-                    startActivity(intent);
-                } else {
-                    Backend.print("connection fail\n");
-                }
-                connectivityManager.unregisterNetworkCallback(this);
-            }
-        };
 
-        if (Build.VERSION.SDK_INT >= 26) {
-            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback, 500);
+
+        if (Backend.wifi.fujiConnectToCmd((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE))) {
+            Backend.print("Failed to connect\n");
         } else {
-            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
+            Backend.print("Connection success\n");
+            Backend.logLocation = "gallery";
+            Intent intent = new Intent(MainActivity.this, Gallery.class);
+            startActivity(intent);
         }
     }
 

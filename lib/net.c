@@ -44,7 +44,7 @@ int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
     int ret = (*backend.env)->CallIntMethod(backend.env, backend.conn, backend.cmd_read, data, length);
 
     if (ret < 0) {
-        android_err("failed to recieve packet, %d", ret);
+        android_err("failed to receive packet, %d", ret);
         return ret;
     }
 

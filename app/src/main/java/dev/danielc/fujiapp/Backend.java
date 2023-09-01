@@ -24,7 +24,6 @@ public class Backend {
     public static final int PTP_UNSUPPORTED = -7;
     public static final int PTP_CHECK_CODE = -8;
 
-
     public static class PtpErr extends Exception {
         int rc;
         public PtpErr(int code) {
@@ -65,9 +64,11 @@ public class Backend {
     }
 
     // Constants
-    //public static final String FUJI_IP = "192.168.1.33";
-    public static final String FUJI_IP = "192.168.0.1";
+    public static final String FUJI_IP = "192.168.1.33";
+    //public static final String FUJI_IP = "192.168.0.1";
     public static final int FUJI_CMD_PORT = 55740;
+    public static final int FUJI_EVENT_PORT = 55741;
+    public static final int FUJI_VIDEO_PORT = 55742;
     public static final int TIMEOUT = 1000;
     public static final int PTP_OF_JPEG = 0x3801;
 
@@ -89,7 +90,10 @@ public class Backend {
     public native synchronized static boolean cIsUntestedMode();
     public native synchronized static int[] cGetObjectHandles();
     public native synchronized static int cTestStuff();
-    public native synchronized static int cFujiTestSuite();
+    public native synchronized static int cFujiTestSuiteSetup();
+    public native synchronized static int cFujiTestStartRemoteSockets();
+    public native synchronized static int cFujiTestEndRemoteMode();
+    public native synchronized static int cFujiTestSetupImageGallery();
 
     // Enable disable verbose logging to file
     public native synchronized static int cRouteLogs(String filename);

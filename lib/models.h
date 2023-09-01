@@ -9,8 +9,7 @@ struct FujiCameraInfo {
 	uint8_t has_bluetooth;
 	uint8_t capture_support;
 	uint8_t firm_update_support;
-
-	int16_t preferred_function_version; // TODO: Maybe release year?
+	int16_t release_year;
 };
 
 struct FujiCameraInfo *fuji_get_model_info(char *name);

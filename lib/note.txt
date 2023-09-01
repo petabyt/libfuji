@@ -44,3 +44,10 @@ close app
 restart connection
 open app again
 
+open session
+get init events
+set camera state df01
+get remote version
+  0A000200
+set remote version to
+  0B000200

@@ -16,7 +16,7 @@ struct AndroidBackend backend;
 void reset_connection() {
     memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
     ptp_generic_reset(&backend.r);
-    backend.r.connection_type = PTP_IP;
+    backend.r.connection_type = PTP_IP_USB;
 }
 
 void jni_verbose_log(char *str) {
@@ -76,8 +76,8 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
 
     backend.jni_print = (*backend.env)->GetStaticMethodID(backend.env, pacClass, "print", "(Ljava/lang/String;)V");
 
-    backend.cmd_write = (*backend.env)->GetMethodID(backend.env, connClass, "write", "([B)I");
-    backend.cmd_read = (*backend.env)->GetMethodID(backend.env, connClass, "read", "([BI)I");
+    backend.cmd_write = (*backend.env)->GetMethodID(backend.env, connClass, "cmdWrite", "([B)I");
+    backend.cmd_read = (*backend.env)->GetMethodID(backend.env, connClass, "cmdRead", "([BI)I");
     // TODO: cmd_close
 
     ptp_generic_init(&backend.r);

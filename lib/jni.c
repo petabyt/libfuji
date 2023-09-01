@@ -147,7 +147,9 @@ JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
     int rc = fuji_config_version(&backend.r);
     if (rc) return rc;
 
-    rc = fuji_config_remote_image_viewer(&backend.r);
+    rc = fuji_config_device_info_routine(&backend.r);
+
+    rc = fuji_config_image_viewer(&backend.r);
     if (rc) return rc;
 
     return 0;
@@ -160,7 +162,7 @@ JNI_FUNC(jboolean, cIsUntestedMode)(JNIEnv *env, jobject thiz) {
         return 1;
     }
 
-    if (fuji_known.function_version != 2) {
+    if (fuji_known.image_explore_version != 2) {
         return 1;
     }
 
