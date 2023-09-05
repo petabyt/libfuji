@@ -174,13 +174,10 @@ int fuji_config_version(struct PtpRuntime *r) {
 	} else {
 		ptp_verbose_log("RemoteVersion was %X\n", fuji_known.remote_version);
 
-		// RemoteVersion is actually two words. The old app gave 11.2, so we'll try that
-		uint16_t new_remote_version[] = {
-			11, 2
-		};
+		uint32_t new_remote_version = 0x0B000200;
 
 		int rc = ptp_set_prop_value_data(r, PTP_PC_FUJI_RemoteVersion,
-			(void *)(&new_remote_version), sizeof(new_remote_version));
+			(void *)(&new_remote_version), 4);
 		if (rc) return rc;
 	}
 
