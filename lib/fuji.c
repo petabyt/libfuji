@@ -260,7 +260,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		rc = ptp_set_prop_value16(r, PTP_PC_FUJI_FunctionMode, FUJI_MODE_REMOTE_IMG_VIEW);
 		if (rc) return rc;
 
-		// Set the prop again! For no reason! - Fuji devs
+		// Set the prop again! For no reason! beause fuji devs say so
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion, fuji_known.remote_image_view_version);
 		if (rc) return rc;		
 

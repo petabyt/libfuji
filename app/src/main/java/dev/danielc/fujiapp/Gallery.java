@@ -9,6 +9,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
 import android.view.View;
 import android.widget.Toast;
 import android.content.Intent;
@@ -64,6 +66,8 @@ public class Gallery extends AppCompatActivity {
         setContentView(R.layout.activity_gallery);
         instance = this;
 
+        ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+
         findViewById(R.id.disconnectButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -84,6 +88,7 @@ public class Gallery extends AppCompatActivity {
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
+                int rc;
                 if (Backend.cPtpFujiInit() == 0) {
                     Backend.print("Initialized connection.\n");
                 } else {
@@ -126,14 +131,41 @@ public class Gallery extends AppCompatActivity {
                 if (Backend.cIsMultipleMode()) {
                     showWarning("Multiple/single import is unsupported, don't expect it to work.");
                 } else if (Backend.cIsUntestedMode()) {
-                    showWarning("This camera is untested, don't expect it to work.");
+                    showWarning("This camera is untested, support is under development.");
                 }
 
                 Backend.print("Configuring versions and stuff..\n");
-                if (Backend.cFujiConfigVersion() != 0) {
+                rc = Backend.cFujiConfigVersion();
+                if (rc != 0) {
                     Backend.print("Failed to configure camera versions.\n");
-                    Backend.reportError(Backend.PTP_IO_ERR, "Graceful disconnect\n");
+                    Backend.reportError(rc, "Graceful disconnect\n");
                     return;
+                }
+
+                // Enter (and exit?) remote mode
+                if (Backend.cCameraWantsRemote()) {
+                    Backend.print("Entering remote mode..");
+                    rc = Backend.cFujiTestStartRemoteSockets();
+                    if (rc != 0) {
+                        Backend.print("Failed to init remote mode\n");
+                        Backend.reportError(rc, "Graceful disconnect\n");
+                        return;
+                    }
+
+                    if (Backend.wifi.fujiConnectEventAndVideo(m)) {
+                        Backend.print("Failed to enter remote mode\n");
+                        Backend.reportError(Backend.PTP_RUNTIME_ERR, "Graceful disconnect\n");
+                        return;
+                    } else {
+                        Backend.print("Entered remote mode");
+                    }
+
+                    rc = Backend.cFujiTestEndRemoteMode();
+                    if (rc != 0) {
+                        Backend.print("Failed to exit remote mode");
+                        Backend.reportError(rc, "Graceful disconnect\n");
+                        return;
+                    }
                 }
 
                 int[] objectHandles = Backend.cGetObjectHandles();

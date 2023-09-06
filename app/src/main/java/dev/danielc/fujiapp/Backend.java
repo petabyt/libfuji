@@ -89,6 +89,7 @@ public class Backend {
     public native synchronized static byte[] cFujiGetFile(int handle);
     public native synchronized static boolean cIsMultipleMode();
     public native synchronized static boolean cIsUntestedMode();
+    public native synchronized static boolean cCameraWantsRemote();
     public native synchronized static int[] cGetObjectHandles();
     public native synchronized static int cTestStuff();
     public native synchronized static int cFujiTestSuiteSetup();

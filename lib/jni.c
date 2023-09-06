@@ -146,6 +146,7 @@ JNI_FUNC(jint, cFujiConfigInitMode)(JNIEnv *env, jobject thiz) {
 	return rc;
 }
 
+// Misnomer, should be configImageViewer
 JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
 
@@ -172,6 +173,13 @@ JNI_FUNC(jboolean, cIsUntestedMode)(JNIEnv *env, jobject thiz) {
 	}
 
 	return 0;
+}
+
+JNI_FUNC(jboolean, cCameraWantsRemote)(JNIEnv *env, jobject thiz) {
+	backend.env = env;
+
+	// Determine if camera supports remote mode -> then it will probably require it
+	return fuji_known.remote_version != -1;
 }
 
 JNI_FUNC(jboolean, cIsMultipleMode)(JNIEnv *env, jobject thiz) {
