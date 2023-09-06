@@ -16,6 +16,17 @@
 
 struct FujiDeviceKnowledge fuji_known = {0};
 
+int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
+	struct PtpCommand cmd;
+	cmd.code = PTP_OC_SetDevicePropValue;
+	cmd.param_length = 1;
+	cmd.params[0] = code;
+
+	uint16_t dat[] = {value};
+
+	return ptp_generic_send_data(r, &cmd, dat, sizeof(dat));
+}
+
 int fuji_get_device_info(struct PtpRuntime *r) {
 	struct PtpCommand cmd;
 	cmd.code = PTP_OC_FUJI_GetDeviceInfo;
@@ -151,7 +162,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 
 	tester_log("Setting mode to %d\n", mode);
 
-	rc = ptp_set_prop_value(r, PTP_PC_FUJI_FunctionMode, mode);
+	rc = ptp_set_prop_value16(r, PTP_PC_FUJI_FunctionMode, mode);
 	if (rc) return rc;
 
 	return 0;
@@ -174,7 +185,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 	} else {
 		ptp_verbose_log("RemoteVersion was %X\n", fuji_known.remote_version);
 
-		uint32_t new_remote_version = 0x0B000200;
+		uint32_t new_remote_version = 0x2000B;
 
 		int rc = ptp_set_prop_value_data(r, PTP_PC_FUJI_RemoteVersion,
 			(void *)(&new_remote_version), 4);
@@ -229,7 +240,7 @@ int fuji_remote_mode_end(struct PtpRuntime *r) {
 int fuji_config_image_viewer(struct PtpRuntime *r) {
 	if (fuji_known.remote_image_view_version != -1) {
 		// Tell the camera that we actually want that mode
-		int rc = ptp_set_prop_value(r, PTP_PC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
+		int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
 		if (rc) return rc;
 
 		// Will confirm CameraState is set
@@ -246,7 +257,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		if (rc) return rc;
 		ptp_verbose_log("Storage ID: %d\n", ptp_parse_prop_value(r));
 
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_FunctionMode, FUJI_MODE_REMOTE_IMG_VIEW);
+		rc = ptp_set_prop_value16(r, PTP_PC_FUJI_FunctionMode, FUJI_MODE_REMOTE_IMG_VIEW);
 		if (rc) return rc;
 
 		// Set the prop again! For no reason! - Fuji devs
