@@ -16,39 +16,39 @@
 
 // Init commands 
 JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
-    backend.env = env;
-    jclass thizClass = (*env)->GetObjectClass(env, thiz);
-    jclass testerClass = (*env)->GetObjectClass(env, tester);
-    backend.tester = (*env)->NewGlobalRef(env, tester);
+	backend.env = env;
+	jclass thizClass = (*env)->GetObjectClass(env, thiz);
+	jclass testerClass = (*env)->GetObjectClass(env, tester);
+	backend.tester = (*env)->NewGlobalRef(env, tester);
 
-    backend.tester_log = (*backend.env)->GetMethodID(backend.env, testerClass, "log", "(Ljava/lang/String;)V");
-    backend.tester_fail = (*backend.env)->GetMethodID(backend.env, testerClass, "fail", "(Ljava/lang/String;)V");
+	backend.tester_log = (*backend.env)->GetMethodID(backend.env, testerClass, "log", "(Ljava/lang/String;)V");
+	backend.tester_fail = (*backend.env)->GetMethodID(backend.env, testerClass, "fail", "(Ljava/lang/String;)V");
 }
 
 void tester_log(char *fmt, ...) {
 	if (backend.tester_log == NULL) return;
-    char buffer[512];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(buffer, sizeof(buffer), fmt, args);
-    va_end(args);
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
 
-    jni_verbose_log(buffer);
+	jni_verbose_log(buffer);
 
-    (*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_log, (*backend.env)->NewStringUTF(backend.env, buffer));
+	(*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_log, (*backend.env)->NewStringUTF(backend.env, buffer));
 }
 
 void tester_fail(char *fmt, ...) {
 	if (backend.tester_fail == NULL) return;
-    char buffer[512];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(buffer, sizeof(buffer), fmt, args);
-    va_end(args);
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
 
 	jni_verbose_log(buffer);
 
-    (*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_fail, (*backend.env)->NewStringUTF(backend.env, buffer));
+	(*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_fail, (*backend.env)->NewStringUTF(backend.env, buffer));
 }
 
 static void ptp_verbose_print_events(struct PtpRuntime *r) {
@@ -181,20 +181,20 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 int fuji_test_setup(struct PtpRuntime *r) {
 	tester_log("Running test suite from C");
 
-    int rc = ptpip_fuji_init(&backend.r, "fujiapp-test");
-    if (rc) {
-    	tester_fail("Failed to initialize command socket");
-    	return rc;
-    } else {
-    	tester_log("Initialized command socket");
-    }
+	int rc = ptpip_fuji_init(&backend.r, "fujiapp-test");
+	if (rc) {
+		tester_fail("Failed to initialize command socket");
+		return rc;
+	} else {
+		tester_log("Initialized command socket");
+	}
 
-    struct PtpFujiInitResp resp;
-    ptp_fuji_get_init_info(r, &resp);
+	struct PtpFujiInitResp resp;
+	ptp_fuji_get_init_info(r, &resp);
 
-    tester_log("Connected to %s", resp.cam_name);
+	tester_log("Connected to %s", resp.cam_name);
 
-    fuji_known.info = fuji_get_model_info(resp.cam_name);
+	fuji_known.info = fuji_get_model_info(resp.cam_name);
 	if (fuji_known.info == NULL) {
 		tester_fail("Couldn't get model info from database");
 	} else {
@@ -209,7 +209,7 @@ int fuji_test_setup(struct PtpRuntime *r) {
 	}
 
 	tester_log("sleep 500ms for good measure...");
-    CAMLIB_SLEEP(500);
+	CAMLIB_SLEEP(500);
 
 	rc = ptp_open_session(r);
 	if (rc) {
