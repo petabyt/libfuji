@@ -9,13 +9,17 @@ a single camera. Currently, it's only tested on the X-A2, but functionality for 
 
 It will be available [here](https://play.google.com/store/apps/details?id=dev.danielc.fujiapp) once finished.
 
+## Help needed
+- WiFi Packet dumps of using either of the official apps (send to brikbusters@gmail.com)
+- Dart & Flutter UI dev
+
 ## Tech stack
 - Java & native Android activities
 - JNI & Portable C99
 - [camlib](https://github.com/petabyt/camlib) with Java communication backend
 
-## Help needed
-- WiFi Packet dumps of using either of the official apps (send to brikbusters@gmail.com)
+In case you understand how the app works, here's a flow chart to make it look more complicated:
+![image of a disaster](docs/flow-chart.png)
 
 ## TODO:
 - [x] Stable communication with camera (connect, disconnect, ping)
