@@ -18,8 +18,8 @@ It will be available [here](https://play.google.com/store/apps/details?id=dev.da
 - JNI & Portable C99
 - [camlib](https://github.com/petabyt/camlib) with Java communication backend
 
-In case you understand how the app works, here's a flow chart to make it look more complicated:
-![image of a disaster](docs/flow-chart.png)
+Here's a confusing flow chart of how the app is put together:
+![image of a disaster](docs/fudge-chart.png)
 
 ## TODO:
 - [x] Stable communication with camera (connect, disconnect, ping)
