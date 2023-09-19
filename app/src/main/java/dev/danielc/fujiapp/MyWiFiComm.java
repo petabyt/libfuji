@@ -71,8 +71,8 @@ public class WiFiComm {
         // Low tech solution for async execution
         int waits = 0;
         while (true) {
-            // If network is not provided within 200ms, assume WiFi is disabled
-            if (waits > 500) {
+            // If network is not provided within 1s, assume WiFi is disabled
+            if (waits > 1000) {
                 Backend.print("Not connected to Fuji WiFi\n");
                 return null;
             }
