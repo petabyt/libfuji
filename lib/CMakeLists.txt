@@ -22,6 +22,7 @@ set(CORE
 	camlib/src/util.c
 	camlib/src/ml.c
 	camlib/src/conv.c
+	camlib/src/generic.c
 
 	main.c
 	jni.c

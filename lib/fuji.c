@@ -27,6 +27,14 @@ int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
 	return ptp_generic_send_data(r, &cmd, dat, sizeof(dat));
 }
 
+int fuji_disable_compression(struct PtpRuntime *r) {
+	return ptp_set_prop_value16(r, PTP_PC_FUJI_NoCompression, 0);
+}
+
+int fuji_enable_compression(struct PtpRuntime *r) {
+	return ptp_set_prop_value16(r, PTP_PC_FUJI_NoCompression, 1);
+}
+
 int fuji_get_device_info(struct PtpRuntime *r) {
 	struct PtpCommand cmd;
 	cmd.code = PTP_OC_FUJI_GetDeviceInfo;
@@ -63,38 +71,31 @@ int fuji_get_events(struct PtpRuntime *r) {
 	return 0;
 }
 
-// Call immediately after opensession
 int fuji_get_first_events(struct PtpRuntime *r) {
-	// We *need* these properties on camera init - otherwise, produce an error
-	fuji_known.camera_state = -1;
-	fuji_known.num_objects = -1;
-	fuji_known.selected_imgs_mode = -1;
 
-	int rc = fuji_get_events(r);
-	if (rc) return rc;
-
-	if (fuji_known.camera_state == -1 || fuji_known.num_objects == -1
-			|| fuji_known.selected_imgs_mode == -1) {
-		return PTP_RUNTIME_ERR;
-	}
+	// Deprecated
 
 	return 0;
 }
 
 // Call this immediately after session init
 int fuji_wait_for_access(struct PtpRuntime *r) {
-	// By this point, camera_state is garunteed to be filled by fuji_get_first_events
-
-	if (fuji_known.camera_state != FUJI_WAIT_FOR_ACCESS) {
-		return 0;
-	}
+	// We *need* these properties on camera init - otherwise, produce an error
+	fuji_known.camera_state = -1;
+	fuji_known.num_objects = -1;
 
 	while (1) {
+		// After opening session, immediately get events
 		int rc = fuji_get_events(r);
 		if (rc) return rc;
 
 		// Wait until camera state is unlocked
 		if (fuji_known.camera_state != FUJI_WAIT_FOR_ACCESS) {
+			if (fuji_known.num_objects == -1) {
+				ptp_verbose_log("Failed to get num_objects from first event\n");
+				return PTP_RUNTIME_ERR;
+			}
+
 			return 0;
 		}
 
@@ -106,7 +107,7 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 // Called right after obtaining access to the device.
 int fuji_config_init_mode(struct PtpRuntime *r) {
 	// Try and learn about the camera. Fuji apps don't do this (they guess with superpowers)
-	// But the cameras seem to not have a problem with getting a bunch of version info before
+	// But the cameras do not have a problem with getting a bunch of version info before
 	// everything is set up.
 
 	// Get image viewer version
@@ -185,7 +186,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 	} else {
 		ptp_verbose_log("RemoteVersion was %X\n", fuji_known.remote_version);
 
-		uint32_t new_remote_version = 0x2000B;
+		uint32_t new_remote_version = FUJI_CAM_CONNECT_REMOTE_VER;
 
 		int rc = ptp_set_prop_value_data(r, PTP_PC_FUJI_RemoteVersion,
 			(void *)(&new_remote_version), 4);
@@ -195,17 +196,19 @@ int fuji_config_version(struct PtpRuntime *r) {
 	return 0;
 }
 
-// Get device info, parse it, do stuff with it
 int fuji_config_device_info_routine(struct PtpRuntime *r) {
 	if (fuji_known.remote_version != -1) {
 		int rc = fuji_get_device_info(r);
 		if (rc) return rc;
+
+		// TODO: Parse device info
+		// I don't think we actually need it (?)
 	}
 
 	return 0;
 }
 
-// Init remote mode if camera has it (mislea)
+// Tell camera to open event/video sockets
 int fuji_remote_mode_open_sockets(struct PtpRuntime *r) {
 	if (fuji_known.remote_version == -1) return 0;
 
@@ -213,12 +216,6 @@ int fuji_remote_mode_open_sockets(struct PtpRuntime *r) {
 	fuji_known.open_capture_trans_id = r->transaction;
 	int rc = ptp_init_open_capture(r, 0, 0);
 	if (rc) return rc;
-
-	// // Right after remote mode is entered, camera gives off a bunch of properties
-	// rc = fuji_get_events(r);
-// 
-	// // And run it again, because Fuji says so
-	// rc = fuji_get_events(r);
 
 	return 0;
 }
@@ -292,8 +289,7 @@ int ptp_get_thumbnail_smart_cache(struct PtpRuntime *r, int handle, void **ptr, 
 	};
 
 	// Shouldn't exceed 1mb
-#if 0
-	android_err("smart cache");
+#if 1
 	int total = 0;
 	for (int i = 0; i < cache.length; i++) {
 		total += cache.entries[i].length;
@@ -314,6 +310,7 @@ int ptp_get_thumbnail_smart_cache(struct PtpRuntime *r, int handle, void **ptr, 
 	int rc = ptp_get_thumbnail(r, (int)handle);
 	if (rc) return rc;
 
+	// Skip a cache every other ID to prevent saturation
 	if (handle % 2) {
 		(*ptr) = ptp_get_payload(r);
 		(*length) = ptp_get_payload_length(r);

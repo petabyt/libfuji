@@ -71,7 +71,7 @@ static void log_payload(struct PtpRuntime *r) {
 	int c = sprintf(buffer, "Payload: ");
 	for (int i = 0; i < length; i++) {
 		c += sprintf(buffer + c, "%02X ", data[i]);
-		if (c - 10 > sizeof(buffer)) return;
+		if (c + 10 > sizeof(buffer)) break;
 	}
 
 	tester_log(buffer);
@@ -159,20 +159,25 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 
 	tester_log("There are %d images on the SD card.", fuji_known.num_objects);
 
-	tester_log("Attempting to get object info for 1...");
-	struct PtpObjectInfo oi;
-	int rc = ptp_get_object_info(r, 1, &oi);
-	if (rc) {
-		tester_fail("Failed to get object info: %d", rc);
-		return rc;
+	{
+		tester_log("Attempting to get object info for 1...");
+		struct PtpObjectInfo oi;
+		int rc = ptp_get_object_info(r, 1, &oi);
+		if (rc) {
+			tester_fail("Failed to get object info: %d", rc);
+			return rc;
+		} else {
+			tester_log("Got object info\n");
+		}
+
+		//log_payload(r);
+
+		char buffer[1024];
+		ptp_object_info_json(&oi, buffer, sizeof(buffer));
+
+		tester_log("Object info: %s\n", buffer);
+		tester_log("Tag: '%s'\n", oi.keywords);
 	}
-
-	log_payload(r);
-
-	char buffer[1024];
-	ptp_object_info_json(&oi, buffer, sizeof(buffer));
-
-	tester_log("Object info: %s\n", buffer);
 
 	return 0;
 }
@@ -218,17 +223,6 @@ int fuji_test_setup(struct PtpRuntime *r) {
 	} else {
 		tester_log("Opened session");
 	}
-	
-	rc = fuji_get_first_events(r);
-	if (rc == PTP_RUNTIME_ERR) {
-		tester_fail("Camera failed to provide the props required after opening session");
-		return rc;
-	} else if (rc) {
-		tester_fail("Failed to get events after opening session: %d", rc);
-	} else {
-		tester_log("Recieved events after opening session.");
-		ptp_verbose_print_events(r);
-	}
 
 	// rc = fuji_test_get_props(r);
 	// if (rc) return rc;
@@ -265,7 +259,7 @@ JNI_FUNC(jint, cFujiTestStartRemoteSockets)(JNIEnv *env, jobject thiz) {
 	return rc;
 }
 
-JNI_FUNC(jint, cFujiTestEndRemoteMode)(JNIEnv *env, jobject thiz) {
+JNI_FUNC(jint, cFujiEndRemoteMode)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
 	int rc = fuji_remote_mode_end(&backend.r);
 	if (rc) {

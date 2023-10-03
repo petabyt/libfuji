@@ -1,12 +1,14 @@
+// Extra PTP & API defs for Fuifilm
 #ifndef FUJIPTP_H
 #define FUJIPTP_H
 
-// Extra PTP defs for Fuifilm
+#define FUJI_CAM_CONNECT_REMOTE_VER 0x2000B
 
 // Downloader functions
 #define PTP_OC_FUJI_Unknown1	0x9054
 #define PTP_OC_FUJI_Unknown2	0x9055
 
+// Property codes, others are in camlib ptp.h
 #define PTP_PC_FUJI_Unknown4		0xD228
 #define PTP_PC_FUJI_Unknown15		0xD22B
 #define PTP_PC_FUJI_CompressionCutOff	0xD235

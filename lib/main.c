@@ -37,6 +37,10 @@ void ptp_verbose_log(char *fmt, ...) {
 	fflush(backend.log_fp);
 }
 
+void ptp_panic(char *fmt, ...) {
+	// :)
+}
+
 void jni_print(char *fmt, ...) {
 	char buffer[512];
 	va_list args;

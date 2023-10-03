@@ -63,7 +63,7 @@ JNI_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 		// If an error code is returned - allow it to fall
 		// through and return a zero-length array
 		length = 0;
-		data = ptp_get_payload(&backend.r); // is this necessary? hmm
+		data = ptp_get_payload(&backend.r); // Don't pass NULL to JNI lol
 	} else if (rc) {
 		return NULL;
 	}
@@ -89,7 +89,7 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 
 	// Set the compression prop (allows full images to go through, otherwise puts
 	// extra data in ObjectInfo and cuts off image downloads)
-	int rc = ptp_set_prop_value(&backend.r, PTP_PC_FUJI_NoCompression, 1);
+	int rc = fuji_enable_compression(&backend.r);
 	if (rc) {
 		return NULL;
 	}
@@ -112,14 +112,14 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 	while (1) {
 		rc = ptp_get_partial_object(&backend.r, handle, read, max);
 		if (rc == PTP_CHECK_CODE) {
-			ptp_set_prop_value(&backend.r, PTP_PC_FUJI_NoCompression, 0);
+			fuji_disable_compression(&backend.r);
 			return NULL;
 		} else if (rc) {
 			return NULL;
 		}
 
 		if (ptp_get_payload_length(&backend.r) == 0) {
-			ptp_set_prop_value(&backend.r, PTP_PC_FUJI_NoCompression, 0);
+			fuji_disable_compression(&backend.r);
 			return NULL;
 		} else if (rc) {
 			return NULL;
@@ -130,7 +130,7 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 		read += ptp_get_payload_length(&backend.r);
 
 		if (read >= oi.compressed_size) {
-			ptp_set_prop_value(&backend.r, PTP_PC_FUJI_NoCompression, 0);
+			fuji_disable_compression(&backend.r);
 			return ret;
 		}
 	}
@@ -155,7 +155,13 @@ JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
 
 	rc = fuji_config_device_info_routine(&backend.r);
 
-	rc = fuji_config_image_viewer(&backend.r);
+	return 0;
+}
+
+JNI_FUNC(jint, cFujiConfigImageGallery)(JNIEnv *env, jobject thiz) {
+	backend.env = env;
+
+	int rc = fuji_config_image_viewer(&backend.r);
 	if (rc) return rc;
 
 	return 0;
@@ -200,7 +206,7 @@ JNI_FUNC(jint, cTestStuff)(JNIEnv *env, jobject thiz) {
 JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
 
-	// By this point num_objects should be known - by get_events and init_mode
+	// By this point num_objects should be known - by gain_access
 	if (fuji_known.num_objects == 0 || fuji_known.num_objects == -1) {
 		return NULL;
 	}
@@ -216,4 +222,30 @@ JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
 	free(list);
 
 	return result;
+}
+
+JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
+	backend.env = env;
+
+	int rc = fuji_enable_compression(&backend.r);
+	if (rc) {
+		return NULL;
+	}
+
+	struct PtpObjectInfo oi;
+	rc = ptp_get_object_info(&backend.r, (int)handle, &oi);
+	if (rc) {
+		return NULL;
+	}
+
+	rc = fuji_disable_compression(&backend.r);	
+	if (rc) {
+		return NULL;
+	}
+
+	char buffer[1024];
+	ptp_object_info_json(&oi, buffer, sizeof(buffer));
+
+	jstring ret = (*env)->NewStringUTF(env, buffer);
+	return ret;
 }
