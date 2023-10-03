@@ -94,15 +94,15 @@ public class Bluetooth {
         }
 
         try {
-            if (!adapter.isEnabled()) {
+            if (adapter.isEnabled()) {
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                 return enableBtIntent;
+            } else {
+                throw new Exception("Bluetooth adapter is disabled");
             }
         } catch (Exception e) {
             throw new Exception("Failed to get bluetooth request intent");
         }
-
-        throw new Exception("Bluetooth adapter is disabled");
     }
 
     public BluetoothDevice getConnectedDevice() {

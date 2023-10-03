@@ -14,84 +14,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import dev.petabyt.camlib.*;
 
-public class WiFiComm {
-    private static final String TAG = "wificomm";
-    private Socket socket = null;
-    private InputStream inputStream = null;
-    private OutputStream outputStream = null;
-
-    public boolean killSwitch = true;
-
-    // Request to open a socket over WiFi - LTE connection is often preferred by Android,
-    // since Fuji's IP is 192.168.0.1
-    // Don't run this in the UI thread, and don't run more than once at a time
-    static int currentNetworkCallbackDone = 0;
-    static Socket currentNetworkCallbackSocket = null;
-    public static Socket connectWiFiSocket(ConnectivityManager connectivityManager, String ip, int port) {
-        currentNetworkCallbackSocket = null;
-        currentNetworkCallbackDone = 0;
-
-        NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
-        requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
-        ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onAvailable(Network network) {
-                Log.d(TAG, "Wifi available");
-                ConnectivityManager.setProcessDefaultNetwork(network);
-                try {
-                    // Create and connect to socket
-                    currentNetworkCallbackSocket = new Socket(ip, port);
-                    currentNetworkCallbackSocket.setKeepAlive(true);
-                    currentNetworkCallbackSocket.setTcpNoDelay(true);
-                    currentNetworkCallbackSocket.setReuseAddress(true);
-                }  catch (SocketTimeoutException e) {
-                    Backend.print("Connection timed out\n");
-                    Log.e(TAG, e.toString());
-                    currentNetworkCallbackDone = -1;
-                } catch (Exception e) {
-                    Backend.print("Failed to connect to the camera\n");
-                    Log.e(TAG, e.toString());
-                    currentNetworkCallbackDone = -1;
-                }
-                if (currentNetworkCallbackDone != -1) {
-                    currentNetworkCallbackDone = 1;
-                }
-                connectivityManager.unregisterNetworkCallback(this);
-            }
-        };
-
-        if (Build.VERSION.SDK_INT >= 26) {
-            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback, Backend.OPEN_TIMEOUT);
-        } else {
-            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
-        }
-        Log.d(TAG, "Requested wifi network usage");
-
-        // Low tech solution for async execution
-        int waits = 0;
-        while (true) {
-            // If network is not provided within 1s, assume WiFi is disabled
-            if (waits > 1000) {
-                Backend.print("Not connected to Fuji WiFi\n");
-                return null;
-            }
-
-            if (currentNetworkCallbackDone == 1) {
-                return currentNetworkCallbackSocket;
-            } else if (currentNetworkCallbackDone == -1) {
-                return null;
-            }
-
-            try {
-                Thread.sleep(1);
-                waits++;
-            } catch (Exception e) {
-                Log.e(TAG, "Sleep fail (???)");
-            }
-        }
-    }
-
+public class MyWiFiComm extends WiFiComm {
     private Socket cmdSocket = null;
     private InputStream cmdInputStream = null;
     private OutputStream cmdOutputStream = null;
@@ -120,11 +45,13 @@ public class WiFiComm {
     public boolean fujiConnectEventAndVideo(ConnectivityManager m) {
         eventSocket = connectWiFiSocket(m, Backend.FUJI_IP, Backend.FUJI_EVENT_PORT);
         if (eventSocket == null) {
+            Backend.print("Failed to connect to event socket\n");
             return true;
         }
 
         videoSocket = connectWiFiSocket(m, Backend.FUJI_IP, Backend.FUJI_VIDEO_PORT);
         if (videoSocket == null) {
+            Backend.print("Failed to connect to video socket\n");
             return true;
         }
 

@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Menu;
 import android.view.View;
 import android.widget.TextView;
 
@@ -87,9 +88,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 if (Backend.wifi.fujiConnectToCmd((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE))) {
-                    Backend.print("Failed to connect\n");
+                    Backend.print(MyWiFiComm.failReason + "\n");
                 } else {
-                    Backend.print("Connection success\n");
+                    Backend.print("Connected to the camera\n");
                     Backend.logLocation = "gallery";
                     Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);

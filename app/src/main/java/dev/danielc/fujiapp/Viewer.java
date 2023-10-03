@@ -17,16 +17,19 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.jsibbold.zoomage.ZoomageView;
@@ -47,6 +50,8 @@ public class Viewer extends AppCompatActivity {
     public static boolean inProgress = false;
 
     public Bitmap bitmap = null;
+    public String filename = null;
+    public byte[] file = null;
 
     // Create a popup - will set popupWindow, will be closed when finished
     public ProgressBar downloadPopup(Activity activity) {
@@ -123,6 +128,9 @@ public class Viewer extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_viewer);
 
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
+
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
 
@@ -146,21 +154,25 @@ public class Viewer extends AppCompatActivity {
             @Override
             public void run() {
                 try {
-                    JSONObject jsonObject = Camera.getObjectInfo(handle);
-                    if (jsonObject == null) {
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(Viewer.this, "Failed to get file info", Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                        return;
-                    }
+                    JSONObject jsonObject = Backend.fujiGetUncompressedObjectInfo(handle);
 
-                    String filename = jsonObject.getJSONObject("resp").getString("filename");
+                    filename = jsonObject.getString("filename");
+                    int size = jsonObject.getInt("compressedSize");
+                    int imgX = jsonObject.getInt("imgWidth");
+                    int imgY = jsonObject.getInt("imgHeight");
+
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            actionBar.setTitle(filename);
+                            TextView tv = findViewById(R.id.fileInfo);
+                            tv.setText("File size: " + String.format("%.2f", size / 1024.0 / 1024.0)
+                                    + "MB\n" + "Dimensions: " + imgX + "x" + imgY);
+                        }
+                    });
 
                     inProgress = true;
-                    byte[] file = Backend.cFujiGetFile(handle);
+                    file = Backend.cFujiGetFile(handle);
 
                     if (file == null) {
                         // IO error in downloading
@@ -201,22 +213,8 @@ public class Viewer extends AppCompatActivity {
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                        ZoomageView zoomageView = findViewById(R.id.zoom_view);
-                        zoomageView.setImageBitmap(bitmap);
-
-                        findViewById(R.id.download_button).setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                writeFile(filename, file);
-                            }
-                        });
-
-                        findViewById(R.id.share_button).setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                share(filename, file);
-                            }
-                        });
+                            ZoomageView zoomageView = findViewById(R.id.zoom_view);
+                            zoomageView.setImageBitmap(bitmap);
                         }
                     });
                 } catch (Backend.PtpErr e) {
@@ -225,7 +223,7 @@ public class Viewer extends AppCompatActivity {
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(Viewer.this, "Exception in download", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(Viewer.this, e.toString(), Toast.LENGTH_SHORT).show();
                             Backend.print(e.toString());
                         }
                     });
@@ -240,5 +238,32 @@ public class Viewer extends AppCompatActivity {
         super.onDestroy();
         bitmap = null;
         Runtime.getRuntime().gc();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (filename == null || file == null) {
+            return true;
+        }
+
+        switch (item.getItemId()) {
+            case R.id.action_download:
+                writeFile(filename, file);
+                return true;
+            case R.id.action_share:
+                share(filename, file);
+                return true;
+            case android.R.id.home:
+                finish();
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.viewer, menu);
+        return super.onCreateOptionsMenu(menu);
     }
 }

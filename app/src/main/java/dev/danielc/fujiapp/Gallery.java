@@ -2,15 +2,15 @@
 // This does most of the connection initialization (maybe move somewhere else?)
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
-import org.json.JSONObject;
-import org.json.JSONArray;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 import android.content.Intent;
@@ -64,21 +64,11 @@ public class Gallery extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallery);
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
         instance = this;
 
         ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        findViewById(R.id.disconnectButton).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (Backend.wifi.killSwitch) {
-                    Intent intent = new Intent(Gallery.this, MainActivity.class);
-                    startActivity(intent);
-                } else {
-                    Backend.reportError(Backend.PTP_OK, "Graceful disconnect\n");
-                }
-            }
-        });
 
         recyclerView = findViewById(R.id.galleryView);
         recyclerView.setLayoutManager(new GridLayoutManager(this, 4));
@@ -156,16 +146,22 @@ public class Gallery extends AppCompatActivity {
                         Backend.print("Failed to enter remote mode\n");
                         Backend.reportError(Backend.PTP_RUNTIME_ERR, "Graceful disconnect\n");
                         return;
-                    } else {
-                        Backend.print("Entered remote mode");
                     }
 
-                    rc = Backend.cFujiTestEndRemoteMode();
+                    rc = Backend.cFujiEndRemoteMode();
                     if (rc != 0) {
-                        Backend.print("Failed to exit remote mode");
+                        Backend.print("Failed to exit remote mode\n");
                         Backend.reportError(rc, "Graceful disconnect\n");
                         return;
                     }
+                }
+
+                Backend.print("Entering image gallery..\n");
+                rc = Backend.cFujiConfigImageGallery();
+                if (rc != 0) {
+                    Backend.print("Failed to start image gallery\n");
+                    Backend.reportError(rc, "Graceful disconnect\n");
+                    return;
                 }
 
                 int[] objectHandles = Backend.cGetObjectHandles();
@@ -178,6 +174,8 @@ public class Gallery extends AppCompatActivity {
                         public void run() {
                             imageAdapter = new ImageAdapter(Gallery.this, objectHandles);
                             recyclerView.setAdapter(imageAdapter);
+                            recyclerView.setItemViewCacheSize(50);
+                            recyclerView.setNestedScrollingEnabled(false);
                         }
                     });
                 }
@@ -213,6 +211,18 @@ public class Gallery extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         // TODO: Press again to terminate connection
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                Backend.reportError(Backend.PTP_OK, "Graceful disconnect\n");
+                finish();
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 }
 

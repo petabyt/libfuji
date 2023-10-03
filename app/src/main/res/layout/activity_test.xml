@@ -15,21 +15,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical" >
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@color/cardview_dark_background"
-                android:orientation="vertical"
-                android:padding="3dp">
-
-                <TextView
-                    android:id="@+id/textView5"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Test Suite"
-                    android:textSize="24sp" />
-            </LinearLayout>
-
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />

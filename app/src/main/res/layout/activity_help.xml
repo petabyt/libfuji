@@ -18,13 +18,6 @@
             android:padding="10dp">
 
             <TextView
-                android:id="@+id/textView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/app_name"
-                android:textSize="34sp" />
-
-            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/help_text"
@@ -108,17 +101,19 @@
                 android:textSize="20sp" />
 
             <TextView
-                android:id="@+id/textView9"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Beta-testing: \@spaqin, \@matthias, \@nutterbuttersforeveryoneyippeeee" />
-
-            <TextView
-                android:id="@+id/textView14"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="\@spaqin for X-S10 packet dumps" />
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="\@mxr_1 for bluetooth work" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Beta-testing: \@spaqin, \@matthias, \@nutterbuttersforeveryoneyippeeee" />
 
         </LinearLayout>
     </ScrollView>

@@ -3,16 +3,19 @@
 package dev.danielc.fujiapp;
 
 import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.Build;
+import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
-import android.content.Intent;
 
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> {
     private Context context;
@@ -43,11 +46,13 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     // to prevent re-downloading (slow)
     @Override
     public void onBindViewHolder(ImageViewHolder holder, int position) {
+        Log.d("adapt", "Creation image");
+        holder.image.setImageResource(0);
         int adapterPosition = holder.getAdapterPosition();
         if (adapterPosition >= object_ids.length) return;
         holder.handle = object_ids[adapterPosition];
 
-        new Thread(new Runnable() {
+        Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
                 int id = object_ids[adapterPosition];
@@ -64,7 +69,12 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                     return;
                 }
                 try {
-                    Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length);
+                    BitmapFactory.Options opt = new BitmapFactory.Options();
+                    opt.inScaled = true;
+                    opt.inDensity = 320;
+                    opt.inTargetDensity = 128;
+
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length, opt);
                     if (bitmap == null) {
                         Backend.print("Image decode error\n");
                         return;
@@ -73,6 +83,9 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                         @Override
                         public void run() {
                             holder.image.setImageBitmap(bitmap);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                holder.image.setForeground(context.getDrawable(R.drawable.ripple));
+                            }
                         }
                     });
                 } catch (OutOfMemoryError e) {
@@ -80,7 +93,14 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                     return;
                 }
             }
-        }).start();
+        });
+
+        try {
+            thread.join();
+            thread.start();
+        } catch (Exception e) {
+
+        }
     }
 
     @Override

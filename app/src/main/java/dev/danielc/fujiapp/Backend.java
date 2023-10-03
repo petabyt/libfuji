@@ -7,31 +7,14 @@ import android.os.Environment;
 import java.io.File;
 import org.json.JSONObject;
 import java.util.Arrays;
+import dev.petabyt.camlib.*;
 
-public class Backend {
+public class Backend extends CamlibBackend {
     static {
         System.loadLibrary("fujiapp");
     }
 
-    // camlib error codes
-    public static final int PTP_OK = 0;
-    public static final int PTP_NO_DEVICE = -1;
-    public static final int PTP_NO_PERM = -2;
-    public static final int PTP_OPEN_FAIL = -3;
-    public static final int PTP_OUT_OF_MEM = -4;
-    public static final int PTP_IO_ERR = -5;
-    public static final int PTP_RUNTIME_ERR = -6;
-    public static final int PTP_UNSUPPORTED = -7;
-    public static final int PTP_CHECK_CODE = -8;
-
-    public static class PtpErr extends Exception {
-        int rc;
-        public PtpErr(int code) {
-            rc = code;
-        }
-    }
-
-    public static WiFiComm wifi;
+    public static MyWiFiComm wifi;
 
     // Block all communication in UsbComm and WiFiComm
     // Write reason + code, and reconnect popup
@@ -52,7 +35,7 @@ public class Backend {
     private static boolean haveInited = false;
     public static void init() {
         if (haveInited == false) {
-            wifi = new WiFiComm();
+            wifi = new MyWiFiComm();
             cInit(new Backend(), wifi);
         }
         haveInited = true;
@@ -71,13 +54,10 @@ public class Backend {
     public static final int FUJI_VIDEO_PORT = 55742;
     public static final int OPEN_TIMEOUT = 1000;
     public static final int TIMEOUT = 2000;
-    public static final int PTP_OF_JPEG = 0x3801;
 
     // Note: 'synchronized' means only one of these methods can be used at time -
     // java's version of a mutex
-    public native synchronized static void cInit(Backend b, WiFiComm c);
-    public native synchronized static void cTesterInit(Tester t);
-    public native synchronized static String cTestFunc();
+    public native synchronized static void cInit(Backend b, MyWiFiComm c);
     public native synchronized static int cPtpFujiInit();
     public native synchronized static int cPtpFujiPing();
     public native synchronized static int cPtpGetPropValue(int code);
@@ -91,11 +71,17 @@ public class Backend {
     public native synchronized static boolean cIsUntestedMode();
     public native synchronized static boolean cCameraWantsRemote();
     public native synchronized static int[] cGetObjectHandles();
+    public native synchronized static int cFujiTestStartRemoteSockets();
+    public native synchronized static int cFujiEndRemoteMode();
+    public native synchronized static int cFujiConfigImageGallery();
+    public native synchronized static String cFujiGetUncompressedObjectInfo(int handle);
+
+    // For test suite only
+    public native synchronized static void cTesterInit(Tester t);
+    public native synchronized static String cTestFunc();
+    public native synchronized static int cFujiTestSetupImageGallery();
     public native synchronized static int cTestStuff();
     public native synchronized static int cFujiTestSuiteSetup();
-    public native synchronized static int cFujiTestStartRemoteSockets();
-    public native synchronized static int cFujiTestEndRemoteMode();
-    public native synchronized static int cFujiTestSetupImageGallery();
 
     // Enable disable verbose logging to file
     public native synchronized static int cRouteLogs(String filename);
@@ -131,6 +117,16 @@ public class Backend {
 
     public static JSONObject run(String req) throws Exception {
         return run(req, new int[]{});
+    }
+
+    public static JSONObject fujiGetUncompressedObjectInfo(int handle) throws Exception {
+        try {
+            String resp = cFujiGetUncompressedObjectInfo(handle);
+            if (resp == null) throw new Exception("Failed to get obj info");
+            return new JSONObject(resp);
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
     // JNI -> UI log communication

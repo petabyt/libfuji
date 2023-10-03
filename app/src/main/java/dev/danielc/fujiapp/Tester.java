@@ -2,10 +2,12 @@
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.content.Intent;
 import android.text.Html;
+import android.view.MenuItem;
 import android.widget.TextView;
 import android.os.Looper;
 import android.os.Bundle;
@@ -18,7 +20,6 @@ import android.os.Handler;
 import android.os.Build;
 
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 
 public class Tester extends AppCompatActivity {
     private Handler handler;
@@ -39,14 +40,18 @@ public class Tester extends AppCompatActivity {
             try {
                 startActivityForResult(intent, 1);
             } catch (Exception e) {
-                fail("Failed to use bluetooth: permission denied (or bluetooth is off)");
+                fail("Failed to use bluetooth: permission denied (or bluetooth is off)" + e);
                 return;
             }
 
             log("Gained access to bluetooth");
 
             // TODO: Finish bluetooth tests
+        } else {
+            return;
         }
+
+        bt.getConnectedDevice();
     }
 
     Socket testSock = null;
@@ -102,6 +107,8 @@ public class Tester extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test);
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
 
         handler = new Handler(Looper.getMainLooper());
 
@@ -117,26 +124,24 @@ public class Tester extends AppCompatActivity {
 
         ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
 
-        Thread thread = new Thread(new Runnable() {
+        new Thread(new Runnable() {
             @Override
             public void run() {
+                if (!Backend.cIsUsingEmulator()) {
+                    if (Backend.wifi.fujiConnectToCmd(m)) {
+                        log(Backend.wifi.failReason);
+                        fail("Failed to connect to port on WiFi");
+                        return;
+                    }
+                }
+
+                log("Established connection, starting test thread");
+
                 mainTest(m);
                 Backend.wifi.close();
                 Backend.cEndLogs();
             }
-        });
-
-        if (Backend.cIsUsingEmulator()) {
-            thread.start();
-            return;
-        }
-
-        if (Backend.wifi.fujiConnectToCmd(m)) {
-            fail("Failed to connect to port on WiFi");
-        } else {
-            log("Established connection, starting test thread");
-            thread.start();
-        }
+        }).start();
     }
 
     private String currentLogs = "";
@@ -161,18 +166,20 @@ public class Tester extends AppCompatActivity {
         log("Return code: " + rc);
         if (rc != 0) return;
 
-        rc = Backend.cFujiTestStartRemoteSockets();
-        if (rc != 0) return;
+        if (Backend.cCameraWantsRemote()) {
+            rc = Backend.cFujiTestStartRemoteSockets();
+            if (rc != 0) return;
 
-        if (Backend.wifi.fujiConnectEventAndVideo(m)) {
-            fail("Failed to accept connections from event and video ports");
-            return;
-        } else {
-            log("Accepted connection from event and video ports");
+            if (Backend.wifi.fujiConnectEventAndVideo(m)) {
+                fail("Failed to accept connections from event and video ports");
+                return;
+            } else {
+                log("Accepted connection from event and video ports");
+            }
+
+            rc = Backend.cFujiEndRemoteMode();
+            if (rc != 0) return;
         }
-
-        rc = Backend.cFujiTestEndRemoteMode();
-        if (rc != 0) return;
 
         rc = Backend.cFujiTestSetupImageGallery();
         if (rc != 0) return;
@@ -182,5 +189,16 @@ public class Tester extends AppCompatActivity {
         } catch (Exception e) {
             fail("Failed to close session");
         }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 }
