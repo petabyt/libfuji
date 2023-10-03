@@ -192,6 +192,9 @@ public class Gallery extends AppCompatActivity {
                         handler.post(new Runnable() {
                         @Override
                             public void run() {
+                                // Connection doesn't exist
+                                if (Backend.wifi.killSwitch) return;
+
                                 Intent intent = new Intent(Gallery.this, MainActivity.class);
                                 startActivity(intent);
                                 // TODO: Choose between these two?
