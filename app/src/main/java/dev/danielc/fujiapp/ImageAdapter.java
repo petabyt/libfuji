@@ -72,7 +72,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                     BitmapFactory.Options opt = new BitmapFactory.Options();
                     opt.inScaled = true;
                     opt.inDensity = 320;
-                    opt.inTargetDensity = 128;
+                    opt.inTargetDensity = 160;
 
                     Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length, opt);
                     if (bitmap == null) {

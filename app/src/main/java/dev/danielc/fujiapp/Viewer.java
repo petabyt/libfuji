@@ -5,6 +5,7 @@
 
 package dev.danielc.fujiapp;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -162,6 +163,7 @@ public class Viewer extends AppCompatActivity {
                     int imgY = jsonObject.getInt("imgHeight");
 
                     handler.post(new Runnable() {
+                        @SuppressLint({"SetTextI18n", "DefaultLocale"})
                         @Override
                         public void run() {
                             actionBar.setTitle(filename);
@@ -178,13 +180,7 @@ public class Viewer extends AppCompatActivity {
                         // IO error in downloading
                         throw new Backend.PtpErr(Backend.PTP_IO_ERR);
                     } else if (file.length == 0) {
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(Viewer.this, "Failed to download", Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                        return;
+                        throw new Exception("Error downloading image");
                     }
 
                     // Scale image to acceptable texture size
@@ -219,6 +215,14 @@ public class Viewer extends AppCompatActivity {
                     });
                 } catch (Backend.PtpErr e) {
                     // TODO: kill connection
+
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(Viewer.this, "Download IO Error: " + e.rc, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+
                 } catch (Exception e) {
                     handler.post(new Runnable() {
                         @Override

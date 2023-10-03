@@ -17,7 +17,10 @@ JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
 	// Take this as an opportunity to reset all the structures for a new connection
 	reset_connection();
 
+	android_err("_________________________ Doing new connection");
+
 	int rc = ptpip_fuji_init(&backend.r, "fujiapp");
+	if (rc) return rc;
 
 	struct PtpFujiInitResp resp;
 	ptp_fuji_get_init_info(&backend.r, &resp);
@@ -55,6 +58,22 @@ JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
 }
 
 JNI_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
+    backend.env = env;
+    int rc = ptp_get_thumbnail(&backend.r, (int)handle);
+    if (rc == PTP_CHECK_CODE) {
+        android_err("Thumbnail returned error");
+        // If an error code is returned - allow it to fall
+        // through and return a zero-length array
+    } else if (rc) {
+        return NULL;
+    }
+
+    jbyteArray ret = (*env)->NewByteArray(env, ptp_get_payload_length(&backend.r));
+    (*env)->SetByteArrayRegion(env, ret, 0, ptp_get_payload_length(&backend.r), (const jbyte *)(ptp_get_payload(&backend.r)));
+    return ret;
+}
+
+JNI_FUNC(jbyteArray, cPtpGetThumbRamCached)(JNIEnv *env, jobject thiz, jint handle) {
 	backend.env = env;
 	void *data = NULL;
 	int length = 0;
@@ -104,7 +123,7 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 
 	android_err("Compressed Size: %d", oi.compressed_size);
 
-	jbyteArray ret = (*env)->NewByteArray(env, oi.compressed_size);
+	jbyteArray array = (*env)->NewByteArray(env, oi.compressed_size);
 
 	// Makes sure to set the compression prop back to 0 after finished
 	// (extra data won't go through for some reason)
@@ -121,17 +140,30 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 		if (ptp_get_payload_length(&backend.r) == 0) {
 			fuji_disable_compression(&backend.r);
 			return NULL;
-		} else if (rc) {
-			return NULL;
 		}
 
-		(*env)->SetByteArrayRegion(env, ret, read, ptp_get_payload_length(&backend.r), (const jbyte *)(ptp_get_payload(&backend.r)));
+		if (read + ptp_get_payload_length(&backend.r) > oi.compressed_size) {
+			android_err("ptp_get_object_info has lied about it's compressed size out of shame");
+		}
+
+		(*env)->SetByteArrayRegion(
+			env, array,
+			read, ptp_get_payload_length(&backend.r),
+			(const jbyte *)(ptp_get_payload(&backend.r))
+		);
+
+		if ((*env)->ExceptionCheck(env)) {
+			android_err("SetByteArrayRegion exception");
+			(*env)->ExceptionClear(env);
+			return NULL;
+		}
 
 		read += ptp_get_payload_length(&backend.r);
 
 		if (read >= oi.compressed_size) {
 			fuji_disable_compression(&backend.r);
-			return ret;
+			android_err("Downloaded %d bytes", read);
+			return array;
 		}
 	}
 }
