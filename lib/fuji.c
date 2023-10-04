@@ -27,7 +27,9 @@ int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
 	return ptp_generic_send_data(r, &cmd, dat, sizeof(dat));
 }
 
+// Setting compression back to 0 seems to cause delay, might use r->wait_for_response
 int fuji_disable_compression(struct PtpRuntime *r) {
+	r->wait_for_response = 3; // this is unimplemented right now for IP
 	return ptp_set_prop_value16(r, PTP_PC_FUJI_NoCompression, 0);
 }
 
@@ -81,7 +83,7 @@ int fuji_get_first_events(struct PtpRuntime *r) {
 // Call this immediately after session init
 int fuji_wait_for_access(struct PtpRuntime *r) {
 	// We *need* these properties on camera init - otherwise, produce an error
-	fuji_known.camera_state = -1;
+	fuji_known.camera_state = FUJI_WAIT_FOR_ACCESS;
 	fuji_known.num_objects = -1;
 
 	while (1) {
@@ -92,7 +94,7 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 		// Wait until camera state is unlocked
 		if (fuji_known.camera_state != FUJI_WAIT_FOR_ACCESS) {
 			if (fuji_known.num_objects == -1) {
-				ptp_verbose_log("Failed to get num_objects from first event\n");
+				android_err("Failed to get num_objects from first event\n");
 				return PTP_RUNTIME_ERR;
 			}
 

@@ -106,8 +106,8 @@ public class Gallery extends AppCompatActivity {
                 if (Backend.cPtpFujiWaitUnlocked() == 0) {
                     Backend.print("Gained access to device.\n");
                 } else {
-                    Backend.print("Failed to gain access to device.");
-                    Backend.reportError(Backend.PTP_IO_ERR, "Graceful disconnect\n");
+                    Backend.print("Failed to gain access to device.\n");
+                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to gain access\n");
                     return;
                 }
 
@@ -192,14 +192,12 @@ public class Gallery extends AppCompatActivity {
                         handler.post(new Runnable() {
                         @Override
                             public void run() {
-                                // Connection doesn't exist
+                                // Do nothing if connection doesn't exist anymore
                                 if (Backend.wifi.killSwitch) return;
 
                                 Intent intent = new Intent(Gallery.this, MainActivity.class);
                                 startActivity(intent);
-                                // TODO: Choose between these two?
-                                Toast.makeText(Gallery.this, "Failed to ping, disconnected", Toast.LENGTH_SHORT).show();
-                                Backend.reportError(Backend.PTP_IO_ERR, "Failed to ping camera\n");
+                                Backend.reportError(Backend.PTP_IO_ERR, "Failed to ping camera, disconnected\n");
                             }
                         });
                         return;

@@ -108,15 +108,15 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 
 	// Set the compression prop (allows full images to go through, otherwise puts
 	// extra data in ObjectInfo and cuts off image downloads)
-	int rc = fuji_enable_compression(&backend.r);
-	if (rc) {
-		return NULL;
-	}
+	// int rc = fuji_enable_compression(&backend.r);
+	// if (rc) {
+		// return NULL;
+	// }
 
 	int max = backend.r.data_length;
 
 	struct PtpObjectInfo oi;
-	rc = ptp_get_object_info(&backend.r, (int)handle, &oi);
+	int rc = ptp_get_object_info(&backend.r, (int)handle, &oi);
 	if (rc) {
 		return NULL;
 	}
@@ -155,6 +155,8 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 		if ((*env)->ExceptionCheck(env)) {
 			android_err("SetByteArrayRegion exception");
 			(*env)->ExceptionClear(env);
+
+			fuji_disable_compression(&backend.r);
 			return NULL;
 		}
 
@@ -166,6 +168,32 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 			return array;
 		}
 	}
+}
+
+JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
+	backend.env = env;
+
+	int rc = fuji_enable_compression(&backend.r);
+	if (rc) {
+		return NULL;
+	}
+
+	struct PtpObjectInfo oi;
+	rc = ptp_get_object_info(&backend.r, (int)handle, &oi);
+	if (rc) {
+		return NULL;
+	}
+
+	// rc = fuji_disable_compression(&backend.r);
+	// if (rc) {
+		// return NULL;
+	// }
+
+	char buffer[1024];
+	ptp_object_info_json(&oi, buffer, sizeof(buffer));
+
+	jstring ret = (*env)->NewStringUTF(env, buffer);
+	return ret;
 }
 
 // NOTE: cFujiConfigInitMode *must* be called before cFujiConfigVersion, or anything else.
@@ -254,30 +282,4 @@ JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
 	free(list);
 
 	return result;
-}
-
-JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
-	backend.env = env;
-
-	int rc = fuji_enable_compression(&backend.r);
-	if (rc) {
-		return NULL;
-	}
-
-	struct PtpObjectInfo oi;
-	rc = ptp_get_object_info(&backend.r, (int)handle, &oi);
-	if (rc) {
-		return NULL;
-	}
-
-	rc = fuji_disable_compression(&backend.r);	
-	if (rc) {
-		return NULL;
-	}
-
-	char buffer[1024];
-	ptp_object_info_json(&oi, buffer, sizeof(buffer));
-
-	jstring ret = (*env)->NewStringUTF(env, buffer);
-	return ret;
 }

@@ -18,6 +18,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -44,6 +45,7 @@ import java.io.IOException;
 import javax.microedition.khronos.opengles.GL10;
 
 public class Viewer extends AppCompatActivity {
+    public static final String TAG = "viewer";
     public static Handler handler = null;
     public static PopupWindow popupWindow = null;
     public static ProgressBar progressBar = null;
@@ -105,6 +107,15 @@ public class Viewer extends AppCompatActivity {
         }
     }
 
+    public void toast(String msg) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(Viewer.this, msg, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     public void share(String filename, byte[] data) {
         if (downloadedFilename == null) {
             writeFile(filename, data);
@@ -162,6 +173,12 @@ public class Viewer extends AppCompatActivity {
                     int imgX = jsonObject.getInt("imgWidth");
                     int imgY = jsonObject.getInt("imgHeight");
 
+                    if (filename.endsWith(".MOV")) {
+                        inProgress = false;
+                        toast("This is a MOV, unsupported.");
+                        return;
+                    }
+
                     handler.post(new Runnable() {
                         @SuppressLint({"SetTextI18n", "DefaultLocale"})
                         @Override
@@ -180,6 +197,7 @@ public class Viewer extends AppCompatActivity {
                         // IO error in downloading
                         throw new Backend.PtpErr(Backend.PTP_IO_ERR);
                     } else if (file.length == 0) {
+                        // Runtime error in downloading, no error yet
                         throw new Exception("Error downloading image");
                     }
 
@@ -190,7 +208,7 @@ public class Viewer extends AppCompatActivity {
                         // Will result in ~11mb tex, can do 4096, but uses 40ish megs, sometimes Android compains about OOM
                         // Might be able to increase for newer Androids
                         Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap,
-                                (int)(2048),
+                                 (int)(2048),
                                 (int)((2048) * ratio),
                                 false);
                         bitmap.recycle();

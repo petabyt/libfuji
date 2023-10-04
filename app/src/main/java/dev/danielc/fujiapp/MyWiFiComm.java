@@ -27,7 +27,7 @@ public class MyWiFiComm extends WiFiComm {
         }
 
         try {
-            cmdSocket.setSoTimeout(Backend.TIMEOUT);
+            cmdSocket.setSoTimeout(2000);
             cmdInputStream = cmdSocket.getInputStream();
             cmdOutputStream = cmdSocket.getOutputStream();
             killSwitch = false;
@@ -112,34 +112,34 @@ public class MyWiFiComm extends WiFiComm {
         }
     }
 
-    public int genericWrite(OutputStream output, byte[] data) {
-        if (killSwitch) return -1;
-        try {
-            output.write(data);
-            output.flush();
-            return data.length;
-        } catch (IOException e) {
-            Backend.print("Error writing to the server: " + e.getMessage() + "\n");
-            return -1;
-        }
-    }
-
-    public int genericRead(InputStream input, byte[] buffer, int length) {
-        int read = 0;
-        while (true) {
-            try {
-                if (killSwitch) return -1;
-
-                int rc = input.read(buffer, read, length - read);
-                if (rc == -1) return rc;
-                read += rc;
-                if (read == length) return read;
-            } catch (IOException e) {
-                Backend.print("Error reading " + length + " bytes: " + e.getMessage() + "\n");
-                return -1;
-            }
-        }
-    }
+//    public int genericWrite(OutputStream output, byte[] data) {
+//        if (killSwitch) return -1;
+//        try {
+//            output.write(data);
+//            output.flush();
+//            return data.length;
+//        } catch (IOException e) {
+//            Backend.print("Error writing to the server: " + e.getMessage() + "\n");
+//            return -1;
+//        }
+//    }
+//
+//    public int genericRead(InputStream input, byte[] buffer, int length) {
+//        int read = 0;
+//        while (true) {
+//            try {
+//                if (killSwitch) return -1;
+//
+//                int rc = input.read(buffer, read, length - read);
+//                if (rc == -1) return rc;
+//                read += rc;
+//                if (read == length) return read;
+//            } catch (IOException e) {
+//                Backend.print("Error reading " + length + " bytes: " + e.getMessage() + "\n");
+//                return -1;
+//            }
+//        }
+//    }
 
     public synchronized void close() {
         killSwitch = true;
