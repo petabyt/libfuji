@@ -18,8 +18,6 @@ int fuji_wait_for_access(struct PtpRuntime *r);
 
 int fuji_get_events(struct PtpRuntime *r);
 
-int fuji_get_first_events(struct PtpRuntime *r);
-
 int fuji_disable_compression(struct PtpRuntime *r);
 int fuji_enable_compression(struct PtpRuntime *r);
 

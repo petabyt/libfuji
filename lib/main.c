@@ -28,13 +28,21 @@ void jni_verbose_log(char *str) {
 }
 
 void ptp_verbose_log(char *fmt, ...) {
+#if 1
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+	__android_log_write(ANDROID_LOG_ERROR, "ptp-verbose", buffer);
+#else
 	if (backend.log_fp == NULL) return;
-
 	va_list args;
 	va_start(args, fmt);
 	vfprintf(backend.log_fp, fmt, args);
 	va_end(args);
 	fflush(backend.log_fp);
+#endif
 }
 
 void ptp_panic(char *fmt, ...) {

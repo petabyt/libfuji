@@ -17,8 +17,6 @@ JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
 	// Take this as an opportunity to reset all the structures for a new connection
 	reset_connection();
 
-	android_err("_________________________ Doing new connection");
-
 	int rc = ptpip_fuji_init(&backend.r, "fujiapp");
 	if (rc) return rc;
 
@@ -260,6 +258,12 @@ JNI_FUNC(jint, cTestStuff)(JNIEnv *env, jobject thiz) {
 	int rc = ptpip_fuji_get_events(&backend.r);
 
 	return rc;
+}
+
+// TODO: Idea: when activity changes, notify C so we don't run tester_log in gallery?
+JNI_FUNC(void, cNotifyScreenStart)(JNIEnv *env, jobject thiz, jstring string) {
+	backend.env = env;
+	const char *name = (*env)->GetStringUTFChars(env, string, 0);
 }
 
 // TODO: finish

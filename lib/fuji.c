@@ -29,7 +29,7 @@ int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
 
 // Setting compression back to 0 seems to cause delay, might use r->wait_for_response
 int fuji_disable_compression(struct PtpRuntime *r) {
-	r->wait_for_response = 3; // this is unimplemented right now for IP
+	r->wait_for_response = 3;
 	return ptp_set_prop_value16(r, PTP_PC_FUJI_NoCompression, 0);
 }
 
@@ -73,13 +73,6 @@ int fuji_get_events(struct PtpRuntime *r) {
 	return 0;
 }
 
-int fuji_get_first_events(struct PtpRuntime *r) {
-
-	// Deprecated
-
-	return 0;
-}
-
 // Call this immediately after session init
 int fuji_wait_for_access(struct PtpRuntime *r) {
 	// We *need* these properties on camera init - otherwise, produce an error
@@ -108,43 +101,24 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 // Handles critical init sequence. This is after initing the socket, and opening session.
 // Called right after obtaining access to the device.
 int fuji_config_init_mode(struct PtpRuntime *r) {
-	// Try and learn about the camera. Fuji apps don't do this (they guess with superpowers)
-	// But the cameras do not have a problem with getting a bunch of version info before
-	// everything is set up.
-
-	// Get image viewer version
 	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageExploreVersion);
 	if (rc) return rc;
 	fuji_known.image_explore_version = ptp_parse_prop_value(r);
+	tester_log("ImageExploreVersion: 0x%X\n", fuji_known.image_explore_version);
 
-	//tester_log("ImageExploreVersion: 0x%X\n", fuji_known.image_explore_version);
-
-	// If we haven't gotten number of objects from get_events
-	if (fuji_known.num_objects == 0) {
-		rc = ptp_get_prop_value(r, PTP_PC_FUJI_ObjectCount);
-		if (rc) return rc;
-		fuji_known.num_objects = ptp_parse_prop_value(r);
-	}
-
-	// Get image viewer version for remote
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion);
 	if (rc) return rc;
 	fuji_known.remote_image_view_version = ptp_parse_prop_value(r);
-
 	tester_log("RemoteImageExploreVersion: 0x%X\n", fuji_known.remote_image_view_version);
 
-	// Get image downloader version
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageGetVersion);
 	if (rc) return rc;
 	fuji_known.image_get_version = ptp_parse_prop_value(r);
-
 	tester_log("ImageGetVersion: 0x%X\n", fuji_known.image_get_version);
 
-	// Get remote version (might be none)
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteVersion);
 	if (rc) return rc;
 	fuji_known.remote_version = ptp_parse_prop_value(r);
-
 	tester_log("RemoteVersion: 0x%X\n", fuji_known.remote_version);
 
 	tester_log("CameraState is %d\n", fuji_known.camera_state);

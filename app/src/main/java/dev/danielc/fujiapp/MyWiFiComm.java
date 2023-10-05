@@ -45,13 +45,13 @@ public class MyWiFiComm extends WiFiComm {
     public boolean fujiConnectEventAndVideo(ConnectivityManager m) {
         eventSocket = connectWiFiSocket(m, Backend.FUJI_IP, Backend.FUJI_EVENT_PORT);
         if (eventSocket == null) {
-            Backend.print("Failed to connect to event socket\n");
+            Backend.print("Failed to connect to event socket: \n" + failReason);
             return true;
         }
 
         videoSocket = connectWiFiSocket(m, Backend.FUJI_IP, Backend.FUJI_VIDEO_PORT);
         if (videoSocket == null) {
-            Backend.print("Failed to connect to video socket\n");
+            Backend.print("Failed to connect to video socket: \n"  + failReason);
             return true;
         }
 
@@ -77,16 +77,16 @@ public class MyWiFiComm extends WiFiComm {
         int read = 0;
         while (true) {
             try {
-                if (killSwitch) return -1;
+                if (killSwitch) return -2;
 
                 int rc = cmdInputStream.read(buffer, read, length - read);
-                if (rc == -1) return rc;
+                if (rc < 0) return rc;
                 read += rc;
                 if (read == length) return read;
 
                 // Post progress percentage to progressBar
-                final int progress = (int)((double)read / (double)length * 100.0);
                 if (Viewer.handler == null) continue;
+                final int progress = (int)((double)read / (double)length * 100.0);
                 Viewer.handler.post(new Runnable() {
                     @Override
                     public void run() {

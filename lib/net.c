@@ -19,10 +19,9 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
 	(*backend.env)->SetByteArrayRegion(backend.env, data, 0, length, (const jbyte *)(to));
 
 	int ret = (*backend.env)->CallIntMethod(backend.env, backend.conn, backend.cmd_write, data);
-
 	if (ret < 0) {
-		// TODO: debug
-		return ret;
+		android_err("cmd_write failed: %d", ret);
+		return -1;
 	}
 
 	return ret;
@@ -30,22 +29,22 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
 
 int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
 	if (length <= 0) {
-		return PTP_IO_ERR;
+		android_err("Length is less than 1");
+		return -1;
 	}
 
-	// Sanity checks :)
+	// We will NOT be reading 50mb in a single packet
 	if (length > 50000000) {
-		jni_print("Camera is trying to send too much data - breaking connection.\n");
+		android_err("Camera is trying to send too much data - breaking connection.");
 		return -1;
 	}
 
 	jbyteArray data = (*backend.env)->NewByteArray(backend.env, length);
 
 	int ret = (*backend.env)->CallIntMethod(backend.env, backend.conn, backend.cmd_read, data, length);
-
 	if (ret < 0) {
-		android_err("failed to receive packet, %d", ret);
-		return ret;
+		android_err("failed to receive packet, rc=%d (length=%d)", ret, length);
+		return -1;
 	}
 
 	jbyte *bytes = (*backend.env)->GetByteArrayElements(backend.env, data, 0);

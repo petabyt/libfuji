@@ -85,7 +85,7 @@ public class WiFiComm {
         int waits = 0;
         while (true) {
             // If network is not provided within 200ms, assume WiFi is disabled
-            if (waits > 500) {
+            if (waits > 1000) {
                 failReason = "Not connected to Fuji WiFi\n";
                 return null;
             }
