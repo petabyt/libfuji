@@ -46,7 +46,6 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     // to prevent re-downloading (slow)
     @Override
     public void onBindViewHolder(ImageViewHolder holder, int position) {
-        Log.d("adapt", "Creation image");
         holder.image.setImageResource(0);
         int adapterPosition = holder.getAdapterPosition();
         if (adapterPosition >= object_ids.length) return;
@@ -58,16 +57,15 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                 int id = object_ids[adapterPosition];
                 byte[] jpegByteArray = Backend.cPtpGetThumb(id);
                 if (jpegByteArray == null) {
-                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to get image thumbnail, stopping connection\n");
+                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to get image thumbnail, stopping connection");
                     return;
                 } else if (jpegByteArray.length == 0) {
                     // Unable to find thumbnail - assume it's a folder or non-jpeg
                     holder.itemView.setOnClickListener(null);
-                    Backend.print("Failed to get image #" + id + "\n");
-                    // TODO: reset the image to unknown or default
-                    // Maybe run getobjinfo to see what it is
+                    Backend.print("Failed to get thumbnail #" + id);
                     return;
                 }
+
                 try {
                     BitmapFactory.Options opt = new BitmapFactory.Options();
                     opt.inScaled = true;
@@ -76,7 +74,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
                     Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length, opt);
                     if (bitmap == null) {
-                        Backend.print("Image decode error\n");
+                        Backend.print("Image decode error");
                         return;
                     }
                     holder.itemView.post(new Runnable() {
@@ -89,7 +87,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                         }
                     });
                 } catch (OutOfMemoryError e) {
-                    Backend.print("Out of memory\n");
+                    Backend.reportError(Backend.PTP_RUNTIME_ERR, "Out of memory");
                     return;
                 }
             }
@@ -111,8 +109,6 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     public static class ImageViewHolder extends RecyclerView.ViewHolder {
         public ImageView image;
         public int handle;
-
-        // public void setSource() {}
 
         public ImageViewHolder(@NonNull View itemView) {
             super(itemView);

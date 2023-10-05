@@ -88,9 +88,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 if (Backend.wifi.fujiConnectToCmd((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE))) {
-                    Backend.print(MyWiFiComm.failReason + "\n");
+                    Backend.print(MyWiFiComm.failReason);
                 } else {
-                    Backend.print("Connected to the camera\n");
+                    Backend.print("Connected to the camera");
                     Backend.logLocation = "gallery";
                     Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);

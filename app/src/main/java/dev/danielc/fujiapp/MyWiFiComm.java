@@ -17,6 +17,7 @@ import java.net.SocketTimeoutException;
 import dev.petabyt.camlib.*;
 
 public class MyWiFiComm extends WiFiComm {
+    public final String TAG = "MyWiFiComm";
     private Socket cmdSocket = null;
     private InputStream cmdInputStream = null;
     private OutputStream cmdOutputStream = null;
@@ -45,13 +46,13 @@ public class MyWiFiComm extends WiFiComm {
     public boolean fujiConnectEventAndVideo(ConnectivityManager m) {
         eventSocket = connectWiFiSocket(m, Backend.FUJI_IP, Backend.FUJI_EVENT_PORT);
         if (eventSocket == null) {
-            Backend.print("Failed to connect to event socket: \n" + failReason);
+            Backend.print("Failed to connect to event socket: " + failReason);
             return true;
         }
 
         videoSocket = connectWiFiSocket(m, Backend.FUJI_IP, Backend.FUJI_VIDEO_PORT);
         if (videoSocket == null) {
-            Backend.print("Failed to connect to video socket: \n"  + failReason);
+            Backend.print("Failed to connect to video socket: "  + failReason);
             return true;
         }
 
@@ -68,7 +69,7 @@ public class MyWiFiComm extends WiFiComm {
             cmdOutputStream.flush();
             return data.length;
         } catch (IOException e) {
-            Backend.print("Error writing to the server: " + e.getMessage() + "\n");
+            Backend.print("Error writing to the server: " + e.getMessage());
             return -1;
         }
     }
@@ -94,7 +95,7 @@ public class MyWiFiComm extends WiFiComm {
                     }
                 });
             } catch (IOException e) {
-                Backend.print("Error reading " + length + " bytes: " + e.getMessage() + "\n");
+                Backend.print("Error reading " + length + " bytes: " + e.getMessage());
                 return -1;
             }
         }
@@ -107,39 +108,10 @@ public class MyWiFiComm extends WiFiComm {
             cmdOutputStream.flush();
             return data.length;
         } catch (IOException e) {
-            Backend.print("Error writing to the server: " + e.getMessage() + "\n");
+            Backend.print("Error writing to the server: " + e.getMessage());
             return -1;
         }
     }
-
-//    public int genericWrite(OutputStream output, byte[] data) {
-//        if (killSwitch) return -1;
-//        try {
-//            output.write(data);
-//            output.flush();
-//            return data.length;
-//        } catch (IOException e) {
-//            Backend.print("Error writing to the server: " + e.getMessage() + "\n");
-//            return -1;
-//        }
-//    }
-//
-//    public int genericRead(InputStream input, byte[] buffer, int length) {
-//        int read = 0;
-//        while (true) {
-//            try {
-//                if (killSwitch) return -1;
-//
-//                int rc = input.read(buffer, read, length - read);
-//                if (rc == -1) return rc;
-//                read += rc;
-//                if (read == length) return read;
-//            } catch (IOException e) {
-//                Backend.print("Error reading " + length + " bytes: " + e.getMessage() + "\n");
-//                return -1;
-//            }
-//        }
-//    }
 
     public synchronized void close() {
         killSwitch = true;
@@ -153,8 +125,6 @@ public class MyWiFiComm extends WiFiComm {
         }
 
         try {
-            Log.e("fudge", "Closing sockets");
-
             if (cmdSocket != null) {
                 cmdSocket.close();
             }
@@ -165,7 +135,7 @@ public class MyWiFiComm extends WiFiComm {
                 cmdOutputStream.close();
             }
         } catch (IOException e) {
-            Backend.print("Error closing the socket: " + e.getMessage() + "\n");
+            Backend.print("Error closing the socket: " + e.getMessage());
         }
     }
 }

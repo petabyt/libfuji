@@ -104,8 +104,8 @@ JNI_FUNC(jint, cPtpGetPropValue)(JNIEnv *env, jobject thiz, jint code) {
 JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 	backend.env = env;
 
-	// Set the compression prop (allows full images to go through, otherwise puts
-	// extra data in ObjectInfo and cuts off image downloads)
+	CAMLIB_SLEEP(2000);
+
 	// int rc = fuji_enable_compression(&backend.r);
 	// if (rc) {
 		// return NULL;
@@ -118,8 +118,6 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 	if (rc) {
 		return NULL;
 	}
-
-	android_err("Compressed Size: %d", oi.compressed_size);
 
 	jbyteArray array = (*env)->NewByteArray(env, oi.compressed_size);
 
@@ -266,7 +264,6 @@ JNI_FUNC(void, cNotifyScreenStart)(JNIEnv *env, jobject thiz, jstring string) {
 	const char *name = (*env)->GetStringUTFChars(env, string, 0);
 }
 
-// TODO: finish
 JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
 
@@ -275,7 +272,7 @@ JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
 		return NULL;
 	}
 
-	// Object #0 seems to always be DCIM or invalid (can't get thumbnail) - is this standard?
+	// (Object handles 0x0 is invalid, as per spec)
 	int *list = malloc(sizeof(int) * fuji_known.num_objects);
 	for (int i = 0; i < fuji_known.num_objects; i++) {
 		list[i] = i + 1;

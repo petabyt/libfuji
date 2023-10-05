@@ -22,9 +22,8 @@ public class Backend extends CamlibBackend {
         if (wifi.killSwitch == false) {
             wifi.killSwitch = true;
 
-            print("Safely killed connection: " + code + "\n");
             if (reason != null) {
-                print("Reason: " + reason + "\n");
+                print("Disconnect: " + reason);
             }
 
             Backend.wifi.close();
@@ -66,15 +65,20 @@ public class Backend extends CamlibBackend {
     public native synchronized static int cFujiConfigInitMode();
     public native synchronized static String cPtpRun(String req);
     public native synchronized static byte[] cPtpGetThumb(int handle);
-    public native synchronized static byte[] cFujiGetFile(int handle);
     public native synchronized static boolean cIsMultipleMode();
     public native synchronized static boolean cIsUntestedMode();
     public native synchronized static boolean cCameraWantsRemote();
     public native synchronized static int[] cGetObjectHandles();
-    public native synchronized static int cFujiTestStartRemoteSockets();
     public native synchronized static int cFujiEndRemoteMode();
     public native synchronized static int cFujiConfigImageGallery();
+
+    // For tester only
+    public native synchronized static int cFujiTestStartRemoteSockets();
+
+    // Must be called in order - first one enables compression, second disables compression
+    // This is a cheap fix for now, will be fixed in the next refactoring
     public native synchronized static String cFujiGetUncompressedObjectInfo(int handle);
+    public native synchronized static byte[] cFujiGetFile(int handle);
 
     // For test suite only
     public native synchronized static void cTesterInit(Tester t);
@@ -105,7 +109,7 @@ public class Backend extends CamlibBackend {
         try {
             JSONObject jsonObject = new JSONObject(resp);
             if (jsonObject.getInt("error") != 0) {
-                Backend.print("Non zero error: " + Integer.toString(jsonObject.getInt("error")) + "\n");
+                Backend.print("Non zero error: " + Integer.toString(jsonObject.getInt("error")));
                 throw new Exception("Error code");
             }
 
@@ -129,8 +133,9 @@ public class Backend extends CamlibBackend {
         }
     }
 
-    // JNI -> UI log communication
+    // C/Java -> async UI logging
     public static String logLocation = "main";
+    final static int MAX_LOG_LINES = 5;
 
     public static void clearPrint() {
         basicLog = "";
@@ -141,10 +146,11 @@ public class Backend extends CamlibBackend {
     private static String basicLog = "";
     public static void print(String arg) {
         Log.d("fudge", arg);
-        basicLog += arg;
+
+        basicLog += arg + "\n";
 
         String[] lines = basicLog.split("\n");
-        if (lines.length > 5) {
+        if (lines.length > MAX_LOG_LINES) {
             basicLog = String.join("\n", Arrays.copyOfRange(lines, 1, lines.length)) + "\n";
         }
 

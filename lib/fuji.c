@@ -27,14 +27,19 @@ int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
 	return ptp_generic_send_data(r, &cmd, dat, sizeof(dat));
 }
 
-// Setting compression back to 0 seems to cause delay, might use r->wait_for_response
-int fuji_disable_compression(struct PtpRuntime *r) {
+// Set the compression prop (allows full images to go through, otherwise puts
+// extra data in ObjectInfo and cuts off image downloads)
+// This appears to take a while, so r->wait_for_response is used here
+int fuji_enable_compression(struct PtpRuntime *r) {
 	r->wait_for_response = 3;
-	return ptp_set_prop_value16(r, PTP_PC_FUJI_NoCompression, 0);
+	int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_NoCompression, 1);
+	return rc;
 }
 
-int fuji_enable_compression(struct PtpRuntime *r) {
-	return ptp_set_prop_value16(r, PTP_PC_FUJI_NoCompression, 1);
+int fuji_disable_compression(struct PtpRuntime *r) {
+	int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_NoCompression, 0);
+	return rc;
+	
 }
 
 int fuji_get_device_info(struct PtpRuntime *r) {
@@ -237,16 +242,16 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion, fuji_known.remote_image_view_version);
 		if (rc) return rc;		
 
-		// Will confirm CameraState is set to what we set FunctionMode to (same thing?)
+		// The props we set should show up here
 		rc = fuji_get_events(r);
 		if (rc) return rc;
-		
 	}
 
 	return 0;
 }
 
 // Temporary RAM-based thumbnail 'cache'. Rolls over a 'tape' like buffer
+// DEPRECATED: Don't use this.
 int ptp_get_thumbnail_smart_cache(struct PtpRuntime *r, int handle, void **ptr, int *length) {
 	#define SMART_CACHE_MAX 100
 

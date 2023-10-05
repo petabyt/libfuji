@@ -54,6 +54,7 @@ public class Tester extends AppCompatActivity {
         bt.getConnectedDevice();
     }
 
+    // Deprecated WiFi/socket tester, for testing only
     Socket testSock = null;
     void socketTest(ConnectivityManager m) {
         try {
@@ -62,7 +63,7 @@ public class Tester extends AppCompatActivity {
             ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override
                 public void onAvailable(Network network) {
-                    Log.e("sad", "Wifi available");
+                    Log.e("tester", "Wifi available");
                     ConnectivityManager.setProcessDefaultNetwork(network);
 
                     try {

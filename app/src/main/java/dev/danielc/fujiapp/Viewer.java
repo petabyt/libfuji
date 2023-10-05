@@ -175,7 +175,7 @@ public class Viewer extends AppCompatActivity {
 
                     if (filename.endsWith(".MOV")) {
                         inProgress = false;
-                        toast("This is a MOV, unsupported.");
+                        toast("This is a MOV, not supported yet");
                         return;
                     }
 
@@ -208,9 +208,10 @@ public class Viewer extends AppCompatActivity {
                         // Will result in ~11mb tex, can do 4096, but uses 40ish megs, sometimes Android compains about OOM
                         // Might be able to increase for newer Androids
                         Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap,
-                                 (int)(2048),
-                                (int)((2048) * ratio),
-                                false);
+                            (int)(2048),
+                            (int)(2048 * ratio),
+                            false
+                        );
                         bitmap.recycle();
                         bitmap = newBitmap;
                     }
@@ -218,37 +219,20 @@ public class Viewer extends AppCompatActivity {
                     inProgress = false;
 
                     handler.post(new Runnable() {
-                    @Override
-                        public void run() {
-                            Viewer.popupWindow.dismiss();
-                        }
-                    });
-
-                    handler.post(new Runnable() {
                         @Override
                         public void run() {
+                            Viewer.popupWindow.dismiss();
+                            
                             ZoomageView zoomageView = findViewById(R.id.zoom_view);
                             zoomageView.setImageBitmap(bitmap);
                         }
                     });
                 } catch (Backend.PtpErr e) {
-                    // TODO: kill connection
-
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(Viewer.this, "Download IO Error: " + e.rc, Toast.LENGTH_SHORT).show();
-                        }
-                    });
-
+                    toast("Download IO Error: " + e.rc);
+                    Backend.reportError(e.rc, "Download error");
                 } catch (Exception e) {
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(Viewer.this, e.toString(), Toast.LENGTH_SHORT).show();
-                            Backend.print(e.toString());
-                        }
-                    });
+                    toast("Download Error: " + e.toString());
+                    Backend.reportError(Backend.PTP_IO_ERR, "Download error: " + e.toString());
                 }
             }
         });

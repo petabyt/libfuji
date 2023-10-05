@@ -28,7 +28,7 @@ void jni_verbose_log(char *str) {
 }
 
 void ptp_verbose_log(char *fmt, ...) {
-#if 1
+#if 0
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);

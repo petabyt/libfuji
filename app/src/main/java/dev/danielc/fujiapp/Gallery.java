@@ -22,6 +22,8 @@ import android.widget.TextView;
 public class Gallery extends AppCompatActivity {
     private static Gallery instance;
 
+    final int GRID_SIZE = 4;
+
     public static Gallery getInstance() {
         return instance;
     }
@@ -71,7 +73,7 @@ public class Gallery extends AppCompatActivity {
         ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
 
         recyclerView = findViewById(R.id.galleryView);
-        recyclerView.setLayoutManager(new GridLayoutManager(this, 4));
+        recyclerView.setLayoutManager(new GridLayoutManager(this, GRID_SIZE));
 
         handler = new Handler(Looper.getMainLooper());
 
@@ -80,14 +82,13 @@ public class Gallery extends AppCompatActivity {
             public void run() {
                 int rc;
                 if (Backend.cPtpFujiInit() == 0) {
-                    Backend.print("Initialized connection.\n");
+                    Backend.print("Initialized connection.");
                 } else {
-                    Backend.print("Failed to init socket\n");
-                    Backend.reportError(Backend.PTP_IO_ERR, "Graceful disconnect\n");
+                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to init socket");
                     return;
                 }
 
-                // Sleep because Fuji camera is sensitive
+                // Fuji cameras require delay after init
                 try {
                     Thread.sleep(500);
                 } catch (Exception e) {
@@ -97,24 +98,21 @@ public class Gallery extends AppCompatActivity {
                 try {
                     Camera.openSession();
                 } catch (Exception e) {
-                    Backend.print("Failed to open session.\n");
-                    Backend.reportError(Backend.PTP_IO_ERR, "Graceful disconnect\n");
+                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to open session.");
                     return;
                 }
 
-                Backend.print("Waiting for device access...\n");
+                Backend.print("Waiting for device access...");
                 if (Backend.cPtpFujiWaitUnlocked() == 0) {
-                    Backend.print("Gained access to device.\n");
+                    Backend.print("Gained access to device.");
                 } else {
-                    Backend.print("Failed to gain access to device.\n");
-                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to gain access\n");
+                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to gain access to device.");
                     return;
                 }
 
                 // Camera mode must be set before anything else
                 if (Backend.cFujiConfigInitMode() != 0) {
-                    Backend.print("Failed to configure mode with the camera.\n");
-                    Backend.reportError(Backend.PTP_IO_ERR, "Graceful disconnect\n");
+                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to configure mode with the camera.");
                     return;
                 }
 
@@ -124,50 +122,45 @@ public class Gallery extends AppCompatActivity {
                     showWarning("This camera is untested, support is under development.");
                 }
 
-                Backend.print("Configuring versions and stuff..\n");
+                Backend.print("Configuring versions and stuff..");
                 rc = Backend.cFujiConfigVersion();
                 if (rc != 0) {
-                    Backend.print("Failed to configure camera versions.\n");
-                    Backend.reportError(rc, "Graceful disconnect\n");
+                    Backend.reportError(rc, "Failed to configure camera versions.");
                     return;
                 }
 
-                // Enter (and exit?) remote mode
+                // Enter and 'exit' remote mode
                 if (Backend.cCameraWantsRemote()) {
                     Backend.print("Entering remote mode..");
                     rc = Backend.cFujiTestStartRemoteSockets();
                     if (rc != 0) {
-                        Backend.print("Failed to init remote mode\n");
-                        Backend.reportError(rc, "Graceful disconnect\n");
+                        Backend.reportError(rc, "Failed to init remote mode");
                         return;
                     }
 
                     if (Backend.wifi.fujiConnectEventAndVideo(m)) {
-                        Backend.print("Failed to enter remote mode\n");
-                        Backend.reportError(Backend.PTP_RUNTIME_ERR, "Graceful disconnect\n");
+                        Backend.reportError(Backend.PTP_RUNTIME_ERR, "Failed to enter remote mode");
                         return;
                     }
 
                     rc = Backend.cFujiEndRemoteMode();
                     if (rc != 0) {
-                        Backend.print("Failed to exit remote mode\n");
-                        Backend.reportError(rc, "Graceful disconnect\n");
+                        Backend.reportError(rc, "Failed to exit remote mode");
                         return;
                     }
                 }
 
-                Backend.print("Entering image gallery..\n");
+                Backend.print("Entering image gallery..");
                 rc = Backend.cFujiConfigImageGallery();
                 if (rc != 0) {
-                    Backend.print("Failed to start image gallery\n");
-                    Backend.reportError(rc, "Graceful disconnect\n");
+                    Backend.reportError(rc, "Failed to start image gallery");
                     return;
                 }
 
                 int[] objectHandles = Backend.cGetObjectHandles();
 
                 if (objectHandles == null) {
-                    Backend.print("No JPEG images available.\n");
+                    Backend.print("No JPEG images available.");
                 } else {
                     handler.post(new Runnable() {
                         @Override
@@ -197,7 +190,7 @@ public class Gallery extends AppCompatActivity {
 
                                 Intent intent = new Intent(Gallery.this, MainActivity.class);
                                 startActivity(intent);
-                                Backend.reportError(Backend.PTP_IO_ERR, "Failed to ping camera, disconnected\n");
+                                Backend.reportError(Backend.PTP_IO_ERR, "Failed to ping camera, disconnected");
                             }
                         });
                         return;
@@ -218,7 +211,7 @@ public class Gallery extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case android.R.id.home:
-                Backend.reportError(Backend.PTP_OK, "Graceful disconnect\n");
+                Backend.reportError(Backend.PTP_OK, "Graceful disconnect");
                 finish();
                 return true;
         }

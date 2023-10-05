@@ -2,9 +2,10 @@
 #ifndef FUJIPTP_H
 #define FUJIPTP_H
 
+// Fuji Camera Connect has this version
 #define FUJI_CAM_CONNECT_REMOTE_VER 0x2000B
 
-// Downloader functions
+// Downloader opcodes, mostly unknown
 #define PTP_OC_FUJI_Unknown1	0x9054
 #define PTP_OC_FUJI_Unknown2	0x9055
 
