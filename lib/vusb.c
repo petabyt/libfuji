@@ -1,4 +1,4 @@
-// This is deprecated in favor of the TCP server
+// This is deprecated in favor of the TCP server, kept as reference
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
