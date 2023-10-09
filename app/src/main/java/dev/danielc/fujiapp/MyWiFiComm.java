@@ -69,7 +69,7 @@ public class MyWiFiComm extends WiFiComm {
             cmdOutputStream.flush();
             return data.length;
         } catch (IOException e) {
-            Backend.print("Error writing to the server: " + e.getMessage());
+            Backend.print("Write error: " + e.getMessage());
             return -1;
         }
     }
@@ -101,21 +101,8 @@ public class MyWiFiComm extends WiFiComm {
         }
     }
 
-    public int generic_write(byte data[]) {
-        if (killSwitch) return -1;
-        try {
-            cmdOutputStream.write(data);
-            cmdOutputStream.flush();
-            return data.length;
-        } catch (IOException e) {
-            Backend.print("Error writing to the server: " + e.getMessage());
-            return -1;
-        }
-    }
-
     public synchronized void close() {
         killSwitch = true;
-
         try {
             // Suck the remaining bytes out of socket
             byte[] remaining = new byte[100];
@@ -135,7 +122,7 @@ public class MyWiFiComm extends WiFiComm {
                 cmdOutputStream.close();
             }
         } catch (IOException e) {
-            Backend.print("Error closing the socket: " + e.getMessage());
+            Backend.print("Socket close error: " + e.getMessage());
         }
     }
 }

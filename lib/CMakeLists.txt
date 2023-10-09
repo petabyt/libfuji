@@ -30,6 +30,7 @@ set(CORE
 	fuji.c
 	tester.c
 	models.c
+	net.c
 )
 
 add_library(fujiapp

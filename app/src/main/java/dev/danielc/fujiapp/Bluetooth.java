@@ -1,6 +1,9 @@
 // Java class to connect to Fujiiflm's Bluetooth, and enable wifi
 // Copyright 2023 fujiapp by Daniel C et al - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
+
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -10,10 +13,15 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothProfile;
 import android.content.Intent;
 
-import 	java.util.Set;
+import java.util.Set;
+
 import android.content.Context;
+import android.content.pm.PackageManager;
+
+import androidx.core.app.ActivityCompat;
 
 public class Bluetooth {
+    Context context;
     private BluetoothAdapter adapter;
 
     private BluetoothDevice dev;
@@ -22,17 +30,20 @@ public class Bluetooth {
     private final BluetoothGattCallback callback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
+            if (newState==BluetoothProfile.STATE_CONNECTED) {
                 // Bluetooth connected, you can now discover services
+                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT)!=PackageManager.PERMISSION_GRANTED) {
+                    return;
+                }
                 gatt.discoverServices();
-            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+            } else if (newState==BluetoothProfile.STATE_DISCONNECTED) {
                 // Bluetooth disconnected, clean up resources if needed
             }
         }
 
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
+            if (status==BluetoothGatt.GATT_SUCCESS) {
                 // Services discovered, you can now read/write characteristics or enable notifications
 
                 // Example: Reading a characteristic
@@ -54,7 +65,7 @@ public class Bluetooth {
 
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
+            if (status==BluetoothGatt.GATT_SUCCESS) {
                 // Characteristic read successfully, handle the data here
                 byte[] data = characteristic.getValue();
                 // Do something with the data
@@ -63,7 +74,7 @@ public class Bluetooth {
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
+            if (status==BluetoothGatt.GATT_SUCCESS) {
                 // Characteristic write successful
             }
         }
@@ -77,7 +88,7 @@ public class Bluetooth {
 
         @Override
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
+            if (status==BluetoothGatt.GATT_SUCCESS) {
                 // Descriptor write successful, if you've enabled notifications, this callback will be called
             }
         }
@@ -105,9 +116,10 @@ public class Bluetooth {
         }
     }
 
+    @SuppressLint("MissingPermission")
     public BluetoothDevice getConnectedDevice() {
         Set<BluetoothDevice> bondedDevices = adapter.getBondedDevices();
-        if (bondedDevices != null) {
+        if (bondedDevices!=null) {
             for (BluetoothDevice device : bondedDevices) {
                 Backend.print("Currently connected to " + device.getName());
             }
@@ -115,8 +127,12 @@ public class Bluetooth {
         return null; // No connected device found
     }
 
-    public void connectGATT(Context context) {
+    public void connectGATT(Context c) throws Exception {
+        context = c;
         if (dev != null) {
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT)!=PackageManager.PERMISSION_GRANTED) {
+                throw new Exception("Bluetooth permission denied");
+            }
             gatt = dev.connectGatt(context, false, callback);
         }
     }
