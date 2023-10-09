@@ -186,7 +186,7 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 int fuji_test_setup(struct PtpRuntime *r) {
 	tester_log("Running test suite from C");
 
-	int rc = ptpip_fuji_init(&backend.r, "fujiapp-test");
+	int rc = ptpip_fuji_init(&backend.r, "fudge-test");
 	if (rc) {
 		tester_fail("Failed to initialize command socket");
 		return rc;

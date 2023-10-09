@@ -251,7 +251,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 }
 
 // Temporary RAM-based thumbnail 'cache'. Rolls over a 'tape' like buffer
-// DEPRECATED: Don't use this.
+__attribute__((deprecated))
 int ptp_get_thumbnail_smart_cache(struct PtpRuntime *r, int handle, void **ptr, int *length) {
 	#define SMART_CACHE_MAX 100
 
