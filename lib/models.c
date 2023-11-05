@@ -41,7 +41,6 @@ struct FujiCameraInfo fuji_cameras[] = {
 { "X-S10", 1, 1, 1, 1, 0 },
 };
 
-
 struct FujiCameraInfo *fuji_get_model_info(char *name) {
 	for (int i = 0; i < (int)(sizeof(fuji_cameras) / sizeof(fuji_cameras[0])); i++) {
 		if (!strcmp(fuji_cameras[i].name, name)) {

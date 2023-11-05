@@ -101,15 +101,9 @@ JNI_FUNC(jint, cPtpGetPropValue)(JNIEnv *env, jobject thiz, jint code) {
 	return ptp_parse_prop_value(&backend.r);
 }
 
+// Must be called after cFujiGetUncompressedObjectInfo
 JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 	backend.env = env;
-
-	CAMLIB_SLEEP(2000);
-
-	// int rc = fuji_enable_compression(&backend.r);
-	// if (rc) {
-		// return NULL;
-	// }
 
 	int max = backend.r.data_length;
 
@@ -166,6 +160,7 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 	}
 }
 
+// Must be called *before* a call to cFujiGetFile
 JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
 	backend.env = env;
 
@@ -180,10 +175,7 @@ JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jin
 		return NULL;
 	}
 
-	// rc = fuji_disable_compression(&backend.r);
-	// if (rc) {
-		// return NULL;
-	// }
+	// Compression must be disabled in cFujiGetFile or somewhere else
 
 	char buffer[1024];
 	ptp_object_info_json(&oi, buffer, sizeof(buffer));
@@ -252,10 +244,6 @@ JNI_FUNC(jboolean, cIsMultipleMode)(JNIEnv *env, jobject thiz) {
 
 JNI_FUNC(jint, cTestStuff)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
-
-	int rc = ptpip_fuji_get_events(&backend.r);
-
-	return rc;
 }
 
 // TODO: Idea: when activity changes, notify C so we don't run tester_log in gallery?

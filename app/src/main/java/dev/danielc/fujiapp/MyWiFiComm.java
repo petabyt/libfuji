@@ -17,14 +17,29 @@ import java.net.SocketTimeoutException;
 import dev.petabyt.camlib.*;
 
 public class MyWiFiComm extends WiFiComm {
+    public boolean isUsingEmulator = false;
+
     public final String TAG = "MyWiFiComm";
     private Socket cmdSocket = null;
     private InputStream cmdInputStream = null;
     private OutputStream cmdOutputStream = null;
     public boolean fujiConnectToCmd(ConnectivityManager m) {
+        Backend.print("Connecting...");
         cmdSocket = connectWiFiSocket(m, Backend.FUJI_IP, Backend.FUJI_CMD_PORT);
+
         if (cmdSocket == null) {
-            return true;
+            // Little slower, only for debug builds
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Trying emulator");
+                cmdSocket = connectWiFiSocket(m, Backend.FUJI_EMU_IP, Backend.FUJI_CMD_PORT);
+                if (cmdSocket == null) {
+                    return true;
+                }
+
+                isUsingEmulator = true;
+            } else {
+                return true;
+            }
         }
 
         try {
@@ -44,13 +59,15 @@ public class MyWiFiComm extends WiFiComm {
     private Socket eventSocket = null;
     private Socket videoSocket = null;
     public boolean fujiConnectEventAndVideo(ConnectivityManager m) {
-        eventSocket = connectWiFiSocket(m, Backend.FUJI_IP, Backend.FUJI_EVENT_PORT);
+        String ip = Backend.FUJI_IP;
+        if (isUsingEmulator) ip = Backend.FUJI_EMU_IP;
+        eventSocket = connectWiFiSocket(m, ip, Backend.FUJI_EVENT_PORT);
         if (eventSocket == null) {
             Backend.print("Failed to connect to event socket: " + failReason);
             return true;
         }
 
-        videoSocket = connectWiFiSocket(m, Backend.FUJI_IP, Backend.FUJI_VIDEO_PORT);
+        videoSocket = connectWiFiSocket(m, ip, Backend.FUJI_VIDEO_PORT);
         if (videoSocket == null) {
             Backend.print("Failed to connect to video socket: "  + failReason);
             return true;
@@ -86,7 +103,7 @@ public class MyWiFiComm extends WiFiComm {
                 if (read == length) return read;
 
                 // Post progress percentage to progressBar
-                if (Viewer.handler == null) continue;
+                if (!Viewer.inProgress) continue;
                 final int progress = (int)((double)read / (double)length * 100.0);
                 Viewer.handler.post(new Runnable() {
                     @Override

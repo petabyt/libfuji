@@ -69,6 +69,8 @@ public class MainActivity extends AppCompatActivity {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         }
+
+        MyWiFiComm.startNetworkListeners((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
     }
 
     @Override

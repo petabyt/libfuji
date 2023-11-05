@@ -152,7 +152,7 @@ public class Viewer extends AppCompatActivity {
 
         handler = new Handler(Looper.getMainLooper());
 
-        // Start the popup only when activity 'key' is finished
+        // Start the popup only when activity 'key' is finished (activity is built and ready to go)
         ViewTreeObserver viewTreeObserver = getWindow().getDecorView().getViewTreeObserver();
         viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -166,6 +166,8 @@ public class Viewer extends AppCompatActivity {
             @Override
             public void run() {
                 try {
+                    inProgress = true;
+                    Log.d(TAG, "Getting object info");
                     JSONObject jsonObject = Backend.fujiGetUncompressedObjectInfo(handle);
 
                     filename = jsonObject.getString("filename");
@@ -190,7 +192,6 @@ public class Viewer extends AppCompatActivity {
                         }
                     });
 
-                    inProgress = true;
                     file = Backend.cFujiGetFile(handle);
 
                     if (file == null) {

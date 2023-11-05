@@ -9,7 +9,7 @@ import android.net.NetworkInfo;
 import android.net.NetworkRequest;
 import android.os.Build;
 import android.util.Log;
-
+import java.net.InetSocketAddress;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,6 +28,63 @@ public class WiFiComm {
 
     static int currentNetworkCallbackDone = 0;
     static Socket currentNetworkCallbackSocket = null;
+
+    static Network wifiDevice = null;
+
+    static Socket tryConnectToSocket(Network net, String ip, int port) {
+        failReason = "None yet";
+        Socket sock;
+        try {
+            // Create and connect to socket
+            sock = new Socket();
+
+            // Bind socket to the network device we selected
+            net.bindSocket(sock);
+            
+            //sock.setKeepAlive(true);
+            sock.setTcpNoDelay(true);
+            sock.setReuseAddress(true);
+
+            sock.connect(new InetSocketAddress(ip, port), 1000);
+        } catch (SocketTimeoutException e) {
+            failReason = "Connection timed out";
+            Log.d(TAG, e.toString());
+            currentNetworkCallbackDone = -1;
+            return null;
+        } catch (Exception e) {
+            failReason = "Failed to connect.";
+            Log.d(TAG, e.toString());
+            currentNetworkCallbackDone = -1;
+            return null;
+        }
+
+        return sock;
+    }
+
+    public static void startNetworkListeners(ConnectivityManager connectivityManager) {
+        NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
+        requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
+        ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                Log.d(TAG, "Wifi network is available");
+                wifiDevice = network;
+            }
+            @Override
+            public void onLost(Network network) {
+                Log.e(TAG, "Lost network\n");
+                wifiDevice = null;
+            }
+            @Override
+            public void onUnavailable() {
+                Log.e(TAG, "Network unavailable\n");
+                wifiDevice = null;
+            }
+        };
+
+        connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
+    }
+
     public static Socket connectWiFiSocket(ConnectivityManager connectivityManager, String ip, int port) {
         currentNetworkCallbackSocket = null;
         currentNetworkCallbackDone = 0;
@@ -41,68 +98,12 @@ public class WiFiComm {
             return null;
         }
 
-        NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
-        requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
-        ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onAvailable(Network network) {
-                Log.d(TAG, "Wifi available");
-                ConnectivityManager.setProcessDefaultNetwork(network);
-                try {
-                    // Create and connect to socket
-                    currentNetworkCallbackSocket = new Socket(ip, port);
-                    currentNetworkCallbackSocket.setKeepAlive(true);
-                    currentNetworkCallbackSocket.setTcpNoDelay(true);
-                    currentNetworkCallbackSocket.setReuseAddress(true);
-                }  catch (SocketTimeoutException e) {
-                    failReason = "Connection timed out";
-                    Log.e(TAG, e.toString());
-                    currentNetworkCallbackDone = -1;
-                } catch (Exception e) {
-                    failReason = "Failed to connect to the camera";
-                    Log.e(TAG, e.toString());
-                    currentNetworkCallbackDone = -1;
-                }
-                if (currentNetworkCallbackDone != -1) {
-                    currentNetworkCallbackDone = 1;
-                }
-                connectivityManager.unregisterNetworkCallback(this);
-            }
-            @Override
-            public void onLost(Network network) {
-                Log.e(TAG, "Lost network\n");
-            }
-        };
-
-        if (Build.VERSION.SDK_INT >= 26) {
-            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback, CamlibBackend.OPEN_TIMEOUT);
-        } else {
-            connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
+        if (wifiDevice == null) {
+            failReason = "Not connected to WiFi.";
+            return null;
         }
-        Log.d(TAG, "Requested wifi network usage");
 
-        // Low tech solution for async execution
-        int waits = 0;
-        while (true) {
-            // If network is not provided within 1s, assume WiFi is disabled
-            if (waits > 1000) {
-                failReason = "Not connected to Fuji WiFi\n";
-                return null;
-            }
-
-            if (currentNetworkCallbackDone == 1) {
-                return currentNetworkCallbackSocket;
-            } else if (currentNetworkCallbackDone == -1) {
-                return null;
-            }
-
-            try {
-                Thread.sleep(1);
-                waits++;
-            } catch (Exception e) {
-                Log.e(TAG, "Sleep fail (???)");
-            }
-        }
+        return tryConnectToSocket(wifiDevice, ip, port);
     }
 
     public boolean connect(String ipAddress, int port, int timeout) {
