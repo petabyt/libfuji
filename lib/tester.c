@@ -1,55 +1,14 @@
-// Test suite for Android - this is dev code, it doesn't need to be tidy perfect
+// Fuji Test suite - this is dev code, it doesn't need to be tidy perfect
 // Copyright 2023 (c) Unofficial fujiapp
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <jni.h>
-#include <android/log.h>
 #include <camlib.h>
 
-#include "myjni.h"
-#include "backend.h"
 #include "fuji.h"
 #include "models.h"
 #include "fujiptp.h"
-
-// Init commands 
-JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
-	backend.env = env;
-	jclass thizClass = (*env)->GetObjectClass(env, thiz);
-	jclass testerClass = (*env)->GetObjectClass(env, tester);
-	backend.tester = (*env)->NewGlobalRef(env, tester);
-
-	backend.tester_log = (*backend.env)->GetMethodID(backend.env, testerClass, "log", "(Ljava/lang/String;)V");
-	backend.tester_fail = (*backend.env)->GetMethodID(backend.env, testerClass, "fail", "(Ljava/lang/String;)V");
-}
-
-void tester_log(char *fmt, ...) {
-	if (backend.tester_log == NULL) return;
-	char buffer[512];
-	va_list args;
-	va_start(args, fmt);
-	vsnprintf(buffer, sizeof(buffer), fmt, args);
-	va_end(args);
-
-	jni_verbose_log(buffer);
-
-	(*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_log, (*backend.env)->NewStringUTF(backend.env, buffer));
-}
-
-void tester_fail(char *fmt, ...) {
-	if (backend.tester_fail == NULL) return;
-	char buffer[512];
-	va_list args;
-	va_start(args, fmt);
-	vsnprintf(buffer, sizeof(buffer), fmt, args);
-	va_end(args);
-
-	jni_verbose_log(buffer);
-
-	(*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_fail, (*backend.env)->NewStringUTF(backend.env, buffer));
-}
 
 static void ptp_verbose_print_events(struct PtpRuntime *r) {
 	struct PtpFujiEvents *ev = (struct PtpFujiEvents *)(ptp_get_payload(r));
@@ -152,12 +111,18 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 		return 1;
 	}
 
-	if (fuji_known.num_objects == -1) {
-		tester_fail("The camera return didn't want to give access to num_objects property!");
-		return 1;
-	}
+	if (fuji_known.selected_imgs_mode == FUJI_FULL_ACCESS) {
+		if (fuji_known.num_objects == -1) {
+			tester_fail("The camera return didn't want to give access to num_objects property!");
+			return 1;
+		}
 
-	tester_log("There are %d images on the SD card.", fuji_known.num_objects);
+		tester_log("There are %d images on the SD card.", fuji_known.num_objects);
+	} else if (fuji_known.selected_imgs_mode == FUJI_MULTIPLE_TRANSFER) {
+		tester_log("Camera is in multiple transfer mode. Doesn't tell us how many images there are.");
+	} else {
+		tester_log("Camera is on mode %d. Nothing to report.", fuji_known.selected_imgs_mode);
+	}
 
 	{
 		tester_log("Attempting to get object info for 1...");
@@ -170,8 +135,6 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 			tester_log("Got object info\n");
 		}
 
-		//log_payload(r);
-
 		char buffer[1024];
 		ptp_object_info_json(&oi, buffer, sizeof(buffer));
 
@@ -182,11 +145,11 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 	return 0;
 }
 
-// Portable Fujifilm test suite
+// Test the init/setup part of comms with the camera - once this finishes, connection is ready for stuff
 int fuji_test_setup(struct PtpRuntime *r) {
 	tester_log("Running test suite from C");
 
-	int rc = ptpip_fuji_init(&backend.r, "fudge-test");
+	int rc = ptpip_fuji_init(r, "fudge-test");
 	if (rc) {
 		tester_fail("Failed to initialize command socket");
 		return rc;
@@ -224,6 +187,7 @@ int fuji_test_setup(struct PtpRuntime *r) {
 		tester_log("Opened session");
 	}
 
+	// This has already been tested extensively
 	// rc = fuji_test_get_props(r);
 	// if (rc) return rc;
 
@@ -231,56 +195,6 @@ int fuji_test_setup(struct PtpRuntime *r) {
 	if (rc) return rc;
 
 	rc = fuji_init_setup(r);
-	if (rc) return rc;
-
-	// rc = fuji_test_filesystem(r);
-	// if (rc) return rc;
-// 
-	// tester_log("We got to the end of the test, and nothing broke :)");
-	// tester_log("Ending test...");
-
-	return 0;
-}
-
-JNI_FUNC(jint, cFujiTestSuiteSetup)(JNIEnv *env, jobject thiz) {
-	backend.env = env;
-	return fuji_test_setup(&backend.r);
-}
-
-JNI_FUNC(jint, cFujiTestStartRemoteSockets)(JNIEnv *env, jobject thiz) {
-	backend.env = env;
-	int rc = fuji_remote_mode_open_sockets(&backend.r);
-	if (rc) {
-		tester_fail("Failed to open sockets");
-	} else {
-		tester_log("Opened sockets in remote mode");
-	}
-
-	return rc;
-}
-
-JNI_FUNC(jint, cFujiEndRemoteMode)(JNIEnv *env, jobject thiz) {
-	backend.env = env;
-	int rc = fuji_remote_mode_end(&backend.r);
-	if (rc) {
-		tester_fail("Failed to end remote mode");
-	} else {
-		tester_log("Ended remote mode after setting up sockets");
-	}
-	return rc;
-}
-
-JNI_FUNC(jint, cFujiTestSetupImageGallery)(JNIEnv *env, jobject thiz) {
-	backend.env = env;
-	int rc = fuji_config_image_viewer(&backend.r);
-	if (rc) {
-		tester_fail("Failed to config remote image viewer");
-		return rc;
-	} else {
-		tester_log("Configured remote image viewer");
-	}
-
-	rc = fuji_test_filesystem(&backend.r);
 	if (rc) return rc;
 
 	return 0;

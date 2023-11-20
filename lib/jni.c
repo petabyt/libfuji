@@ -272,3 +272,47 @@ JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
 
 	return result;
 }
+
+JNI_FUNC(jint, cFujiTestSuiteSetup)(JNIEnv *env, jobject thiz) {
+	backend.env = env;
+	return fuji_test_setup(&backend.r);
+}
+
+JNI_FUNC(jint, cFujiTestStartRemoteSockets)(JNIEnv *env, jobject thiz) {
+	backend.env = env;
+	int rc = fuji_remote_mode_open_sockets(&backend.r);
+	if (rc) {
+		tester_fail("Failed to open sockets");
+	} else {
+		tester_log("Opened sockets in remote mode");
+	}
+
+	return rc;
+}
+
+JNI_FUNC(jint, cFujiEndRemoteMode)(JNIEnv *env, jobject thiz) {
+	backend.env = env;
+	int rc = fuji_remote_mode_end(&backend.r);
+	if (rc) {
+		tester_fail("Failed to end remote mode");
+	} else {
+		tester_log("Ended remote mode after setting up sockets");
+	}
+	return rc;
+}
+
+JNI_FUNC(jint, cFujiTestSetupImageGallery)(JNIEnv *env, jobject thiz) {
+	backend.env = env;
+	int rc = fuji_config_image_viewer(&backend.r);
+	if (rc) {
+		tester_fail("Failed to config image viewer");
+		return rc;
+	} else {
+		tester_log("Configured image viewer");
+	}
+
+	rc = fuji_test_filesystem(&backend.r);
+	if (rc) return rc;
+
+	return 0;
+}

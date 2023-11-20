@@ -39,7 +39,6 @@ int fuji_enable_compression(struct PtpRuntime *r) {
 int fuji_disable_compression(struct PtpRuntime *r) {
 	int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_NoCompression, 0);
 	return rc;
-	
 }
 
 int fuji_get_device_info(struct PtpRuntime *r) {

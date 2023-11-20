@@ -70,30 +70,64 @@ void android_err(char *fmt, ...) {
 	__android_log_write(ANDROID_LOG_ERROR, "fujiapp-dbg", buffer);
 }
 
+void tester_log(char *fmt, ...) {
+	if (backend.tester_log == NULL) return;
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+
+	jni_verbose_log(buffer);
+
+	(*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_log, (*backend.env)->NewStringUTF(backend.env, buffer));
+}
+
+void tester_fail(char *fmt, ...) {
+	if (backend.tester_fail == NULL) return;
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+
+	jni_verbose_log(buffer);
+
+	(*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_fail, (*backend.env)->NewStringUTF(backend.env, buffer));
+}
+
 JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
 	// Already zero-ed in BSS, but to be *extra* sure...
 	memset(&backend, 0, sizeof(backend));
 
 	backend.env = env;
 	jclass thizClass = (*env)->GetObjectClass(env, thiz);
-
 	jclass pacClass = (*env)->GetObjectClass(env, pac);
 
 	backend.pac = (*env)->NewGlobalRef(env, pacClass);
-
 	jclass connClass = (*env)->GetObjectClass(env, conn);
 	backend.conn = (*env)->NewGlobalRef(env, conn);
 
 	backend.main = (*env)->NewGlobalRef(env, thiz);
 
 	backend.jni_print = (*backend.env)->GetStaticMethodID(backend.env, pacClass, "print", "(Ljava/lang/String;)V");
-
 	backend.cmd_write = (*backend.env)->GetMethodID(backend.env, connClass, "cmdWrite", "([B)I");
 	backend.cmd_read = (*backend.env)->GetMethodID(backend.env, connClass, "cmdRead", "([BI)I");
 	// TODO: cmd_close
 
 	ptp_generic_init(&backend.r);
 	reset_connection();
+}
+
+// Init commands 
+JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
+	backend.env = env;
+	jclass thizClass = (*env)->GetObjectClass(env, thiz);
+	jclass testerClass = (*env)->GetObjectClass(env, tester);
+	backend.tester = (*env)->NewGlobalRef(env, tester);
+
+	backend.tester_log = (*backend.env)->GetMethodID(backend.env, testerClass, "log", "(Ljava/lang/String;)V");
+	backend.tester_fail = (*backend.env)->GetMethodID(backend.env, testerClass, "fail", "(Ljava/lang/String;)V");
 }
 
 JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz, jstring path) {

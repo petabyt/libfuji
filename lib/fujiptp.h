@@ -2,6 +2,24 @@
 #ifndef FUJIPTP_H
 #define FUJIPTP_H
 
+#define FUJI_CMD_IP_PORT 55740
+#define FUJI_EVENT_IP_PORT 55741
+#define FUJI_LIVEVIEW_IP_PORT 55742
+
+// Fuji USB and IP extensions
+#define PTP_OC_FUJI_SendObjectInfo	0x900c // create file
+#define PTP_OC_FUJI_SendObject2		0x900d // Appears to be the same as 901d
+#define PTP_OC_FUJI_SendObject		0x901d // write to file
+
+// WiFi only codes
+#define PTP_PC_FUJI_EventsList		0xd212
+#define PTP_PC_FUJI_SelectedImgsMode	0xd220
+#define PTP_PC_FUJI_ObjectCount		0xd222
+#define PTP_PC_FUJI_CameraState		0xdf00 // formerly Unlocked 
+#define PTP_PC_FUJI_FunctionMode	0xdf01 // formerly Mode - should be (CameraReportedState??)
+#define PTP_PC_FUJI_CompressSmall	0xD226 // compress into 400-800kb
+#define PTP_PC_FUJI_NoCompression	0xD227 // Enable full image download
+
 // Fuji Camera Connect has this version
 #define FUJI_CAM_CONNECT_REMOTE_VER 0x2000B
 
