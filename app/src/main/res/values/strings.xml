@@ -4,7 +4,7 @@
     <string name="help_text2">Troubleshooting:</string>
     <string name="help_text3">Your camera\'s WiFi menu should be accessible from the \'Fn\' button on the top of the body.</string>
     <string name="help_text4">Sorry, modern cameras with Bluetooth aren\'t supported yet. That\'s on the roadmap!</string>
-    <string name="help_text5">If you aren\'t satisfied with the app, then you can return your copy for a full refund :)</string>
+    <string name="help_text5">Please report any bugs on this project\'s Github page: https://github.com/petabyt/fudge</string>
     <string name="help_text6">Credits:</string>
     <string name="help_text7">camlib (Apache license)</string>
     <string name="help_text8">com.jsibbold.zoomage.ZoomageView (Apache license)</string>

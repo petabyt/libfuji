@@ -17,7 +17,7 @@ JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
 	// Take this as an opportunity to reset all the structures for a new connection
 	reset_connection();
 
-	int rc = ptpip_fuji_init(&backend.r, "fudge");
+	int rc = ptpip_fuji_init_req(&backend.r, "fudge");
 	if (rc) return rc;
 
 	struct PtpFujiInitResp resp;

@@ -1,10 +1,12 @@
-// Extra PTP & API defs for Fuifilm
+// Fuji PTP extension defs
 #ifndef FUJIPTP_H
 #define FUJIPTP_H
 
 #define FUJI_CMD_IP_PORT 55740
 #define FUJI_EVENT_IP_PORT 55741
 #define FUJI_LIVEVIEW_IP_PORT 55742
+
+#define FUJI_PROTOCOL_VERSION 0x8f53e4f2
 
 // Fuji USB and IP extensions
 #define PTP_OC_FUJI_SendObjectInfo	0x900c // create file
@@ -228,7 +230,7 @@
 #define PTP_PC_FUJI_Aperture				0xD218
 #define PTP_PC_FUJI_ShutterSpeed			0xD219
 #define PTP_PC_FUJI_DeviceError			0xD21B
-#define PTP_PC_FUJI_SensitivityFineTune1		0xD222
+#define PTP_PC_FUJI_SensitivityFineTune1		0xD222 /* ???? */
 #define PTP_PC_FUJI_SensitivityFineTune2		0xD223
 #define PTP_PC_FUJI_CaptureRemaining			0xD229	/* Movie AF Mode? */
 #define PTP_PC_FUJI_MovieRemainingTime			0xD22A	/* Movie Focus Area? */

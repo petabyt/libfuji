@@ -70,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         }
 
+        // TODO: Show status on screen
         MyWiFiComm.startNetworkListeners((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
     }
 

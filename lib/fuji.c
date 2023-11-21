@@ -12,9 +12,37 @@
 #include "fuji.h"
 #include "fujiptp.h"
 
-// TODO: Construct a standard device info from bits and pieces of info
-
 struct FujiDeviceKnowledge fuji_known = {0};
+
+int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name) {
+	struct FujiInitPacket *p = (struct FujiInitPacket *)r->data;
+	memset(p, 0, sizeof(struct FujiInitPacket));
+	p->length = 0x52;
+	p->type = PTPIP_INIT_COMMAND_REQ;
+
+	p->version = FUJI_PROTOCOL_VERSION;
+
+	p->guid1 = 0x5d48a5ad;
+	p->guid2 = 0xb7fb287;
+	p->guid3 = 0xd0ded5d3;
+	p->guid4 = 0x0;
+
+	ptp_write_unicode_string(p->device_name, device_name);
+
+	if (ptpip_cmd_write(r, r->data, p->length) != p->length) return PTP_IO_ERR;
+
+	// Read the packet size, then receive the rest
+	int x = ptpip_cmd_read(r, r->data, 4);
+	if (x < 0) return PTP_IO_ERR;
+	x = ptpip_cmd_read(r, r->data + 4, p->length - 4);
+	if (x < 0) return PTP_IO_ERR;
+
+	if (ptp_get_return_code(r) == 0x0) {
+		return 0;
+	} else {
+		return PTP_IO_ERR;
+	}
+}
 
 int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
 	struct PtpCommand cmd;
@@ -108,24 +136,24 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageExploreVersion);
 	if (rc) return rc;
 	fuji_known.image_explore_version = ptp_parse_prop_value(r);
-	tester_log("ImageExploreVersion: 0x%X\n", fuji_known.image_explore_version);
+	tester_log("ImageExploreVersion: 0x%X", fuji_known.image_explore_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion);
 	if (rc) return rc;
 	fuji_known.remote_image_view_version = ptp_parse_prop_value(r);
-	tester_log("RemoteImageExploreVersion: 0x%X\n", fuji_known.remote_image_view_version);
+	tester_log("RemoteImageExploreVersion: 0x%X", fuji_known.remote_image_view_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageGetVersion);
 	if (rc) return rc;
 	fuji_known.image_get_version = ptp_parse_prop_value(r);
-	tester_log("ImageGetVersion: 0x%X\n", fuji_known.image_get_version);
+	tester_log("ImageGetVersion: 0x%X", fuji_known.image_get_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteVersion);
 	if (rc) return rc;
 	fuji_known.remote_version = ptp_parse_prop_value(r);
-	tester_log("RemoteVersion: 0x%X\n", fuji_known.remote_version);
+	tester_log("RemoteVersion: 0x%X", fuji_known.remote_version);
 
-	tester_log("CameraState is %d\n", fuji_known.camera_state);
+	tester_log("CameraState is %d", fuji_known.camera_state);
 
 	// Determine preferred mode from state and version info
 	int mode = 0;
@@ -141,7 +169,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 		}
 	}
 
-	tester_log("Setting mode to %d\n", mode);
+	tester_log("Setting mode to %d", mode);
 
 	rc = ptp_set_prop_value16(r, PTP_PC_FUJI_FunctionMode, mode);
 	if (rc) return rc;

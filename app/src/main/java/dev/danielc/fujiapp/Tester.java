@@ -190,6 +190,8 @@ public class Tester extends AppCompatActivity {
         } catch (Exception e) {
             fail("Failed to close session");
         }
+
+        log("Test completed.");
     }
 
     @Override

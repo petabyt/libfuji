@@ -1,9 +1,11 @@
-CAMLIB_CORE=operations.o packet.o enums.o data.o enum_dump.o lib.o canon.o liveview.o bind.o ip.o fuji.o ml.o log.o conv.o generic.o canon_adv.o no_usb.o transport.o
-CAMLIB=$(addprefix ../lib/camlib/src/,$(CAMLIB_CORE))
+FUDGE=../lib
 
-LIB_OBJ=main.o ../lib/tester.o ../lib/fuji.o ../lib/models.o $(CAMLIB)
+CAMLIB_CORE=operations.o packet.o enums.o data.o enum_dump.o lib.o canon.o liveview.o bind.o ip.o ml.o log.o conv.o generic.o canon_adv.o no_usb.o transport.o
+CAMLIB=$(addprefix $(FUDGE)/camlib/src/,$(CAMLIB_CORE))
 
-CFLAGS=-I../lib/ -I../lib/camlib/src
+LIB_OBJ=main.o $(FUDGE)/tester.o $(FUDGE)/fuji.o $(FUDGE)/models.o $(CAMLIB)
+
+CFLAGS=-I$(FUDGE) -I$(FUDGE)/camlib/src
 
 main.out: $(LIB_OBJ)
 	$(CC) $(LIB_OBJ) $(CFLAGS) -o main.out

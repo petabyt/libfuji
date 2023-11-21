@@ -99,7 +99,7 @@ int fuji_init_setup(struct PtpRuntime *r) {
 		tester_fail("Failed to get device info");
 		return rc;
 	} else {
-		tester_log("Received device info");
+		tester_log("Received device info (or not supported)");
 	}
 
 	return 0;
@@ -132,14 +132,14 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 			tester_fail("Failed to get object info: %d", rc);
 			return rc;
 		} else {
-			tester_log("Got object info\n");
+			tester_log("Got object info");
 		}
 
 		char buffer[1024];
 		ptp_object_info_json(&oi, buffer, sizeof(buffer));
 
-		tester_log("Object info: %s\n", buffer);
-		tester_log("Tag: '%s'\n", oi.keywords);
+		tester_log("Object info: %s", buffer);
+		tester_log("Tag: '%s'", oi.keywords);
 	}
 
 	return 0;
@@ -149,7 +149,7 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 int fuji_test_setup(struct PtpRuntime *r) {
 	tester_log("Running test suite from C");
 
-	int rc = ptpip_fuji_init(r, "fudge-test");
+	int rc = ptpip_fuji_init_req(r, "fudge-test");
 	if (rc) {
 		tester_fail("Failed to initialize command socket");
 		return rc;

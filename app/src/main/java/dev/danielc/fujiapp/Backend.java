@@ -178,4 +178,3 @@ public class Backend extends CamlibBackend {
         return fujifilm;
     }
 }
-

@@ -55,6 +55,7 @@ public class Gallery extends AppCompatActivity {
             }
         });
 
+        // Give time for the warning to show and warn the user (in case it breaks)
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -161,6 +162,7 @@ public class Gallery extends AppCompatActivity {
 
                 if (objectHandles == null) {
                     Backend.print("No JPEG images available.");
+                    Backend.print("Maybe you only have RAW files? Fuji doesn't let us view RAW over WiFi :(");
                 } else {
                     handler.post(new Runnable() {
                         @Override
