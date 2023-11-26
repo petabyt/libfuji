@@ -12,7 +12,8 @@ Beta builds are published on [Google Play](https://play.google.com/store/apps/de
 ## Tech stack
 - Java & native Android activities
 - JNI & Portable C99
-- [camlib](https://github.com/petabyt/camlib) with Java communication backend
+- [camlib](https://github.com/petabyt/camlib)
+- camlibjava (Sockets + WiFI code)
 
 ## TODO:
 - [x] Stable communication with camera (connect, disconnect, ping)
@@ -26,7 +27,3 @@ Beta builds are published on [Google Play](https://play.google.com/store/apps/de
 - [x] Polish UI (more animations)
 - [ ] Implement 100s of Fuji property codes, determine the unknown ones
 - [x] Implement liveview (video stream on another port)
-- [ ] Reimplement front-end in Flutter
-
-## Development Structure
-![image of a disaster](docs/fudge-chart.png)
