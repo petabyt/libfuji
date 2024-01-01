@@ -4,6 +4,10 @@
 #include <jni.h>
 #include <android/log.h>
 
+#ifndef JNI_FUNC
+#define JNI_FUNC(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_fujiapp_Backend_##name
+#endif
+
 #if defined(__arm__)
 #if defined(__ARM_ARCH_7A__)
 #if defined(__ARM_NEON__)
@@ -34,10 +38,6 @@
 	#define ABI "arm64-v8a"
 	#else
 	#define ABI "unknown"
-#endif
-
-#ifndef JNI_FUNC
-#define JNI_FUNC(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_fujiapp_Backend_##name
 #endif
 
 #endif

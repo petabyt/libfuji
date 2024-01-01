@@ -10,6 +10,10 @@
 #include "models.h"
 #include "fujiptp.h"
 
+// Test suite verbose logging
+void tester_log(char *fmt, ...);
+void tester_fail(char *fmt, ...);
+
 static void ptp_verbose_print_events(struct PtpRuntime *r) {
 	struct PtpFujiEvents *ev = (struct PtpFujiEvents *)(ptp_get_payload(r));
 	for (int i = 0; i < ev->length; i++) {
@@ -187,7 +191,7 @@ int fuji_test_setup(struct PtpRuntime *r) {
 		tester_log("Opened session");
 	}
 
-	// This has already been tested extensively
+	// This has already been tested extensively, no need
 	// rc = fuji_test_get_props(r);
 	// if (rc) return rc;
 

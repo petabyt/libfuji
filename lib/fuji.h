@@ -3,6 +3,8 @@
 
 #include "models.h"
 
+void ptp_report_error(struct PtpRuntime *r, char *reason, int code);
+
 int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name);
 
 int fuji_config_version(struct PtpRuntime *r);

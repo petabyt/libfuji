@@ -72,6 +72,9 @@
 #define FUJI_MODE_TRANSFER_FIRMARE	19
 #define FUJI_MODE_REMOTE_IMG_VIEW_BLE	20 // ????
 
+// Modes for SelectedImgsMode
+#define FUJI_SELECT_MULTIPLE_MODE_1 1
+
 // Camera states
 #define FUJI_WAIT_FOR_ACCESS	0
 #define FUJI_MULTIPLE_TRANSFER	1

@@ -6,14 +6,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkRequest;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
@@ -21,9 +17,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-public class MainActivity extends AppCompatActivity {
-    private static MainActivity instance;
+import camlib.SimpleSocket;
+import camlib.WiFiComm;
+import libui.LibU;
+import libui.LibUI;
 
+public class MainActivity extends AppCompatActivity {
+    public static MainActivity instance;
     Handler handler;
 
     @Override
@@ -33,8 +33,9 @@ public class MainActivity extends AppCompatActivity {
         instance = this;
         handler = new Handler(Looper.getMainLooper());
 
-        Backend.init();
+        LibUI.buttonBackgroundResource = R.drawable.grey_button;
 
+        Backend.init();
         Backend.updateLog();
 
         findViewById(R.id.reconnect).setOnClickListener(new View.OnClickListener() {
@@ -50,6 +51,13 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, Help.class);
                 startActivity(intent);
+            }
+        });
+
+        findViewById(R.id.scripts).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Backend.cFujiScriptsScreen(MainActivity.this);
             }
         });
 
@@ -70,49 +78,49 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         }
 
-        // TODO: Show status on screen
-        MyWiFiComm.startNetworkListeners((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
-    }
+        ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
 
-    @Override
-    public void onBackPressed() {
-        Backend.logLocation = "main";
+        SimpleSocket.setConnectivityManager(m);
+
+        // Idea: Show WiFi status on screen?
+        WiFiComm.startNetworkListeners(m);
     }
 
     public void connectClick(View v) {
-        if (Backend.cIsUsingEmulator()) {
-            Backend.logLocation = "gallery";
-            Intent intent = new Intent(MainActivity.this, Gallery.class);
-            startActivity(intent);
-            return;
-        }
-
         new Thread(new Runnable() {
             @Override
             public void run() {
-                if (Backend.wifi.fujiConnectToCmd((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE))) {
-                    Backend.print(MyWiFiComm.failReason);
-                } else {
+                try {
+                    Backend.fujiConnectToCmd();
                     Backend.print("Connected to the camera");
                     Backend.logLocation = "gallery";
                     Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);
+                } catch (Exception e) {
+                    Backend.print(e.getMessage());
                 }
             }
         }).start();
     }
 
-    public static MainActivity getInstance() {
-        return instance;
-    }
-
-    public void setErrorText(String arg) {
+    public void setLogText(String arg) {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                TextView error_msg = findViewById(R.id.error_msg);
-                error_msg.setText(arg);
+                TextView tv = findViewById(R.id.error_msg);
+                if (tv == null) return;
+                tv.setText(arg);
             }
         });
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        return LibUI.handleOptions(item, false);
+    }
+
+    @Override
+    public void onBackPressed() {
+        LibUI.handleBack(false);
     }
 }

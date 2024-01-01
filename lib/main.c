@@ -19,30 +19,22 @@ void reset_connection() {
 	backend.r.connection_type = PTP_IP_USB;
 }
 
-void jni_verbose_log(char *str) {
-	if (backend.log_fp == NULL) return;
-
-	fputs(str, backend.log_fp);
-	fputs("\n", backend.log_fp);
-	fflush(backend.log_fp);
-}
-
 void ptp_verbose_log(char *fmt, ...) {
-#if 0
+	if (backend.log_buf == NULL) return;
+
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
-	__android_log_write(ANDROID_LOG_ERROR, "ptp-verbose", buffer);
-#else
-	if (backend.log_fp == NULL) return;
-	va_list args;
-	va_start(args, fmt);
-	vfprintf(backend.log_fp, fmt, args);
-	va_end(args);
-	fflush(backend.log_fp);
-#endif
+	//__android_log_write(ANDROID_LOG_ERROR, "ptp-verbose", buffer);
+
+	if (strlen(buffer) + backend.log_pos + 1 > backend.log_size) {
+		backend.log_buf = realloc(backend.log_buf, strlen(buffer) + backend.log_pos + 1);
+	}
+
+	strcpy(backend.log_buf + backend.log_pos, buffer);
+	backend.log_pos += strlen(buffer);
 }
 
 void ptp_panic(char *fmt, ...) {
@@ -57,7 +49,7 @@ void jni_print(char *fmt, ...) {
 	va_end(args);
 
 	// TODO: check use before init
-	(*backend.env)->CallStaticVoidMethod(backend.env, backend.pac, backend.jni_print, (*backend.env)->NewStringUTF(backend.env, buffer));
+	(*backend.env)->CallStaticVoidMethod(backend.env, backend.main, backend.jni_print, (*backend.env)->NewStringUTF(backend.env, buffer));
 }
 
 void android_err(char *fmt, ...) {
@@ -78,7 +70,8 @@ void tester_log(char *fmt, ...) {
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
 
-	jni_verbose_log(buffer);
+	ptp_verbose_log("%s\n", buffer);
+
 
 	(*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_log, (*backend.env)->NewStringUTF(backend.env, buffer));
 }
@@ -91,29 +84,36 @@ void tester_fail(char *fmt, ...) {
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
 
-	jni_verbose_log(buffer);
+	ptp_verbose_log("%s\n", buffer);
 
 	(*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_fail, (*backend.env)->NewStringUTF(backend.env, buffer));
 }
 
 JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
-	// Already zero-ed in BSS, but to be *extra* sure...
+	// On init, all members in backend are garunteed to be NULL
 	memset(&backend, 0, sizeof(backend));
 
 	backend.env = env;
-	jclass thizClass = (*env)->GetObjectClass(env, thiz);
-	jclass pacClass = (*env)->GetObjectClass(env, pac);
 
-	backend.pac = (*env)->NewGlobalRef(env, pacClass);
+	backend.main = (*env)->NewGlobalRef(env, thiz);
 	jclass connClass = (*env)->GetObjectClass(env, conn);
 	backend.conn = (*env)->NewGlobalRef(env, conn);
 
-	backend.main = (*env)->NewGlobalRef(env, thiz);
+	backend.jni_print = (*env)->GetStaticMethodID(env, backend.main, "print", "(Ljava/lang/String;)V");
 
-	backend.jni_print = (*backend.env)->GetStaticMethodID(backend.env, pacClass, "print", "(Ljava/lang/String;)V");
-	backend.cmd_write = (*backend.env)->GetMethodID(backend.env, connClass, "cmdWrite", "([B)I");
-	backend.cmd_read = (*backend.env)->GetMethodID(backend.env, connClass, "cmdRead", "([BI)I");
-	// TODO: cmd_close
+	jfieldID soc_f = (*env)->GetStaticFieldID(env, backend.main, "cmdSocket", "Lcamlib/SimpleSocket;");
+	jobject soc_o = (*env)->GetStaticObjectField(env, backend.main, soc_f);
+	jclass soc_class = (*env)->GetObjectClass(env, soc_o);
+	backend.conn = (*env)->NewGlobalRef(env, soc_o);
+
+	backend.cmd_write = (*env)->GetMethodID(env, soc_class, "write", "(I)I");
+	backend.cmd_read = (*env)->GetMethodID(env, soc_class, "read", "(I)I");
+	backend.cmd_close = (*env)->GetMethodID(env, soc_class, "close", "()V");
+
+	// Get socket IO buffer
+	jmethodID get_buffer_m = (*env)->GetMethodID(env, soc_class, "getBuffer", "()Ljava/lang/Object;");
+	jobject buffer = (*env)->CallObjectMethod(env, soc_o, get_buffer_m);
+	backend.cmd_buffer = (*env)->NewGlobalRef(env, buffer);
 
 	ptp_generic_init(&backend.r);
 	reset_connection();
@@ -135,12 +135,12 @@ JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz, jstring path) {
 	const char *req = (*env)->GetStringUTFChars(env, path, 0);
 	if (req == NULL) return 1;
 
-	FILE *f = fopen(req, "w");
-	if (f == NULL) return 1;
+	backend.log_buf = malloc(1000);
+	backend.log_size = 1000;
+	backend.log_pos = 0;
 
-	backend.log_fp = f;
+	strcpy(backend.log_buf, "Fujiapp log file - Send this to devs!\n");
 
-	ptp_verbose_log("Fujiapp log file - Send this to devs!\n");
 	ptp_verbose_log("ABI: %s\n", ABI);
 	ptp_verbose_log("Compile date: %s\n", __DATE__);
 	ptp_verbose_log("https://github.com/petabyt/fujiapp\n");
@@ -148,12 +148,15 @@ JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz, jstring path) {
 	return 0;
 }
 
-JNI_FUNC(void, cEndLogs)(JNIEnv *env, jobject thiz) {
+JNI_FUNC(jstring, cEndLogs)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
 
-	if (backend.log_fp == NULL) return;
+	if (backend.log_buf == NULL) return NULL;
 
-	fclose(backend.log_fp);
+	jstring str = (*backend.env)->NewStringUTF(backend.env, backend.log_buf);
 
-	backend.log_fp = NULL;
+	free(backend.log_buf);
+	backend.log_buf = NULL;
+
+	return str;
 }

@@ -50,8 +50,6 @@ public class Viewer extends AppCompatActivity {
     public static PopupWindow popupWindow = null;
     public static ProgressBar progressBar = null;
 
-    public static boolean inProgress = false;
-
     public Bitmap bitmap = null;
     public String filename = null;
     public byte[] file = null;
@@ -69,9 +67,8 @@ public class Viewer extends AppCompatActivity {
         return popupView.findViewById(R.id.progress_bar);
     }
 
-    public void createDir(String directoryPath) {
+    public static void createDir(String directoryPath) {
         File directory = new File(directoryPath);
-        Backend.print(directoryPath);
         if (!directory.exists()) {
             if (!directory.mkdirs()) {
                 return;
@@ -135,12 +132,14 @@ public class Viewer extends AppCompatActivity {
         }
     }
 
+    ActionBar actionBar;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_viewer);
 
-        ActionBar actionBar = getSupportActionBar();
+        actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
 
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
@@ -152,92 +151,92 @@ public class Viewer extends AppCompatActivity {
 
         handler = new Handler(Looper.getMainLooper());
 
-        // Start the popup only when activity 'key' is finished (activity is built and ready to go)
-        ViewTreeObserver viewTreeObserver = getWindow().getDecorView().getViewTreeObserver();
-        viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                Viewer.progressBar = downloadPopup(Viewer.this);
-            }
-        });
-
-        Thread thread = new Thread(new Runnable() {
+        // Wait until activity is loaded
+        handler.post(new Runnable() {
             @Override
             public void run() {
-                try {
-                    inProgress = true;
-                    Log.d(TAG, "Getting object info");
-                    JSONObject jsonObject = Backend.fujiGetUncompressedObjectInfo(handle);
-
-                    filename = jsonObject.getString("filename");
-                    int size = jsonObject.getInt("compressedSize");
-                    int imgX = jsonObject.getInt("imgWidth");
-                    int imgY = jsonObject.getInt("imgHeight");
-
-                    if (filename.endsWith(".MOV")) {
-                        inProgress = false;
-                        toast("This is a MOV, not supported yet");
-                        return;
+                Viewer.progressBar = downloadPopup(Viewer.this);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        loadThumb(handle);
                     }
-
-                    handler.post(new Runnable() {
-                        @SuppressLint({"SetTextI18n", "DefaultLocale"})
-                        @Override
-                        public void run() {
-                            actionBar.setTitle(filename);
-                            TextView tv = findViewById(R.id.fileInfo);
-                            tv.setText("File size: " + String.format("%.2f", size / 1024.0 / 1024.0)
-                                    + "MB\n" + "Dimensions: " + imgX + "x" + imgY);
-                        }
-                    });
-
-                    file = Backend.cFujiGetFile(handle);
-
-                    if (file == null) {
-                        // IO error in downloading
-                        throw new Backend.PtpErr(Backend.PTP_IO_ERR);
-                    } else if (file.length == 0) {
-                        // Runtime error in downloading, no error yet
-                        throw new Exception("Error downloading image");
-                    }
-
-                    // Scale image to acceptable texture size
-                    bitmap = BitmapFactory.decodeByteArray(file, 0, file.length);
-                    if (bitmap.getWidth() > GL10.GL_MAX_TEXTURE_SIZE) {
-                        float ratio = ((float) bitmap.getHeight()) / ((float) bitmap.getWidth());
-                        // Will result in ~11mb tex, can do 4096, but uses 40ish megs, sometimes Android compains about OOM
-                        // Might be able to increase for newer Androids
-                        Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap,
-                            (int)(2048),
-                            (int)(2048 * ratio),
-                            false
-                        );
-                        bitmap.recycle();
-                        bitmap = newBitmap;
-                    }
-
-                    inProgress = false;
-
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Viewer.popupWindow.dismiss();
-                            
-                            ZoomageView zoomageView = findViewById(R.id.zoom_view);
-                            zoomageView.setImageBitmap(bitmap);
-                        }
-                    });
-                } catch (Backend.PtpErr e) {
-                    toast("Download IO Error: " + e.rc);
-                    Backend.reportError(e.rc, "Download error");
-                } catch (Exception e) {
-                    toast("Download Error: " + e.toString());
-                    Backend.reportError(Backend.PTP_IO_ERR, "Download error: " + e.toString());
-                }
+                }).start();
             }
         });
-        thread.start();
+    }
+
+    private void loadThumb(int handle) {
+        try {
+            Log.d(TAG, "Getting object info");
+            JSONObject jsonObject = Backend.fujiGetUncompressedObjectInfo(handle);
+
+            filename = jsonObject.getString("filename");
+            int size = jsonObject.getInt("compressedSize");
+            int imgX = jsonObject.getInt("imgWidth");
+            int imgY = jsonObject.getInt("imgHeight");
+
+            if (filename.endsWith(".MOV")) {
+                Backend.cSetProgressBar(null);
+                toast("This is a MOV, not supported yet");
+                return;
+            }
+
+            handler.post(new Runnable() {
+                @SuppressLint({"SetTextI18n", "DefaultLocale"})
+                @Override
+                public void run() {
+                    actionBar.setTitle(filename);
+                    TextView tv = findViewById(R.id.fileInfo);
+                    tv.setText("File size: " + String.format("%.2f", size / 1024.0 / 1024.0)
+                            + "MB\n" + "Dimensions: " + imgX + "x" + imgY);
+                }
+            });
+
+            Backend.cSetProgressBar(Viewer.progressBar);
+            file = Backend.cFujiGetFile(handle);
+
+            if (file == null) {
+                // IO error in downloading
+                throw new Backend.PtpErr(Backend.PTP_IO_ERR);
+            } else if (file.length == 0) {
+                // Runtime error in downloading, no error yet
+                throw new Exception("Error downloading image");
+            }
+
+            // Scale image to acceptable texture size
+            bitmap = BitmapFactory.decodeByteArray(file, 0, file.length);
+            if (bitmap.getWidth() > GL10.GL_MAX_TEXTURE_SIZE) {
+                float ratio = ((float) bitmap.getHeight()) / ((float) bitmap.getWidth());
+                // Will result in ~11mb tex, can do 4096, but uses 40ish megs, sometimes Android compains about OOM
+                // Might be able to increase for newer Androids
+                Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap,
+                        (int)(2048),
+                        (int)(2048 * ratio),
+                        false
+                );
+                bitmap.recycle();
+                bitmap = newBitmap;
+            }
+
+            Backend.cSetProgressBar(null);
+
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Viewer.popupWindow.dismiss();
+
+                    ZoomageView zoomageView = findViewById(R.id.zoom_view);
+                    zoomageView.setImageBitmap(bitmap);
+                }
+            });
+        } catch (Backend.PtpErr e) {
+            toast("Download IO Error: " + e.rc);
+            Backend.reportError(e.rc, "Download error");
+        } catch (Exception e) {
+            toast("Download Error: " + e.toString());
+            Backend.reportError(Backend.PTP_IO_ERR, "Download error: " + e.toString());
+        }
     }
 
     @Override

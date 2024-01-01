@@ -5,8 +5,10 @@ CAMLIB_CORE := $(addprefix camlib/src/,transport.c bind.c data.c enum_dump.c enu
 
 FUDGE_CORE := main.c jni.c lib.c fuji.c tester.c models.c net.c
 
+FUDGE_CORE += libui.c scripts.c
+
 LOCAL_MODULE := fujiapp
-LOCAL_CFLAGS := -Wall
+LOCAL_CFLAGS := -Wall -D ANDROID
 LOCAL_SRC_FILES := $(FUDGE_CORE) $(CAMLIB_CORE)
 LOCAL_C_INCLUDES += $(LOCAL_PATH) $(LOCAL_PATH)/camlib/src
 LOCAL_LDLIBS += -llog

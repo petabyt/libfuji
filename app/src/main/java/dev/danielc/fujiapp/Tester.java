@@ -4,9 +4,13 @@ package dev.danielc.fujiapp;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.ClipData;
+import android.os.Environment;
 import android.util.Log;
 import android.content.Intent;
 import android.text.Html;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 import android.os.Looper;
@@ -20,6 +24,9 @@ import android.os.Handler;
 import android.os.Build;
 
 import java.net.Socket;
+import android.content.ClipboardManager;
+
+import libui.LibU;
 
 public class Tester extends AppCompatActivity {
     private Handler handler;
@@ -116,35 +123,33 @@ public class Tester extends AppCompatActivity {
         Backend.cTesterInit(this);
 
         if (Backend.cRouteLogs(Backend.getLogPath()) == 0) {
-            log("Routing logs to " + Backend.getLogPath());
-        } else {
-            fail("Couldn't route logs to " + Backend.getLogPath() + ", running test anyway");
+            log("Routing logs to memory buffer.");
         }
-
-        //connectBluetooth();
 
         ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
 
         new Thread(new Runnable() {
             @Override
             public void run() {
-                if (!Backend.cIsUsingEmulator()) {
-                    if (Backend.wifi.fujiConnectToCmd(m)) {
-                        log(Backend.wifi.failReason);
-                        fail("Failed to connect to port on WiFi");
-                        return;
-                    }
+                try {
+                    Backend.fujiConnectToCmd();
+                } catch (Exception e) {
+                    fail(e.toString());
+                    verboseLog = Backend.cEndLogs();
+                    return;
                 }
 
                 log("Established connection, starting test thread");
 
                 mainTest(m);
-                Backend.wifi.close();
-                Backend.cEndLogs();
+                Backend.cmdSocket.close();
+                verboseLog = Backend.cEndLogs();
+                log("Hit the copy button to share the verbose log with devs.");
             }
         }).start();
     }
 
+    private String verboseLog = null;
     private String currentLogs = "";
     public void log(String str) {
         Log.d("fujiapp-dbg-tester", str);
@@ -171,11 +176,12 @@ public class Tester extends AppCompatActivity {
             rc = Backend.cFujiTestStartRemoteSockets();
             if (rc != 0) return;
 
-            if (Backend.wifi.fujiConnectEventAndVideo(m)) {
+            try {
+                Backend.fujiConnectEventAndVideo();
+                log("Accepted connection from event and video ports");
+            } catch (Exception e) {
                 fail("Failed to accept connections from event and video ports");
                 return;
-            } else {
-                log("Accepted connection from event and video ports");
             }
 
             rc = Backend.cFujiEndRemoteMode();
@@ -196,12 +202,27 @@ public class Tester extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                finish();
-                return true;
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        } else if (item.getTitle() == "copy") {
+            if (verboseLog != null) {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("Fudge log", verboseLog);
+                clipboard.setPrimaryClip(clip);
+            } else {
+                LibU.toast(this, "Test not completed yet");
+            }
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuItem menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "copy");
+        menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        menuItem.setIcon(R.drawable.baseline_content_copy_24);
+        return true;
     }
 }

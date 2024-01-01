@@ -9,7 +9,7 @@
     <LinearLayout
         android:id="@+id/boxLayout"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="wrap_content"
         android:layout_marginStart="30dp"
         android:layout_marginEnd="30dp"
         android:gravity="center"
@@ -26,6 +26,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Connect" />
+
+        <Button
+            android:id="@+id/scripts"
+            style="@style/GreyButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Scripts" />
 
         <Button
             android:id="@+id/test_suite"

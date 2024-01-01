@@ -110,6 +110,7 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 	// We *need* these properties on camera init - otherwise, produce an error
 	fuji_known.camera_state = FUJI_WAIT_FOR_ACCESS;
 	fuji_known.num_objects = -1;
+	fuji_known.selected_imgs_mode = -1;
 
 	while (1) {
 		// After opening session, immediately get events
@@ -118,11 +119,15 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 
 		// Wait until camera state is unlocked
 		if (fuji_known.camera_state != FUJI_WAIT_FOR_ACCESS) {
-			if (fuji_known.num_objects == -1) {
-				android_err("Failed to get num_objects from first event\n");
-				return PTP_RUNTIME_ERR;
+			if (fuji_known.selected_imgs_mode != -1) {
+				// Multiple mode doesn't send num_objects
+				return 0;
+			} else {
+				if (fuji_known.num_objects == -1) {
+					android_err("Failed to get num_objects from first event\n");
+					return PTP_RUNTIME_ERR;
+				}
 			}
-
 			return 0;
 		}
 
@@ -188,7 +193,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 		fuji_known.image_view_version = version;
 
 		// The property must be set again (to it's own value) to tell the camera
-		// that the current version is supported - this may or may not be necessary
+		// that the current version is supported - Fuji's app does this, so we assume it's necessary
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_ImageExploreVersion, version);
 		if (rc) return rc;
 	} else {
@@ -220,7 +225,8 @@ int fuji_config_device_info_routine(struct PtpRuntime *r) {
 int fuji_remote_mode_open_sockets(struct PtpRuntime *r) {
 	if (fuji_known.remote_version == -1) return 0;
 
-	// Begin camera remote - (per spec, OpenCapture is much more generic than 'take picture')
+	// Begin camera remote - (per spec, OpenCapture is much more broad than 'take picture')
+	// This tells the camera to open the remote mode sockets (video/event)
 	fuji_known.open_capture_trans_id = r->transaction;
 	int rc = ptp_init_open_capture(r, 0, 0);
 	if (rc) return rc;
@@ -228,7 +234,7 @@ int fuji_remote_mode_open_sockets(struct PtpRuntime *r) {
 	return 0;
 }
 
-// Init remote mode if camera has it
+// 'End' remote mode (or more like finish setup)
 int fuji_remote_mode_end(struct PtpRuntime *r) {
 	if (fuji_known.remote_version == -1) return 0;
 
@@ -252,7 +258,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		rc = fuji_get_events(r);
 		if (rc) return rc;
 
-		ptp_verbose_log("PTP_PC_FUJI_RemoteImageExploreVersion: %d\n", fuji_known.remote_image_view_version);
+		//ptp_verbose_log("PTP_PC_FUJI_RemoteImageExploreVersion: %d\n", fuji_known.remote_image_view_version);
 
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion, fuji_known.remote_image_view_version);
 		if (rc) return rc;
@@ -267,7 +273,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 
 		// Set the prop again! For no reason! beause fuji devs say so
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion, fuji_known.remote_image_view_version);
-		if (rc) return rc;		
+		if (rc) return rc;
 
 		// The props we set should show up here
 		rc = fuji_get_events(r);

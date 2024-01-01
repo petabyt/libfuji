@@ -71,6 +71,7 @@ JNI_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
     return ret;
 }
 
+/*
 JNI_FUNC(jbyteArray, cPtpGetThumbRamCached)(JNIEnv *env, jobject thiz, jint handle) {
 	backend.env = env;
 	void *data = NULL;
@@ -89,6 +90,7 @@ JNI_FUNC(jbyteArray, cPtpGetThumbRamCached)(JNIEnv *env, jobject thiz, jint hand
 	(*env)->SetByteArrayRegion(env, ret, 0, length, (const jbyte *)(data));
 	return ret;
 }
+*/
 
 JNI_FUNC(jint, cPtpGetPropValue)(JNIEnv *env, jobject thiz, jint code) {
 	backend.env = env;

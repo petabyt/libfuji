@@ -12,7 +12,6 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Toast;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -20,25 +19,22 @@ import android.os.Looper;
 import android.widget.TextView;
 
 public class Gallery extends AppCompatActivity {
-    private static Gallery instance;
+    public static Gallery instance;
 
     final int GRID_SIZE = 4;
-
-    public static Gallery getInstance() {
-        return instance;
-    }
 
     private RecyclerView recyclerView;
     private ImageAdapter imageAdapter;
 
     Handler handler;
 
-    public void setErrorText(String arg) {
+    public void setLogText(String arg) {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                TextView error_msg = findViewById(R.id.gallery_logs);
-                error_msg.setText(arg);
+                TextView tv = findViewById(R.id.gallery_logs);
+                if (tv == null) return;
+                tv.setText(arg);
             }
         });
     }
@@ -61,6 +57,29 @@ public class Gallery extends AppCompatActivity {
         } catch (InterruptedException e) {
             return;
         }
+    }
+
+    private void downloadSelectedImages() {
+        /*
+        showWarning("selected image downloading is in development.");
+
+        try {
+            JSONObject jsonObject = Camera.getObjectInfo(handle);
+        } catch (Exception e) {
+            
+        }
+
+        filename = jsonObject.getString("filename");
+        int size = jsonObject.getInt("compressedSize");
+        int imgX = jsonObject.getInt("imgWidth");
+        int imgY = jsonObject.getInt("imgHeight");
+
+        // GetObjectInfo - uncompressed, so need to guess buffer size
+        // GetObject - get the entire object into RAM
+        // GetEvents - if failed, end of stream
+
+        //Viewer.writeFile()
+         */
     }
 
     @Override
@@ -118,8 +137,11 @@ public class Gallery extends AppCompatActivity {
                 }
 
                 if (Backend.cIsMultipleMode()) {
-                    showWarning("Multiple/single import is unsupported, don't expect it to work.");
-                } else if (Backend.cIsUntestedMode()) {
+                    showWarning("View multiple mode in development");
+                    downloadSelectedImages();
+                }
+
+                if (Backend.cIsUntestedMode()) {
                     showWarning("This camera is untested, support is under development.");
                 }
 
@@ -139,7 +161,9 @@ public class Gallery extends AppCompatActivity {
                         return;
                     }
 
-                    if (Backend.wifi.fujiConnectEventAndVideo(m)) {
+                    try {
+                        Backend.fujiConnectEventAndVideo();
+                    } catch (Exception e) {
                         Backend.reportError(Backend.PTP_RUNTIME_ERR, "Failed to enter remote mode");
                         return;
                     }
@@ -188,11 +212,12 @@ public class Gallery extends AppCompatActivity {
                         @Override
                             public void run() {
                                 // Do nothing if connection doesn't exist anymore
-                                if (Backend.wifi.killSwitch) return;
+                                if (!Backend.cmdSocket.alive) return;
 
                                 Intent intent = new Intent(Gallery.this, MainActivity.class);
                                 startActivity(intent);
-                                Backend.reportError(Backend.PTP_IO_ERR, "Failed to ping camera, disconnected");
+                                Backend.logLocation = "main";
+                                Backend.reportError(Backend.PTP_IO_ERR, "Failed to ping camera");
                             }
                         });
                         return;
@@ -207,12 +232,15 @@ public class Gallery extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         // TODO: Press again to terminate connection
+        //Backend.logLocation = "main";
+        //finish();
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case android.R.id.home:
+                Backend.logLocation = "main";
                 Backend.reportError(Backend.PTP_OK, "Graceful disconnect");
                 finish();
                 return true;

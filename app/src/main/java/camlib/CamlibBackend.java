@@ -1,6 +1,6 @@
 // Basic backend parent class for camlib with JNI
 // Copyright Daniel Cook - Apache License
-package dev.petabyt.camlib;
+package camlib;
 
 public class CamlibBackend {
     // Integer error exception - see camlib PTP_ error codes

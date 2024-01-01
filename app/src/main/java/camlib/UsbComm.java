@@ -1,6 +1,6 @@
 // Basic libusb-like driver intented for PTP devices
 // Copyright Daniel Cook - Apache License
-package dev.petabyt.camlib;
+package camlib;
 
 import android.app.PendingIntent;
 import android.content.Context;

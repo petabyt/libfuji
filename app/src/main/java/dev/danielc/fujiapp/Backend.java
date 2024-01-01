@@ -2,40 +2,73 @@
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 
 package dev.danielc.fujiapp;
+import android.content.Context;
+import android.net.ConnectivityManager;
 import android.util.Log;
 import android.os.Environment;
 import java.io.File;
 import org.json.JSONObject;
 import java.util.Arrays;
-import dev.petabyt.camlib.*;
+import camlib.*;
 
 public class Backend extends CamlibBackend {
     static {
         System.loadLibrary("fujiapp");
     }
 
-    public static MyWiFiComm wifi;
+    static SimpleSocket cmdSocket = new SimpleSocket();
+    static SimpleSocket eventSocket = new SimpleSocket();
+    static SimpleSocket videoSocket = new SimpleSocket();
+
+    public static void fujiConnectToCmd() throws Exception {
+        Backend.print("Connecting...");
+
+        try {
+            cmdSocket.connectWiFi(Backend.FUJI_IP, Backend.FUJI_CMD_PORT);
+        } catch (Exception e) {
+
+            if (BuildConfig.DEBUG) {
+                Backend.print("Trying emulator IP");
+                try {
+                    cmdSocket.connectWiFi(Backend.FUJI_EMU_IP, Backend.FUJI_CMD_PORT);
+                } catch (Exception e2) {
+                    throw e2;
+                }
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    public static void fujiConnectEventAndVideo() throws Exception {
+        String ip = cmdSocket.ip;
+        try {
+            eventSocket.connectWiFi(ip, Backend.FUJI_EVENT_PORT);
+        } catch (Exception e) {
+            Backend.print("Failed to connect to event socket: " + e.toString());
+            throw e;
+        }
+
+        try {
+            videoSocket.connectWiFi(ip, Backend.FUJI_VIDEO_PORT);
+        } catch (Exception e) {
+            Backend.print("Failed to connect to video socket: " + e.toString());
+            throw e;
+        }
+    }
 
     // Block all communication in UsbComm and WiFiComm
     // Write reason + code, and reconnect popup
+    public native static void cReportError(int code, String reason);
     public static void reportError(int code, String reason) {
-        if (wifi.killSwitch == false) {
-            wifi.killSwitch = true;
-
-            if (reason != null) {
-                print("Disconnect: " + reason);
-            }
-
-            Backend.wifi.close();
-        }
+        cReportError(code, reason);
     }
 
     // In order to give the backend access to the static methods, new objects must be made
     private static boolean haveInited = false;
     public static void init() {
         if (haveInited == false) {
-            wifi = new MyWiFiComm();
-            cInit(new Backend(), wifi);
+            cInit(new Backend(), cmdSocket);
         }
         haveInited = true;
     }
@@ -52,14 +85,13 @@ public class Backend extends CamlibBackend {
     public static final int FUJI_EVENT_PORT = 55741;
     public static final int FUJI_VIDEO_PORT = 55742;
     public static final int OPEN_TIMEOUT = 1000;
-    public static final int TIMEOUT = 2000;
 
     // Note: 'synchronized' means only one of these methods can be used at time -
     // java's version of a mutex
-    public native synchronized static void cInit(Backend b, MyWiFiComm c);
+    public native synchronized static void cInit(Backend b, SimpleSocket c);
     public native synchronized static int cPtpFujiInit();
     public native synchronized static int cPtpFujiPing();
-    public native synchronized static int cPtpGetPropValue(int code);
+    //public native synchronized static int cPtpGetPropValue(int code);
     public native synchronized static int cPtpFujiWaitUnlocked();
     public native synchronized static int cFujiConfigVersion();
     public native synchronized static int cFujiConfigInitMode();
@@ -82,16 +114,20 @@ public class Backend extends CamlibBackend {
 
     // For test suite only
     public native synchronized static void cTesterInit(Tester t);
-    public native synchronized static String cTestFunc();
+    //public native synchronized static String cTestFunc();
     public native synchronized static int cFujiTestSetupImageGallery();
-    public native synchronized static int cTestStuff();
+    //public native synchronized static int cTestStuff();
     public native synchronized static int cFujiTestSuiteSetup();
 
     // Enable disable verbose logging to file
     public native synchronized static int cRouteLogs(String filename);
-    public native synchronized static void cEndLogs();
+    public native synchronized static String cEndLogs();
 
-    public native static boolean cIsUsingEmulator();
+    //public native static boolean cIsUsingEmulator();
+
+    public native static int cFujiScriptsScreen(Context ctx);
+
+    public native static int cSetProgressBar(Object progressBar);
 
     // Runs a request with integer parameters
     public static JSONObject run(String req, int[] arr) throws Exception {
@@ -139,7 +175,7 @@ public class Backend extends CamlibBackend {
 
     public static void clearPrint() {
         basicLog = "";
-        MainActivity.getInstance().setErrorText("");
+        updateLog();
     }
 
     // debug function for both Java frontend and JNI backend
@@ -158,11 +194,10 @@ public class Backend extends CamlibBackend {
     }
 
     public static void updateLog() {
-        if (MainActivity.getInstance() != null) {
-            MainActivity.getInstance().setErrorText(basicLog);
-        }
-        if (Gallery.getInstance() != null) {
-            Gallery.getInstance().setErrorText(basicLog);
+        if (logLocation == "main") {
+            MainActivity.instance.setLogText(basicLog);
+        } else if (logLocation == "gallery") {
+            Gallery.instance.setLogText(basicLog);
         }
     }
 
