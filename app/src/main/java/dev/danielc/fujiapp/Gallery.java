@@ -142,7 +142,7 @@ public class Gallery extends AppCompatActivity {
                 }
 
                 if (Backend.cIsUntestedMode()) {
-                    showWarning("This camera is untested, support is under development.");
+                    showWarning("Support for this camera is under development.");
                 }
 
                 Backend.print("Configuring versions and stuff..");
@@ -211,12 +211,7 @@ public class Gallery extends AppCompatActivity {
                         handler.post(new Runnable() {
                         @Override
                             public void run() {
-                                // Do nothing if connection doesn't exist anymore
-                                if (!Backend.cmdSocket.alive) return;
-
-                                Intent intent = new Intent(Gallery.this, MainActivity.class);
-                                startActivity(intent);
-                                Backend.logLocation = "main";
+                                Backend.exitToMain(Gallery.this);
                                 Backend.reportError(Backend.PTP_IO_ERR, "Failed to ping camera");
                             }
                         });
@@ -232,7 +227,6 @@ public class Gallery extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         // TODO: Press again to terminate connection
-        //Backend.logLocation = "main";
         //finish();
     }
 
@@ -240,7 +234,6 @@ public class Gallery extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case android.R.id.home:
-                Backend.logLocation = "main";
                 Backend.reportError(Backend.PTP_OK, "Graceful disconnect");
                 finish();
                 return true;

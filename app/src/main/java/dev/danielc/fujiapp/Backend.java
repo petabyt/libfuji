@@ -9,6 +9,8 @@ import android.os.Environment;
 import java.io.File;
 import org.json.JSONObject;
 import java.util.Arrays;
+import android.content.Context;
+import android.content.Intent;
 import camlib.*;
 
 public class Backend extends CamlibBackend {
@@ -25,12 +27,13 @@ public class Backend extends CamlibBackend {
 
         try {
             cmdSocket.connectWiFi(Backend.FUJI_IP, Backend.FUJI_CMD_PORT);
+            cClearKillSwitch();
         } catch (Exception e) {
-
             if (BuildConfig.DEBUG) {
                 Backend.print("Trying emulator IP");
                 try {
                     cmdSocket.connectWiFi(Backend.FUJI_EMU_IP, Backend.FUJI_CMD_PORT);
+                    cClearKillSwitch();
                 } catch (Exception e2) {
                     throw e2;
                 }
@@ -63,6 +66,13 @@ public class Backend extends CamlibBackend {
     public static void reportError(int code, String reason) {
         cReportError(code, reason);
     }
+    public static void exitToMain(Context ctx) {
+        // Kill switch is operated by camlib, so checking socket kill switch will do for now
+        if (!Backend.cmdSocket.alive) return;
+
+        Intent intent = new Intent(ctx, MainActivity.class);
+        ctx.startActivity(intent);
+    }
 
     // In order to give the backend access to the static methods, new objects must be made
     private static boolean haveInited = false;
@@ -85,6 +95,9 @@ public class Backend extends CamlibBackend {
     public static final int FUJI_EVENT_PORT = 55741;
     public static final int FUJI_VIDEO_PORT = 55742;
     public static final int OPEN_TIMEOUT = 1000;
+
+    // IO kill switch is in C/camlib, so we must set it when a connection is established
+    public native static void cClearKillSwitch();
 
     // Note: 'synchronized' means only one of these methods can be used at time -
     // java's version of a mutex
@@ -122,8 +135,6 @@ public class Backend extends CamlibBackend {
     // Enable disable verbose logging to file
     public native synchronized static int cRouteLogs(String filename);
     public native synchronized static String cEndLogs();
-
-    //public native static boolean cIsUsingEmulator();
 
     public native static int cFujiScriptsScreen(Context ctx);
 
@@ -170,7 +181,6 @@ public class Backend extends CamlibBackend {
     }
 
     // C/Java -> async UI logging
-    public static String logLocation = "main";
     final static int MAX_LOG_LINES = 5;
 
     public static void clearPrint() {
@@ -194,9 +204,10 @@ public class Backend extends CamlibBackend {
     }
 
     public static void updateLog() {
-        if (logLocation == "main") {
+        if (MainActivity.instance != null) {
             MainActivity.instance.setLogText(basicLog);
-        } else if (logLocation == "gallery") {
+        }
+        if (Gallery.instance != null) {
             Gallery.instance.setLogText(basicLog);
         }
     }

@@ -11,8 +11,6 @@
 int fuji_test_filesystem(struct PtpRuntime *r);
 int fuji_test_setup(struct PtpRuntime *r);
 
-void android_err() {}
-
 void tester_log(char *fmt, ...) {
 	char buffer[512];
 	va_list args;
@@ -30,7 +28,6 @@ void tester_fail(char *fmt, ...) {
 	va_end(args);
 	printf("FAIL: %s\n", buffer);
 }
-
 
 int main() {
 	int rc = 0;

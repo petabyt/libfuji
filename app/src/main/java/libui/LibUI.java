@@ -142,7 +142,6 @@ public class LibUI {
         layout.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-        layout.setPadding(5, 5, 5, 5);
 
         TextView title = new TextView(ctx);
         title.setPadding(5, 5, 5, 5);
@@ -164,10 +163,9 @@ public class LibUI {
         entry.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-        entry.setPadding(5, 5, 5, 5);
 
         TextView entryName = new TextView(ctx);
-        entryName.setPadding(40, 20, 20, 20);
+        entryName.setPadding(20, 10, 20, 10);
         entryName.setText(name);
         entryName.setLayoutParams(new LinearLayout.LayoutParams(
                 LayoutParams.WRAP_CONTENT,
@@ -209,9 +207,11 @@ public class LibUI {
     public static View tabLayout() {
         LinearLayout layout = new LinearLayout(ctx);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
+        layout.setLayoutParams(new LinearLayout.LayoutParams(
+                LayoutParams.MATCH_PARENT,
+                LayoutParams.MATCH_PARENT,
+                1.0f
+        ));
 
         TabLayout tl = new TabLayout(ctx);
         tl.setLayoutParams(new ViewGroup.LayoutParams(
@@ -288,9 +288,7 @@ public class LibUI {
         Boolean delay = true;
 
         if (delay) {
-            try {
-                Thread.sleep(100);
-            } catch (Exception e) {}
+            userSleep();
         }
 
         ActionBar actionBar = ((AppCompatActivity)ctx).getSupportActionBar();
@@ -359,6 +357,13 @@ public class LibUI {
         return ((Activity)ctx).onOptionsItemSelected(item);
     }
 
+    // Being too fast doesn't feel right, brain need delay
+    public static void userSleep() {
+        try {
+            Thread.sleep(100);
+        } catch (Exception e) {}
+    }
+
     public static class Popup {
         PopupWindow popupWindow;
         public void dismiss() {
@@ -371,7 +376,7 @@ public class LibUI {
             LinearLayout rel = new LinearLayout(ctx);
 
             actionBar = ((AppCompatActivity)ctx).getSupportActionBar();
-                actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setDisplayHomeAsUpEnabled(true);
             actionBar.setTitle(title);
 
             LinearLayout bar = new LinearLayout(ctx);
@@ -392,9 +397,7 @@ public class LibUI {
             back.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    try {
-                        Thread.sleep(100);
-                    } catch (Exception e) {}
+                    userSleep();
                     dismiss();
                 }
             });
@@ -440,10 +443,7 @@ public class LibUI {
         }
 
         Popup(String title, int options) {
-            try {
-                Thread.sleep(100);
-            } catch (Exception e) {}
-
+            userSleep();
             DisplayMetrics displayMetrics = new DisplayMetrics();
             ((Activity)ctx).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
             int height = displayMetrics.heightPixels;
@@ -451,8 +451,8 @@ public class LibUI {
             this.title = title;
 
             this.popupWindow = new PopupWindow(
-                    (int)(width / 1.5),
-                    (int)(height / 2.0)
+                    (int)(width / 1.2),
+                    (int)(height / 1.2)
             );
 
             this.popupWindow.setOutsideTouchable(false);
@@ -486,9 +486,10 @@ public class LibUI {
         return res.getString(res.getIdentifier(name, "string", ctx.getPackageName()));
     }
 
-    private static int getView(String name) {
+    private static View getView(String name) {
         Resources res = ctx.getResources();
-        return res.getIdentifier(name, "id", ctx.getPackageName());
+        int id = res.getIdentifier(name, "id", ctx.getPackageName());
+        return ((Activity)ctx).findViewById(id);
     }
 
     private static void toast(String text) {

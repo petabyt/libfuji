@@ -93,7 +93,6 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     Backend.fujiConnectToCmd();
                     Backend.print("Connected to the camera");
-                    Backend.logLocation = "gallery";
                     Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);
                 } catch (Exception e) {

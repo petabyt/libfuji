@@ -38,7 +38,7 @@ void ptp_verbose_log(char *fmt, ...) {
 }
 
 void ptp_panic(char *fmt, ...) {
-	// :)
+	// TODO: abort()
 }
 
 void jni_print(char *fmt, ...) {
@@ -72,7 +72,6 @@ void tester_log(char *fmt, ...) {
 
 	ptp_verbose_log("%s\n", buffer);
 
-
 	(*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_log, (*backend.env)->NewStringUTF(backend.env, buffer));
 }
 
@@ -96,7 +95,7 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
 	backend.env = env;
 
 	backend.main = (*env)->NewGlobalRef(env, thiz);
-	jclass connClass = (*env)->GetObjectClass(env, conn);
+	//jclass connClass = (*env)->GetObjectClass(env, conn);
 	backend.conn = (*env)->NewGlobalRef(env, conn);
 
 	backend.jni_print = (*env)->GetStaticMethodID(env, backend.main, "print", "(Ljava/lang/String;)V");
@@ -122,7 +121,7 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
 // Init commands 
 JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
 	backend.env = env;
-	jclass thizClass = (*env)->GetObjectClass(env, thiz);
+	//jclass thizClass = (*env)->GetObjectClass(env, thiz);
 	jclass testerClass = (*env)->GetObjectClass(env, tester);
 	backend.tester = (*env)->NewGlobalRef(env, tester);
 

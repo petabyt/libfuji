@@ -3,8 +3,14 @@
 
 #include "models.h"
 
+// (Not a part of camlib)
 void ptp_report_error(struct PtpRuntime *r, char *reason, int code);
 
+// Test suite stuff
+int fuji_test_setup(struct PtpRuntime *r);
+int fuji_test_filesystem(struct PtpRuntime *r);
+
+// Send init packet, recieve response
 int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name);
 
 int fuji_config_version(struct PtpRuntime *r);
@@ -18,12 +24,14 @@ int fuji_remote_mode_end(struct PtpRuntime *r);
 
 int fuji_wait_for_access(struct PtpRuntime *r);
 
+// Recieves events once, and updates info struct with changes
 int fuji_get_events(struct PtpRuntime *r);
 
+// Enable/disable compression prop for downloading photos
 int fuji_disable_compression(struct PtpRuntime *r);
 int fuji_enable_compression(struct PtpRuntime *r);
 
-// Holds vital info about the camera
+// Holds runtime info about the camera
 struct FujiDeviceKnowledge {
 	struct FujiCameraInfo *info;
 	int camera_state;

@@ -119,7 +119,7 @@ public class Bluetooth {
     @SuppressLint("MissingPermission")
     public BluetoothDevice getConnectedDevice() {
         Set<BluetoothDevice> bondedDevices = adapter.getBondedDevices();
-        if (bondedDevices!=null) {
+        if (bondedDevices != null) {
             for (BluetoothDevice device : bondedDevices) {
                 Backend.print("Currently connected to " + device.getName());
             }

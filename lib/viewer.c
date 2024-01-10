@@ -17,6 +17,5 @@ JNI_FUNC(jint, cFujiDownloadMultiple)(JNIEnv *env, jobject thiz) {
 #endif
 
 int fuji_download_multiple(struct PtpRuntime *r) {
-
 	return 0;
 }

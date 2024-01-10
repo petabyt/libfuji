@@ -124,7 +124,7 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 				return 0;
 			} else {
 				if (fuji_known.num_objects == -1) {
-					android_err("Failed to get num_objects from first event\n");
+					ptp_verbose_log("Failed to get num_objects from first event\n");
 					return PTP_RUNTIME_ERR;
 				}
 			}
@@ -141,24 +141,24 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageExploreVersion);
 	if (rc) return rc;
 	fuji_known.image_explore_version = ptp_parse_prop_value(r);
-	tester_log("ImageExploreVersion: 0x%X", fuji_known.image_explore_version);
+	ptp_verbose_log("ImageExploreVersion: 0x%X", fuji_known.image_explore_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion);
 	if (rc) return rc;
 	fuji_known.remote_image_view_version = ptp_parse_prop_value(r);
-	tester_log("RemoteImageExploreVersion: 0x%X", fuji_known.remote_image_view_version);
+	ptp_verbose_log("RemoteImageExploreVersion: 0x%X", fuji_known.remote_image_view_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageGetVersion);
 	if (rc) return rc;
 	fuji_known.image_get_version = ptp_parse_prop_value(r);
-	tester_log("ImageGetVersion: 0x%X", fuji_known.image_get_version);
+	ptp_verbose_log("ImageGetVersion: 0x%X", fuji_known.image_get_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteVersion);
 	if (rc) return rc;
 	fuji_known.remote_version = ptp_parse_prop_value(r);
-	tester_log("RemoteVersion: 0x%X", fuji_known.remote_version);
+	ptp_verbose_log("RemoteVersion: 0x%X", fuji_known.remote_version);
 
-	tester_log("CameraState is %d", fuji_known.camera_state);
+	ptp_verbose_log("CameraState is %d", fuji_known.camera_state);
 
 	// Determine preferred mode from state and version info
 	int mode = 0;
@@ -174,7 +174,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 		}
 	}
 
-	tester_log("Setting mode to %d", mode);
+	ptp_verbose_log("Setting mode to %d", mode);
 
 	rc = ptp_set_prop_value16(r, PTP_PC_FUJI_FunctionMode, mode);
 	if (rc) return rc;
@@ -303,13 +303,11 @@ int ptp_get_thumbnail_smart_cache(struct PtpRuntime *r, int handle, void **ptr, 
 	};
 
 	// Shouldn't exceed 1mb
-#if 1
 	int total = 0;
 	for (int i = 0; i < cache.length; i++) {
 		total += cache.entries[i].length;
 	}
-	android_err("Totaling %d bytes of cache\n", total);
-#endif
+	ptp_verbose_log("Totaling %d bytes of cache\n", total);
 
 	// Search for cached thumb
 	for (int i = 0; i < cache.length; i++) {

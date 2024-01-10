@@ -14,9 +14,6 @@
 JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
 
-	// Take this as an opportunity to reset all the structures for a new connection
-	reset_connection();
-
 	int rc = ptpip_fuji_init_req(&backend.r, "fudge");
 	if (rc) return rc;
 
@@ -244,8 +241,10 @@ JNI_FUNC(jboolean, cIsMultipleMode)(JNIEnv *env, jobject thiz) {
 	return fuji_known.camera_state == FUJI_MULTIPLE_TRANSFER;
 }
 
+#if 0
 JNI_FUNC(jint, cTestStuff)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
+	return 0;
 }
 
 // TODO: Idea: when activity changes, notify C so we don't run tester_log in gallery?
@@ -253,6 +252,7 @@ JNI_FUNC(void, cNotifyScreenStart)(JNIEnv *env, jobject thiz, jstring string) {
 	backend.env = env;
 	const char *name = (*env)->GetStringUTFChars(env, string, 0);
 }
+#endif
 
 JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
 	backend.env = env;

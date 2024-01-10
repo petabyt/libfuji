@@ -16,13 +16,13 @@ JNI_FUNC(jboolean, cSetProgressBar)(JNIEnv *env, jobject thiz, jobject pg) {
 	return 0;
 }
 
-JNI_FUNC(jboolean, cIsUsingEmulator)(JNIEnv *env, jobject thiz) {
-	backend.env = env;
-	return 0;
+JNI_FUNC(void, cClearKillSwitch)(JNIEnv *env, jobject thiz) {
+	reset_connection();
+	backend.r.io_kill_switch = 0;
 }
 
 int ptpip_cmd_close(struct PtpRuntime *r) {
-	(*backend.env)->CallIntMethod(backend.env, backend.conn, backend.cmd_close);
+	(*backend.env)->CallVoidMethod(backend.env, backend.conn, backend.cmd_close);
 	return 0;
 }
 
@@ -30,12 +30,14 @@ JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reaso
 	backend.env = env;
 
 	const char *c_reason = (*env)->GetStringUTFChars(env, reason, 0);
-	ptp_report_error(&backend.r, c_reason, (int)code);
+
+	ptp_report_error(&backend.r, (char *)c_reason, (int)code);
 
 	ptpip_cmd_close(&backend.r);
 }
 
 void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
+	android_err("KIll switch %d\n", r->io_kill_switch);
 	if (r->io_kill_switch) return;
 	r->io_kill_switch = 1;
 
