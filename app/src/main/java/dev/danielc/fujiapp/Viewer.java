@@ -118,18 +118,10 @@ public class Viewer extends AppCompatActivity {
             writeFile(filename, data);
         }
 
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setType("image/jpeg");
-
-        Uri imageUri = Uri.parse("file://" + downloadedFilename);
-        shareIntent.putExtra(Intent.EXTRA_STREAM, imageUri);
-
-        Intent chooserIntent = Intent.createChooser(shareIntent, "Share image");
-        chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-        if (chooserIntent.resolveActivity(this.getPackageManager()) != null) {
-            this.startActivity(chooserIntent);
-        }
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_VIEW);
+        intent.setDataAndType(Uri.parse("file://" + downloadedFilename), "image/jpeg");
+        this.startActivity(intent);
     }
 
     ActionBar actionBar;

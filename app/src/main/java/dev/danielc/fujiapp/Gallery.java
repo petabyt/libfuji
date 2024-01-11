@@ -82,6 +82,16 @@ public class Gallery extends AppCompatActivity {
          */
     }
 
+    void fail(int code, String reason) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Backend.exitToMain(Gallery.this);
+                Backend.reportError(code, reason);
+            }
+        });
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -104,7 +114,7 @@ public class Gallery extends AppCompatActivity {
                 if (Backend.cPtpFujiInit() == 0) {
                     Backend.print("Initialized connection.");
                 } else {
-                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to init socket");
+                    fail(Backend.PTP_IO_ERR, "Failed to init socket");
                     return;
                 }
 
@@ -118,7 +128,7 @@ public class Gallery extends AppCompatActivity {
                 try {
                     Camera.openSession();
                 } catch (Exception e) {
-                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to open session.");
+                    fail(Backend.PTP_IO_ERR, "Failed to open session.");
                     return;
                 }
 
@@ -126,13 +136,13 @@ public class Gallery extends AppCompatActivity {
                 if (Backend.cPtpFujiWaitUnlocked() == 0) {
                     Backend.print("Gained access to device.");
                 } else {
-                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to gain access to device.");
+                    fail(Backend.PTP_IO_ERR, "Failed to gain access to device.");
                     return;
                 }
 
                 // Camera mode must be set before anything else
                 if (Backend.cFujiConfigInitMode() != 0) {
-                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to configure mode with the camera.");
+                    fail(Backend.PTP_IO_ERR, "Failed to configure mode with the camera.");
                     return;
                 }
 
@@ -148,7 +158,7 @@ public class Gallery extends AppCompatActivity {
                 Backend.print("Configuring versions and stuff..");
                 rc = Backend.cFujiConfigVersion();
                 if (rc != 0) {
-                    Backend.reportError(rc, "Failed to configure camera versions.");
+                    fail(rc, "Failed to configure camera versions.");
                     return;
                 }
 
@@ -157,20 +167,20 @@ public class Gallery extends AppCompatActivity {
                     Backend.print("Entering remote mode..");
                     rc = Backend.cFujiTestStartRemoteSockets();
                     if (rc != 0) {
-                        Backend.reportError(rc, "Failed to init remote mode");
+                        fail(rc, "Failed to init remote mode");
                         return;
                     }
 
                     try {
                         Backend.fujiConnectEventAndVideo();
                     } catch (Exception e) {
-                        Backend.reportError(Backend.PTP_RUNTIME_ERR, "Failed to enter remote mode");
+                        fail(Backend.PTP_RUNTIME_ERR, "Failed to enter remote mode");
                         return;
                     }
 
                     rc = Backend.cFujiEndRemoteMode();
                     if (rc != 0) {
-                        Backend.reportError(rc, "Failed to exit remote mode");
+                        fail(rc, "Failed to exit remote mode");
                         return;
                     }
                 }
@@ -178,7 +188,7 @@ public class Gallery extends AppCompatActivity {
                 Backend.print("Entering image gallery..");
                 rc = Backend.cFujiConfigImageGallery();
                 if (rc != 0) {
-                    Backend.reportError(rc, "Failed to start image gallery");
+                    fail(rc, "Failed to start image gallery");
                     return;
                 }
 
@@ -208,13 +218,7 @@ public class Gallery extends AppCompatActivity {
                             return;
                         }
                     } else {
-                        handler.post(new Runnable() {
-                        @Override
-                            public void run() {
-                                Backend.exitToMain(Gallery.this);
-                                Backend.reportError(Backend.PTP_IO_ERR, "Failed to ping camera");
-                            }
-                        });
+                        fail(Backend.PTP_IO_ERR, "Failed to ping camera");
                         return;
                     }
                 }

@@ -1,13 +1,16 @@
+// WIP util lib
 package libui;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Environment;
+import android.provider.DocumentsContract;
 import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
@@ -25,9 +28,7 @@ public class LibU {
     public static void createDir(String directoryPath) {
         File directory = new File(directoryPath);
         if (!directory.exists()) {
-            if (!directory.mkdirs()) {
-                return;
-            }
+            directory.mkdirs();
         }
     }
 
