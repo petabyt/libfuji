@@ -41,7 +41,7 @@ void ptp_panic(char *fmt, ...) {
 	// TODO: abort()
 }
 
-void jni_print(char *fmt, ...) {
+void app_print(char *fmt, ...) {
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);

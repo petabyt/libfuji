@@ -43,12 +43,12 @@ void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
 
 	if (reason == NULL) {
 		if (code == PTP_IO_ERR) {
-			jni_print("Disconnected: IO Error");
+			app_print("Disconnected: IO Error");
 		} else {
-			jni_print("Disconnected: Runtime error");
+			app_print("Disconnected: Runtime error");
 		}
 	} else {
-		jni_print("Disconnected: %s", reason);
+		app_print("Disconnected: %s", reason);
 	}
 }
 

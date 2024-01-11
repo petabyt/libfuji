@@ -6,9 +6,14 @@
 #include <string.h>
 
 #include <camlib.h>
+#include "app.h"
+
+#include "fuji.h"
+#include "fujiptp.h"
 
 #ifdef ANDROID
 #include "myjni.h"
+#include "backend.h"
 
 JNI_FUNC(jint, cFujiDownloadMultiple)(JNIEnv *env, jobject thiz) {
 	backend.env = env;

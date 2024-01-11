@@ -116,6 +116,7 @@ public class Backend extends CamlibBackend {
     public native synchronized static int[] cGetObjectHandles();
     public native synchronized static int cFujiEndRemoteMode();
     public native synchronized static int cFujiConfigImageGallery();
+    public native synchronized static int cFujiDownloadMultiple();
 
     // For tester only
     public native synchronized static int cFujiTestStartRemoteSockets();

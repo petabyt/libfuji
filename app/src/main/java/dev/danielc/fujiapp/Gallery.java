@@ -148,7 +148,8 @@ public class Gallery extends AppCompatActivity {
 
                 if (Backend.cIsMultipleMode()) {
                     showWarning("View multiple mode in development");
-                    downloadSelectedImages();
+                    Backend.cFujiDownloadMultiple();
+                    return;
                 }
 
                 if (Backend.cIsUntestedMode()) {

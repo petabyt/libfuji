@@ -12,13 +12,6 @@ android {
         targetSdk 33
         versionCode 4
         versionName "0.1.2"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        externalNativeBuild {
-            cmake {
-                cppFlags ''
-            }
-        }
     }
 
     buildTypes {
@@ -48,3 +41,22 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
 }
+
+// https://github.com/Dushistov/flapigen-rs/blob/master/android-example/app/build.gradle
+def rustBasePath = "../rust/"
+def archTriplets = [
+    'armeabi-v7a': 'armv7-linux-androideabi',
+    'arm64-v8a': 'aarch64-linux-android',
+    'x86': 'i686-linux-android',
+    'x86_64': 'x86_64-linux-android',
+]
+tasks.create(name: "rust", description: "Build all rust releases")
+archTriplets.each { arch, target ->
+    tasks.create(name: "cargo-build-${arch}", type: Exec, description: "Running cargo for for ${arch}") {
+        workingDir rustBasePath
+        commandLine 'cargo', 'build', "--target=${target}", '--release'
+    }
+    rust.dependsOn "cargo-build-${arch}"
+}
+
+//tasks.withType(JavaCompile) { compileTask -> compileTask.dependsOn "rust" }

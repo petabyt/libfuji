@@ -15,7 +15,7 @@ struct AndroidBackend {
 	jobject cmd_buffer;
 	jobject progress_bar;
 
-	jobject tester; // Tester class
+	jobject tester;
 	jmethodID tester_log;
 	jmethodID tester_fail;
 
@@ -29,12 +29,7 @@ struct AndroidBackend {
 
 extern struct AndroidBackend backend;
 
-// Test suite verbose logging
-void tester_log(char *fmt, ...);
-void tester_fail(char *fmt, ...);
-
-// printf to UI
-void jni_print(char *fmt, ...);
+#include "app.h"
 
 // printf to kernel
 void android_err(char *fmt, ...);

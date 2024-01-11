@@ -1,13 +1,19 @@
 PKG=dev.danielc.fujiapp
-
+GRADLE=gradle
 install:
-	#bash gradlew :app:buildCMakeDebug[arm64-v8a] installDebug -Pandroid.optional.compilation=INSTANT_DEV -Pandroid.injected.build.api=24
-	bash gradlew installDebug -Pandroid.optional.compilation=INSTANT_DEV -Pandroid.injected.build.api=24
+	$(GRADLE) installDebug -Pandroid.optional.compilation=INSTANT_DEV -Pandroid.injected.build.api=24
 	adb shell monkey -p $(PKG) -c android.intent.category.LAUNCHER 1
 
 log:
 	adb logcat | grep -F "`adb shell ps | grep $(PKG) | tr -s [:space:] ' ' | cut -d' ' -f2`"
 
+rust:
+	rustup target add armv7-linux-androideabi
+	rustup target add i686-linux-android
+	rustup target add aarch64-linux-android
+	rustup target add x86_64-linux-android
+
+# Update Daniel's dev hard symlinks
 ln:
 	rm -f app/src/main/java/camlib/*.java
 	cd app/src/main/java/camlib/ && ln ../../../../../../camlibjava/*.java .
