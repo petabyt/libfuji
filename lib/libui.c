@@ -11,10 +11,26 @@
 #include "ui_android.h"
 
 /*
-TODO: activity intent to itself + key = native screens? Sounds like a stupid idea
-*/
+ * uiAndroidThreadStart(JNIEnv *env, jobject ctx);
+ * detect PID , add env & pid to linked list
+ *
+ * uiNewButton -> get_env(); get_ctx(); -> get env/ctx from PID, abort if not found
+ * uiControl *uiNewButton(char *str) {
+ *   struct UILibAndroidEnv *z = getj(); -> get from PID
+ *
+ * uiAndroidThreadEnd();
+ * free PID/env/ctx from list
+ *
+ *
+ * Create thread from existing thread
+ */
 
-static jobject get_view_by_name_id(const char *id) {
+uiControl *uiControlFromView(jobject obj) {
+    // ...
+    return NULL;
+}
+
+jobject view_get_by_id(const char *id) {
 	JNIEnv *env = uilib.env;
 	jmethodID method = (*env)->GetMethodID(env, uilib.class, "getView", "(Ljava/lang/String;)Landroid/view/View;");
 	jobject view = (*env)->CallObjectMethod(env, uilib.class, method,
@@ -32,7 +48,7 @@ void uiSwitchScreen(uiControl *content, const char *title) {
 	);
 }
 
-static void ctx_set_content_view(jobject view) {
+void ctx_set_content_view(jobject view) {
 	JNIEnv *env = uilib.env;
 	jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, uilib.ctx), "setContentView", "(Landroid/view/View;)V");
 	(*env)->CallVoidMethod(env, uilib.ctx, method,
@@ -44,7 +60,7 @@ void uiAndroidSetContent(uiControl *c) {
 	ctx_set_content_view(((uiAndroidControl *)c)->o);
 }
 
-static void view_set_view_enabled(jobject view, int b) {
+void view_set_view_enabled(jobject view, int b) {
 	JNIEnv *env = uilib.env;
 	jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, view), "setEnabled", "(Z)V");
 	(*env)->CallVoidMethod(env, view, method, b);
@@ -55,6 +71,13 @@ static void view_set_view_enabled(jobject view, int b) {
 	}
 }
 
+void uiLabelSetTextSize(uiLabel *l, float size) {
+    jobject obj = ((struct uiAndroidControl *)l)->o;
+    JNIEnv *env = uilib.env;
+    jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, obj), "setTextSize", "(F)V");
+    (*env)->CallVoidMethod(env, obj, method, size);
+}
+
 void uiMultilineEntrySetReadOnly(uiMultilineEntry *e, int readonly) {
 	view_set_view_enabled(((uiAndroidControl *)e)->o, readonly);
 }
@@ -63,7 +86,7 @@ char *uiMultilineEntryText(uiMultilineEntry *e) {
 	// GetText returns 'Editable'/CharSequence , toString
 }
 
-static void view_set_visibility(jobject view, int v) {
+void view_set_visibility(jobject view, int v) {
 	// 0 = visible
 	// 4 = invisible
 	// 8 = gone
@@ -72,7 +95,7 @@ static void view_set_visibility(jobject view, int v) {
 	(*env)->CallVoidMethod(env, view, method, v);
 }
 
-static void view_set_dimensions(jobject view, int w, int h) {
+void view_set_dimensions(jobject view, int w, int h) {
 	JNIEnv *env = uilib.env;
 
 	jmethodID method = (*env)->GetMethodID(env,
@@ -91,7 +114,7 @@ static void view_set_dimensions(jobject view, int w, int h) {
 		(*env)->SetIntField(env, obj, height_f, h);
 }
 
-static void view_set_layout(jobject view, int x, int y) {
+void view_set_layout(jobject view, int x, int y) {
 	JNIEnv *env = uilib.env;
 
 	jclass class = (*env)->FindClass(env, "android/widget/LinearLayout$LayoutParams");
@@ -109,7 +132,6 @@ static void view_set_padding_px(jobject obj, int padding) {
 	JNIEnv *env = uilib.env;
 	jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, obj), "setPadding", "(IIII)V");
 	(*env)->CallVoidMethod(env, obj, method, p, p, p, p);
-	
 }
 
 void uiBoxSetPadded(uiBox *b, int padded) {
@@ -139,7 +161,7 @@ static uiBox *new_uibox(int type) {
 	return (uiBox *)b;
 }
 
-static void view_set_view_text(jobject view, const char *text) {
+void view_set_view_text(jobject view, const char *text) {
 	JNIEnv *env = uilib.env;
 	jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, view), "setText", "(Ljava/lang/CharSequence;)V");
 	(*env)->CallVoidMethod(env, view, method, (*uilib.env)->NewStringUTF(uilib.env, text));

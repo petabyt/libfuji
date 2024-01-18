@@ -138,15 +138,15 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 // Handles critical init sequence. This is after initing the socket, and opening session.
 // Called right after obtaining access to the device.
 int fuji_config_init_mode(struct PtpRuntime *r) {
-	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageExploreVersion);
+	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_GetObjectVersion);
 	if (rc) return rc;
-	fuji_known.image_explore_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("ImageExploreVersion: 0x%X", fuji_known.image_explore_version);
+	fuji_known.get_object_version = ptp_parse_prop_value(r);
+	ptp_verbose_log("GetObjectVersion: 0x%X", fuji_known.get_object_version);
 
-	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion);
+	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion);
 	if (rc) return rc;
 	fuji_known.remote_image_view_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("RemoteImageExploreVersion: 0x%X", fuji_known.remote_image_view_version);
+	ptp_verbose_log("RemoteGetObjectVersion: 0x%X", fuji_known.remote_image_view_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageGetVersion);
 	if (rc) return rc;
@@ -185,7 +185,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 // TODO: rename config image view version
 int fuji_config_version(struct PtpRuntime *r) {
 	if (fuji_known.remote_version == -1) {
-		int rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageExploreVersion);
+		int rc = ptp_get_prop_value(r, PTP_PC_FUJI_GetObjectVersion);
 		if (rc) return rc;
 
 		int version = ptp_parse_prop_value(r);
@@ -194,7 +194,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 
 		// The property must be set again (to it's own value) to tell the camera
 		// that the current version is supported - Fuji's app does this, so we assume it's necessary
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_ImageExploreVersion, version);
+		rc = ptp_set_prop_value(r, PTP_PC_FUJI_GetObjectVersion, version);
 		if (rc) return rc;
 	} else {
 		ptp_verbose_log("RemoteVersion was %X\n", fuji_known.remote_version);
@@ -258,9 +258,9 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		rc = fuji_get_events(r);
 		if (rc) return rc;
 
-		//ptp_verbose_log("PTP_PC_FUJI_RemoteImageExploreVersion: %d\n", fuji_known.remote_image_view_version);
+		//ptp_verbose_log("PTP_PC_FUJI_RemoteGetObjectVersion: %d\n", fuji_known.remote_image_view_version);
 
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion, fuji_known.remote_image_view_version);
+		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, fuji_known.remote_image_view_version);
 		if (rc) return rc;
 
 		// SD card slot?
@@ -272,7 +272,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		if (rc) return rc;
 
 		// Set the prop again! For no reason! beause fuji devs say so
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteImageExploreVersion, fuji_known.remote_image_view_version);
+		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, fuji_known.remote_image_view_version);
 		if (rc) return rc;
 
 		// The props we set should show up here
@@ -283,77 +283,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 	return 0;
 }
 
-// Temporary RAM-based thumbnail 'cache'. Rolls over a 'tape' like buffer
-__attribute__((deprecated))
-int ptp_get_thumbnail_smart_cache(struct PtpRuntime *r, int handle, void **ptr, int *length) {
-	#define SMART_CACHE_MAX 100
-
-	// smart cache (static)	
-	static struct PtpSmartThumbCache {
-		int length;
-		int loop;
-		struct PtpSmartThumbCacheEntry {
-			int handle;
-			int length;
-			void *bytes;
-		}entries[SMART_CACHE_MAX];
-	}cache = {
-		.length = 0,
-		.loop = 0,
-	};
-
-	// Shouldn't exceed 1mb
-	int total = 0;
-	for (int i = 0; i < cache.length; i++) {
-		total += cache.entries[i].length;
-	}
-	ptp_verbose_log("Totaling %d bytes of cache\n", total);
-
-	// Search for cached thumb
-	for (int i = 0; i < cache.length; i++) {
-		if (handle == cache.entries[i].handle) {
-			(*ptr) = cache.entries[i].bytes;
-			(*length) = cache.entries[i].length;
-			return 0;
-		}
-	}
-
-	// We do not have thumbnail, so we must get it
-	int rc = ptp_get_thumbnail(r, (int)handle);
-	if (rc) return rc;
-
-	// Skip a cache every other ID to prevent saturation
-	if (handle % 2) {
-		(*ptr) = ptp_get_payload(r);
-		(*length) = ptp_get_payload_length(r);
-		return 0;
-	}
-
-	// Figure out where to put the thumbnail
-	int real_index = 0;
-	if (cache.length < SMART_CACHE_MAX) {
-		real_index = cache.length;
-		cache.length++;
-		cache.loop++;
-	} else if (cache.length >= SMART_CACHE_MAX || cache.loop >= SMART_CACHE_MAX) {
-		// Ran out of spots, begin at the top
-		cache.loop = 0;
-		free(cache.entries[0].bytes);
-		real_index = 0;
-	} else if (cache.loop < SMART_CACHE_MAX) {
-		// Still out of spots, but freeing and replacing as user scrolls along
-		free(cache.entries[cache.loop].bytes);
-		real_index = cache.loop;
-		cache.loop++;
-	}
-
-	cache.entries[real_index].handle = handle;
-	cache.entries[real_index].length = ptp_get_payload_length(r);
-	cache.entries[real_index].bytes = malloc(ptp_get_payload_length(r));
-	memcpy(cache.entries[real_index].bytes, ptp_get_payload(r), ptp_get_payload_length(r));
-
-	(*ptr) = cache.entries[real_index].bytes;
-	(*length) = cache.entries[real_index].length;
-
+int fuji_slow_download_object() {
+	// ...
 	return 0;
 }

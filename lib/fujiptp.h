@@ -2,11 +2,11 @@
 #ifndef FUJIPTP_H
 #define FUJIPTP_H
 
+#define FUJI_PROTOCOL_VERSION 0x8f53e4f2
+
 #define FUJI_CMD_IP_PORT 55740
 #define FUJI_EVENT_IP_PORT 55741
 #define FUJI_LIVEVIEW_IP_PORT 55742
-
-#define FUJI_PROTOCOL_VERSION 0x8f53e4f2
 
 // Fuji USB and IP extensions
 #define PTP_OC_FUJI_SendObjectInfo	0x900c // create file
@@ -17,12 +17,13 @@
 #define PTP_PC_FUJI_EventsList		0xd212
 #define PTP_PC_FUJI_SelectedImgsMode	0xd220
 #define PTP_PC_FUJI_ObjectCount		0xd222
-#define PTP_PC_FUJI_CameraState		0xdf00 // formerly Unlocked 
-#define PTP_PC_FUJI_FunctionMode	0xdf01 // formerly Mode - should be (CameraReportedState??)
+#define PTP_PC_FUJI_CameraState		0xdf00 
+#define PTP_PC_FUJI_FunctionMode	0xdf01 // should be (CameraReportedState??)
 #define PTP_PC_FUJI_CompressSmall	0xD226 // compress into 400-800kb
 #define PTP_PC_FUJI_NoCompression	0xD227 // Enable full image download
 
-// Fuji Camera Connect has this version
+// Fuji Camera Connect has this version - 2.11 if parsed as bytes. Or 11.2
+// XS10 on reported 0x02000A, camera connect set to 2000B
 #define FUJI_CAM_CONNECT_REMOTE_VER 0x2000B
 
 // Downloader opcodes, mostly unknown
@@ -35,7 +36,7 @@
 #define PTP_PC_FUJI_CompressionCutOff	0xD235
 #define PTP_PC_FUJI_StorageID		0xd244
 #define PTP_PC_FUJI_DriveMode		0xd246
-#define PTP_PC_FUJI_Unknown_D400	0xd400 // probably version code
+#define PTP_PC_FUJI_Unknown_D400	0xd400 // Possibly SelectedImgsMode2
 #define PTP_PC_FUJI_ObjectCount2	0xd401
 #define PTP_PC_FUJI_Unknown2		0xdc04
 #define PTP_PC_FUJI_Unknown1		0xd246
@@ -43,12 +44,12 @@
 #define PTP_PC_FUJI_Unknown8		0xd407
 #define PTP_PC_FUJI_Unknown5		0xd500
 #define PTP_PC_FUJI_Unknown_D52F	0xd52f // probably version code
-#define PTP_PC_FUJI_ImageGetVersion	0xdf21
-#define PTP_PC_FUJI_ImageExploreVersion	0xdf22
+#define PTP_PC_FUJI_ImageGetVersion	0xdf21 // Another prop used for image related things
+#define PTP_PC_FUJI_GetObjectVersion	0xdf22 // version for GetObjectInfo and GetObject behavior
 #define PTP_PC_FUJI_Unknown10		0xdf23 // another version prop?
 #define PTP_PC_FUJI_RemoteVersion	0xdf24
-#define PTP_PC_FUJI_RemoteImageExploreVersion	0xdf25
-#define PTP_PC_FUJI_ImageGetLimitedVersion	0xdf26
+#define PTP_PC_FUJI_RemoteGetObjectVersion	0xdf25 // same as GetObjectVersion, but for cams that support remote mode
+#define PTP_PC_FUJI_ImageGetLimitedVersion	0xdf26 // supports less features
 #define PTP_PC_FUJI_Unknown13		0xdf27
 #define PTP_PC_FUJI_Unknown_DF28	0xdf28
 #define PTP_PC_FUJI_LocationGetterVersion	0xdf31
@@ -81,7 +82,7 @@
 #define FUJI_FULL_ACCESS	2
 #define FUJI_REMOTE_ACCESS	6
 
-// temporary stuff from libgphoto2 ptp.h - most are innacurate
+// ECs and PCs stuff from libgphoto2 ptp.h - most are innacurate
 #define PTP_EC_FUJI_PreviewAvailable		0xC001
 #define PTP_EC_FUJI_ObjectAdded			0xC004
 
@@ -299,5 +300,34 @@
 #define PTP_PC_FUJI_LensFocalLengthList		0xD38E
 #define PTP_PC_FUJI_FocusLimiter			0xD390
 #define PTP_PC_FUJI_FocusArea4				0xD395
+
+// WiFi opcodes, mostly from libgphoto2
+#define PTP_OC_FUJI_InitiateMovieCapture		0x9020
+#define PTP_OC_FUJI_TerminateMovieCapture		0x9021
+#define PTP_OC_FUJI_GetCapturePreview			0x9022
+#define PTP_OC_FUJI_StepZoom 0x9023
+#define PTP_OC_FUJI_StartZoom 0x9024
+#define PTP_OC_FUJI_StopZoom 0x9025
+#define PTP_OC_FUJI_LockS1Lock			0x9026
+#define PTP_OC_FUJI_UnlockS1Lock			0x9027
+#define PTP_OC_FUJI_GetDeviceInfo			0x902B
+#define PTP_OC_FUJI_StepShutterSpeed			0x902C
+#define PTP_OC_FUJI_StepFNumber				0x902D
+#define PTP_OC_FUJI_StepExposureBias		0x902E
+#define PTP_OC_FUJI_CancelInitiateCapture		0x9030
+#define PTP_OC_FUJI_FmSendObjectInfo			0x9040
+#define PTP_OC_FUJI_FmSendObject			0x9041
+#define PTP_OC_FUJI_FmSendPartialObject			0x9042
+
+struct FujiInitPacket {
+	uint32_t length;
+	uint32_t type;
+	uint32_t version;
+	uint32_t guid1;
+	uint32_t guid2;
+	uint32_t guid3;
+	uint32_t guid4;
+	char device_name[54]; // unicode string
+};
 
 #endif

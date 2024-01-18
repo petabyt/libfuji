@@ -13,7 +13,7 @@ endif
 RUST=../rust
 
 LOCAL_MODULE := rust
+
 LOCAL_SRC_FILES := $(shell realpath $(LOCAL_PATH)/$(RUST)/target/$(RUST_TARGET)/release/*.a)
 
 include $(PREBUILT_STATIC_LIBRARY)
-

@@ -11,16 +11,33 @@
 #include "fuji.h"
 #include "fujiptp.h"
 
-#ifdef ANDROID
 #include "myjni.h"
 #include "backend.h"
+
+int fuji_download_multiple(struct PtpRuntime *r);
 
 JNI_FUNC(jint, cFujiDownloadMultiple)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
 	return fuji_download_multiple(&backend.r);
 }
-#endif
+
+int fuji_download_classic(struct PtpRuntime *r) {
+	while (1) {	
+		struct PtpObjectInfo oi;
+		int rc = ptp_get_object_info(r, 1, &oi);
+		if (rc) {
+			return NULL;
+		}
+
+		int size = 2 * 1000 * 1000;
+		uint8_t *buffer = malloc(size);
+				
+	}
+}
 
 int fuji_download_multiple(struct PtpRuntime *r) {
+	if (fuji_known.remote_version != -1) {
+		return fuji_download_classic(r);
+	}
 	return 0;
 }

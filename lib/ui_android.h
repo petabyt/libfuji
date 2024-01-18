@@ -31,7 +31,6 @@ static struct UILibAndroidEnv {
 	jmethodID get_string_m;
 }uilib;
 
-// Signatures copied from libui
 #define uiAreaSignature 0x41726561
 #define uiBoxSignature 0x426F784C
 #define uiButtonSignature 0x42746F6E
@@ -81,10 +80,5 @@ struct uiScroll { struct uiAndroidControl c; };
 
 typedef struct uiScroll uiScroll;
 struct uiScroll *uiNewScroll();
-
-int uiAndroidInit(JNIEnv *env, jobject context);
-uiBox *uiAndroidBox(JNIEnv *env, jobject context, jobject parent);
-
-void uiAndroidSetContent(uiControl *c);
 
 #endif

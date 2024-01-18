@@ -1,5 +1,5 @@
-// Main backend for JNI/socket communication
-// Copyright 2023 (c) Unofficial fujiapp
+// Init routines
+// Copyright 2023 (c) Fudge
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -12,6 +12,14 @@
 #include "backend.h"
 
 struct AndroidBackend backend;
+
+void set_jni_env(JNIEnv *env) {
+	backend.env = env;
+}
+
+struct PtpRuntime *ptp_get() {
+	return &backend.r;
+}
 
 void reset_connection() {
 	memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));

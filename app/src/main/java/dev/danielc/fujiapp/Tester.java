@@ -192,7 +192,7 @@ public class Tester extends AppCompatActivity {
         if (rc != 0) return;
 
         try {
-            Camera.closeSession();
+            Backend.cPtpCloseSession();
         } catch (Exception e) {
             fail("Failed to close session");
         }

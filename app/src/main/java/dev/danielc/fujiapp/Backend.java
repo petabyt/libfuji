@@ -108,8 +108,6 @@ public class Backend extends CamlibBackend {
     public native synchronized static int cPtpFujiWaitUnlocked();
     public native synchronized static int cFujiConfigVersion();
     public native synchronized static int cFujiConfigInitMode();
-    public native synchronized static String cPtpRun(String req);
-    public native synchronized static byte[] cPtpGetThumb(int handle);
     public native synchronized static boolean cIsMultipleMode();
     public native synchronized static boolean cIsUntestedMode();
     public native synchronized static boolean cCameraWantsRemote();

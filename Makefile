@@ -21,4 +21,5 @@ ln:
 	rm -f app/src/main/java/libui/*.java
 	cd app/src/main/java/libui/ && ln ../../../../../../libui-android/*.java .
 
+	rm -f lib/libui.c lib/ui.h lib/ui_android.h
 	cd lib && ln ../../libui-android/*.c ../../libui-android/*.h .

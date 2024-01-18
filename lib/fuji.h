@@ -37,7 +37,7 @@ struct FujiDeviceKnowledge {
 	int camera_state;
 	int selected_imgs_mode;
 
-	int image_explore_version; // should be image_explore_version
+	int get_object_version;
 	int remote_image_view_version;
 	int image_view_version;
 	int image_get_version;

@@ -43,9 +43,9 @@ static void log_payload(struct PtpRuntime *r) {
 int fuji_test_get_props(struct PtpRuntime *r) {
 	uint16_t test_props[] = {
 		PTP_PC_FUJI_ImageGetVersion,
-		PTP_PC_FUJI_ImageExploreVersion,
+		PTP_PC_FUJI_GetObjectVersion,
 		PTP_PC_FUJI_RemoteVersion,
-		PTP_PC_FUJI_RemoteImageExploreVersion,
+		PTP_PC_FUJI_RemoteGetObjectVersion,
 		PTP_PC_FUJI_ImageGetLimitedVersion,
 		PTP_PC_FUJI_CompressionCutOff,
 	};
@@ -124,11 +124,11 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 		tester_log("There are %d images on the SD card.", fuji_known.num_objects);
 	} else if (fuji_known.selected_imgs_mode == FUJI_MULTIPLE_TRANSFER) {
 		tester_log("Camera is in multiple transfer mode. Doesn't tell us how many images there are.");
-	} else {
-		tester_log("Camera is on mode %d. Nothing to report.", fuji_known.selected_imgs_mode);
+	} else if (fuji_known.selected_imgs_mode == -1) {
+		tester_log("Camera is not in multiple transfer mode.");
 	}
 
-	{
+	{ // test filesystem
 		tester_log("Attempting to get object info for 1...");
 		struct PtpObjectInfo oi;
 		int rc = ptp_get_object_info(r, 1, &oi);

@@ -25,23 +25,6 @@ JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
 	return rc;
 }
 
-JNI_FUNC(jstring, cPtpRun)(JNIEnv *env, jobject thiz, jstring string) {
-	backend.env = env;
-	const char *req = (*env)->GetStringUTFChars(env, string, 0);
-
-	char *buffer = malloc(PTP_BIND_DEFAULT_SIZE);
-
-	int r = bind_run(&backend.r, (char *)req, buffer, PTP_BIND_DEFAULT_SIZE);
-
-	if (r == -1) {
-		return (*env)->NewStringUTF(env, "{\"error\": -1}");
-	}
-
-	jstring ret = (*env)->NewStringUTF(env, buffer);
-	free(buffer);
-	return ret;
-}
-
 JNI_FUNC(jint, cPtpFujiWaitUnlocked)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
 	return fuji_wait_for_access(&backend.r);
@@ -50,54 +33,6 @@ JNI_FUNC(jint, cPtpFujiWaitUnlocked)(JNIEnv *env, jobject thiz) {
 JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
 	return fuji_get_events(&backend.r);
-}
-
-JNI_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
-    backend.env = env;
-    int rc = ptp_get_thumbnail(&backend.r, (int)handle);
-    if (rc == PTP_CHECK_CODE) {
-        android_err("Thumbnail returned error");
-        // If an error code is returned - allow it to fall
-        // through and return a zero-length array
-    } else if (rc) {
-        return NULL;
-    }
-
-    jbyteArray ret = (*env)->NewByteArray(env, ptp_get_payload_length(&backend.r));
-    (*env)->SetByteArrayRegion(env, ret, 0, ptp_get_payload_length(&backend.r), (const jbyte *)(ptp_get_payload(&backend.r)));
-    return ret;
-}
-
-/*
-JNI_FUNC(jbyteArray, cPtpGetThumbRamCached)(JNIEnv *env, jobject thiz, jint handle) {
-	backend.env = env;
-	void *data = NULL;
-	int length = 0;
-	int rc = ptp_get_thumbnail_smart_cache(&backend.r, handle, &data, &length);
-	if (rc == PTP_CHECK_CODE || length == 0 || data == NULL) {
-		// If an error code is returned - allow it to fall
-		// through and return a zero-length array
-		length = 0;
-		data = ptp_get_payload(&backend.r); // Don't pass NULL to JNI lol
-	} else if (rc) {
-		return NULL;
-	}
-
-	jbyteArray ret = (*env)->NewByteArray(env, length);
-	(*env)->SetByteArrayRegion(env, ret, 0, length, (const jbyte *)(data));
-	return ret;
-}
-*/
-
-JNI_FUNC(jint, cPtpGetPropValue)(JNIEnv *env, jobject thiz, jint code) {
-	backend.env = env;
-
-	int rc = ptp_get_prop_value(&backend.r, code);
-	if (rc < 0) {
-		return rc;
-	}
-
-	return ptp_parse_prop_value(&backend.r);
 }
 
 // Must be called after cFujiGetUncompressedObjectInfo
@@ -221,7 +156,7 @@ JNI_FUNC(jboolean, cIsUntestedMode)(JNIEnv *env, jobject thiz) {
 		return 1;
 	}
 
-	if (fuji_known.image_explore_version != 2) {
+	if (fuji_known.get_object_version != 2) {
 		return 1;
 	}
 

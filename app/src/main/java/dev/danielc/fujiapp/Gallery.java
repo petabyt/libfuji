@@ -126,7 +126,7 @@ public class Gallery extends AppCompatActivity {
                 }
 
                 try {
-                    Camera.openSession();
+                    Backend.cPtpOpenSession();
                 } catch (Exception e) {
                     fail(Backend.PTP_IO_ERR, "Failed to open session.");
                     return;
