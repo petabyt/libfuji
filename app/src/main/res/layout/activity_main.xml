@@ -28,18 +28,12 @@
             android:text="Connect" />
 
         <Button
-            android:id="@+id/scripts"
-            style="@style/GreyButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Scripts" />
-
-        <Button
             android:id="@+id/test_suite"
             style="@style/GreyButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Run test suite"
+            android:textStyle="italic"
             android:visibility="visible" />
 
         <Button

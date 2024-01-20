@@ -6,9 +6,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
@@ -17,9 +19,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.File;
+
 import camlib.SimpleSocket;
 import camlib.WiFiComm;
-import libui.LibU;
 import libui.LibUI;
 
 public class MainActivity extends AppCompatActivity {
@@ -54,16 +57,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.scripts).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Backend.cFujiScriptsScreen(MainActivity.this);
-            }
-        });
-
-        ((TextView)findViewById(R.id.bottomText)).setText(getString(R.string.url) + "\n" +
-                "Download location: " + Backend.getDownloads() + "\n" +
-                getString(R.string.motd_thing));
+        TextView bottomText = ((TextView)findViewById(R.id.bottomText));
+        bottomText.append(getString(R.string.url) + "\n");
+        bottomText.append("Download location: " + Backend.getDownloads() + "\n");
+        bottomText.append(getString(R.string.motd_thing) + " " + BuildConfig.VERSION_NAME);
 
         findViewById(R.id.test_suite).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -115,11 +112,55 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        return LibUI.handleOptions(item, false);
+        if (item.getTitle() == "open") {
+
+            File[] fileList;
+            File file = new File(Backend.getDownloads());
+            if (!file.isDirectory()) {
+                return super.onOptionsItemSelected(item);
+            }
+
+            fileList = file.listFiles();
+            String mime = "*/*";
+            String path = Backend.getDownloads();
+            if (fileList.length != 0) {
+                path = fileList[0].getPath();
+                mime = "image/*";
+            }
+
+            if (Viewer.downloadedFilename != null) {
+                path = Viewer.downloadedFilename;
+                mime = "image/*";
+            }
+
+            Intent intent = new Intent();
+            intent.setAction(Intent.ACTION_VIEW);
+            intent.setDataAndType(Uri.parse(path), mime);
+            startActivity(intent);
+        } else if (item.getTitle() == "script") {
+            Backend.cFujiScriptsScreen(MainActivity.this);
+        } else {
+            return LibUI.handleOptions(item, false);
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
     public void onBackPressed() {
         LibUI.handleBack(false);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuItem menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "open");
+        menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        menuItem.setIcon(R.drawable.baseline_folder_open_24);
+
+        menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "script");
+        menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        menuItem.setIcon(R.drawable.baseline_terminal_24);
+
+        return super.onCreateOptionsMenu(menu);
     }
 }

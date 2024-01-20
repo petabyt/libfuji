@@ -6,7 +6,6 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.ClipData;
-import android.os.Environment;
 import android.util.Log;
 import android.content.Intent;
 import android.text.Html;

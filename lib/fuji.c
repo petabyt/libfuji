@@ -283,7 +283,26 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 	return 0;
 }
 
-int fuji_slow_download_object() {
-	// ...
-	return 0;
+int fuji_slow_download_object(struct PtpRuntime *r, int handle, uint8_t **buffer, size_t size) {
+	int of = 0;
+	const int max = 0x100000;
+	while (1) {
+		int rc = ptp_get_partial_object(r, handle, of, max);
+		if (rc) return rc;
+
+		if (of + ptp_get_payload_length(r) >= size) {
+			size = size + 1 * 1000 * 1000;
+			(*buffer) = realloc((*buffer), size);
+		}
+
+		memcpy((*buffer) + of, ptp_get_payload(r), ptp_get_payload_length(r));
+
+		of += ptp_get_payload_length(r);
+
+		if (ptp_get_payload_length(r) != max) {
+			break;
+		}
+	}
+
+	return of;
 }

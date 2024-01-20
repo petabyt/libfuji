@@ -1,3 +1,6 @@
+[submodule "lib/libuifw"]
+	path = lib/libuifw
+	url = https://github.com/petabyt/libuifw.git
 [submodule "lib/camlib"]
 	path = lib/camlib
 	url = https://github.com/petabyt/camlib

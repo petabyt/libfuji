@@ -39,4 +39,7 @@ void jni_verbose_log(char *str);
 
 void reset_connection();
 
+// lib.c
+int libu_write_file(JNIEnv *env, char *path, void *data, size_t length);
+
 #endif

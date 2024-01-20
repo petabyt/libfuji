@@ -42,6 +42,7 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
 }
 
+/*
 // https://github.com/Dushistov/flapigen-rs/blob/master/android-example/app/build.gradle
 def rustBasePath = "../rust/"
 def archTriplets = [
@@ -59,4 +60,5 @@ archTriplets.each { arch, target ->
     rust.dependsOn "cargo-build-${arch}"
 }
 
-//tasks.withType(JavaCompile) { compileTask -> compileTask.dependsOn "rust" }
+tasks.withType(JavaCompile) { compileTask -> compileTask.dependsOn "rust" }
+*/

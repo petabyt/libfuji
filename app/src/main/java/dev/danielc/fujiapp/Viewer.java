@@ -76,7 +76,7 @@ public class Viewer extends AppCompatActivity {
         }
     }
 
-    String downloadedFilename = null;
+    public static String downloadedFilename = null;
 
     // Must be ran on UI thread
     public void writeFile(String filename, byte[] data) {

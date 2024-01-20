@@ -58,7 +58,7 @@ public class LibUI {
 
     public static Boolean useActionBar = true;
 
-    public static void start(AppCompatActivity act) {
+    public static void start(Activity act) {
         ctx = (Context)act;
         waitUntilActivityLoaded(act);
     }

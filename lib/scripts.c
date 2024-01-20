@@ -20,7 +20,13 @@ void fudge_scripts_screen() {
 	uiButtonOnClicked(b, on_click, NULL);
 	uiBoxAppend(box, uiControl(b), 0);
 
-	uiBoxAppend(box, uiControl(uiNewLabel("With scripts, you can make your camera do anything.")), 0);
+	uiBoxAppend(box, uiControl(uiNewLabel("Lua plugins coming soon")), 0);
+
+	uiBoxAppend(box, uiControl(uiNewLabel("Planned features:\n"
+											"- Scripts can have a custom UI (just like this UI)\n"
+											"- Automate things and workflows\n"
+											"- Bleeding edge experimental features!\n"
+											"- Buffer overflows!")), 0);
 
 	uiSwitchScreen(box, "Scripts");
 }

@@ -31,6 +31,8 @@ int fuji_get_events(struct PtpRuntime *r);
 int fuji_disable_compression(struct PtpRuntime *r);
 int fuji_enable_compression(struct PtpRuntime *r);
 
+int fuji_slow_download_object(struct PtpRuntime *r, int handle, uint8_t **buffer, size_t size);
+
 // Holds runtime info about the camera
 struct FujiDeviceKnowledge {
 	struct FujiCameraInfo *info;
