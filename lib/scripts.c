@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <ui.h>
+#include <ui_android.h>
 
 #include "myjni.h"
-#include "ui.h"
-#include "ui_android.h"
 
 static void on_click(uiButton *b, void *dat) {
 	uiToast("Hello, World");
