@@ -14,8 +14,8 @@ LOCAL_SRC_FILES := $(FUDGE_CORE) $(CAMLIB_CORE) $(LUA_CORE)
 LOCAL_C_INCLUDES += $(LOCAL_PATH) $(LOCAL_PATH)/camlib/src
 LOCAL_LDLIBS += -llog
 
-#LIBUIFW := libuifw
-LIBUIFW := ../../libuifw
+LIBUIFW := libuifw
+#LIBUIFW := ../../libuifw
 
 LOCAL_SRC_FILES += $(LIBUIFW)/libui.c
 LOCAL_C_INCLUDES += $(LIBUIFW)

@@ -1,3 +1,0 @@
-fn hello_world() {
-	
-}
