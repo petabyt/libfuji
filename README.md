@@ -1,19 +1,18 @@
 # Fudge
-This is a reverse-engineered alternative to Fujifilm's official WiFi app. This is an Android-only project with a very simple goal to serve as a photo viewer
-and downloader. It will also serve as a testbed for a portable implementation Fujifilm's superset of PTP/IP, and eventually a more advanced and cross-platform app in the future.
+This is a reverse-engineered alternative to Fujifilm's official WiFi app. The short-term goal is to serve as a simple photo gallery and downloader, and focus primarly on reliability.
 
-![screenshots](https://eggnog.danielc.dev/f/76-s9xg1g9bj8rm7u1r604z92yy4xyitc.png)
+<img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20230830-213156.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20230830-213215.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20230830-213428.png' width='250'>
 
 This app isn't finished yet, so don't set high expectations. Fuji's version of PTP/IP has many different quirks and features, so it's not easy to implement them all from
-a single camera. Currently, it's only tested on the X-A2, but functionality for newer cameras will slowly be implemented (as well as bluetooth) over time.
+a single camera. Currently, it's only been tested on a few older cameras, but functionality for newer cameras will slowly be implemented (as well as bluetooth) over time.
 
-Beta builds are published on [Google Play](https://play.google.com/store/apps/details?id=dev.danielc.fujiapp).
+Beta builds are published on [Google Play](https://play.google.com/store/apps/details?id=dev.danielc.fujiapp). The latest builds are also available on [F-Droid](https://apt.izzysoft.de/fdroid/index/apk/dev.danielc.fujiapp).
 
 ## Tech stack
 - Java & native Android activities
-- JNI & Portable C99
-- [camlib](https://github.com/petabyt/camlib)
-- camlibjava (Sockets + WiFI code)
+- Backend implemented in portable C (JNI)
+- [camlib](https://github.com/petabyt/camlib) + Java bindings
+- Lua 5.3 + libui & camlib bindings
 
 ## TODO:
 - [x] Stable communication with camera (connect, disconnect, ping)
@@ -22,8 +21,8 @@ Beta builds are published on [Google Play](https://play.google.com/store/apps/de
 - [x] thumbnail gallery of images
 - [x] ZoomView image viewer + button to download to DCIM/fuji
 - [x] Downloading progress bar popup
-- [x] Share images (Discord doesn't seem to like it)
+- [x] Share images
+- [ ] Implement "select multiple / single" mode
 - [ ] Implement Bluetooth communication (decode encrypted packets)
-- [x] Polish UI (more animations)
 - [ ] Implement 100s of Fuji property codes, determine the unknown ones
-- [x] Implement liveview (video stream on another port)
+- [ ] Implement liveview (MJPEG stream on another port)
