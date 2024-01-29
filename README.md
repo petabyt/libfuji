@@ -8,21 +8,25 @@ a single camera. Currently, it's only been tested on a few older cameras, but fu
 
 Beta builds are published on [Google Play](https://play.google.com/store/apps/details?id=dev.danielc.fujiapp). The latest builds are also available on [F-Droid](https://apt.izzysoft.de/fdroid/index/apk/dev.danielc.fujiapp).
 
+## Roadmap
+- [x] Stable communication with camera over WiFi
+- [x] Tested & working on X-A2
+- [x] thumbnail gallery of images
+- [x] ZoomView image viewer + button to download to DCIM/fuji
+- [x] Working Downloading progress bar
+- [x] Download and Share images
+- [ ] Implement "select multiple / single" mode
+- [ ] Implement PTP/USB OTG support
+- [ ] Lua scripting and automation API
+- [ ] Implement Bluetooth communication (decode encrypted packets)
+- [ ] iOS port (UIKit, Objective-C)
+- [ ] Implement liveview (MJPEG stream on another port)
+- [ ] Remote capture
+- [ ] Camera properties (ISO, white balance, film sim, etc)
+
 ## Tech stack
 - Java & native Android activities
 - Backend implemented in portable C (JNI)
 - [camlib](https://github.com/petabyt/camlib) + Java bindings
 - Lua 5.3 + libui & camlib bindings
-
-## TODO:
-- [x] Stable communication with camera (connect, disconnect, ping)
-- [x] Poll camera for unlocked event
-- [x] Tested & working on X-A2
-- [x] thumbnail gallery of images
-- [x] ZoomView image viewer + button to download to DCIM/fuji
-- [x] Downloading progress bar popup
-- [x] Share images
-- [ ] Implement "select multiple / single" mode
-- [ ] Implement Bluetooth communication (decode encrypted packets)
-- [ ] Implement 100s of Fuji property codes, determine the unknown ones
-- [ ] Implement liveview (MJPEG stream on another port)
+- LibUI
