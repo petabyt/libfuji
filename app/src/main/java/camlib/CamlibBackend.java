@@ -35,9 +35,9 @@ public class CamlibBackend {
     public static final int PTP_LV_CANON = 2;
     public static final int PTP_LV_ML = 3;
 
-    public native synchronized static String cPtpRun(String req);
-    public native synchronized static byte[] cPtpGetThumb(int handle);
-    public native synchronized static int cPtpGetPropValue(int code);
-    public native synchronized static int cPtpOpenSession();
-    public native synchronized static int cPtpCloseSession();
+    public native static String cPtpRun(String req);
+    public native static byte[] cPtpGetThumb(int handle);
+    public native static int cPtpGetPropValue(int code);
+    public native static int cPtpOpenSession();
+    public native static int cPtpCloseSession();
 };

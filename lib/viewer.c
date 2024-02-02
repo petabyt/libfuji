@@ -15,7 +15,7 @@
 int fuji_download_multiple(struct PtpRuntime *r);
 
 JNI_FUNC(jint, cFujiDownloadMultiple)(JNIEnv *env, jobject thiz) {
-	backend.env = env;
+	set_jni_env(env);
 	return fuji_download_multiple(&backend.r);
 }
 

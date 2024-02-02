@@ -101,39 +101,39 @@ public class Backend extends CamlibBackend {
 
     // Note: 'synchronized' means only one of these methods can be used at time -
     // java's version of a mutex
-    public native synchronized static void cInit(Backend b, SimpleSocket c);
-    public native synchronized static int cPtpFujiInit();
-    public native synchronized static int cPtpFujiPing();
-    //public native synchronized static int cPtpGetPropValue(int code);
-    public native synchronized static int cPtpFujiWaitUnlocked();
-    public native synchronized static int cFujiConfigVersion();
-    public native synchronized static int cFujiConfigInitMode();
-    public native synchronized static boolean cIsMultipleMode();
-    public native synchronized static boolean cIsUntestedMode();
-    public native synchronized static boolean cCameraWantsRemote();
-    public native synchronized static int[] cGetObjectHandles();
-    public native synchronized static int cFujiEndRemoteMode();
-    public native synchronized static int cFujiConfigImageGallery();
-    public native synchronized static int cFujiDownloadMultiple();
+    public native static void cInit(Backend b, SimpleSocket c);
+    public native static int cPtpFujiInit();
+    public native static int cPtpFujiPing();
+    //public native static int cPtpGetPropValue(int code);
+    public native static int cPtpFujiWaitUnlocked();
+    public native static int cFujiConfigVersion();
+    public native static int cFujiConfigInitMode();
+    public native static boolean cIsMultipleMode();
+    public native static boolean cIsUntestedMode();
+    public native static boolean cCameraWantsRemote();
+    public native static int[] cGetObjectHandles();
+    public native static int cFujiEndRemoteMode();
+    public native static int cFujiConfigImageGallery();
+    public native static int cFujiDownloadMultiple();
 
     // For tester only
-    public native synchronized static int cFujiTestStartRemoteSockets();
+    public native static int cFujiTestStartRemoteSockets();
 
     // Must be called in order - first one enables compression, second disables compression
     // This is a cheap fix for now, will be fixed in the next refactoring
-    public native synchronized static String cFujiGetUncompressedObjectInfo(int handle);
-    public native synchronized static byte[] cFujiGetFile(int handle);
+    public native static String cFujiGetUncompressedObjectInfo(int handle);
+    public native static byte[] cFujiGetFile(int handle);
 
     // For test suite only
-    public native synchronized static void cTesterInit(Tester t);
-    //public native synchronized static String cTestFunc();
-    public native synchronized static int cFujiTestSetupImageGallery();
-    //public native synchronized static int cTestStuff();
-    public native synchronized static int cFujiTestSuiteSetup();
+    public native static void cTesterInit(Tester t);
+    //public native static String cTestFunc();
+    public native static int cFujiTestSetupImageGallery();
+    //public native static int cTestStuff();
+    public native static int cFujiTestSuiteSetup();
 
     // Enable disable verbose logging to file
-    public native synchronized static int cRouteLogs(String filename);
-    public native synchronized static String cEndLogs();
+    public native static int cRouteLogs(String filename);
+    public native static String cEndLogs();
 
     public native static int cFujiScriptsScreen(Context ctx);
 

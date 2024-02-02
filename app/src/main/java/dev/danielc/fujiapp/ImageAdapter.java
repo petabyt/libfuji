@@ -55,7 +55,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
             @Override
             public void run() {
                 int id = object_ids[adapterPosition];
-                byte[] jpegByteArray = Backend._cPtpGetThumb(id);
+                byte[] jpegByteArray = Backend.cPtpGetThumb(id);
                 if (jpegByteArray == null) {
                     Backend.reportError(Backend.PTP_IO_ERR, "Failed to get image thumbnail, stopping connection");
                     return;
@@ -74,7 +74,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
                     Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length, opt);
                     if (bitmap == null) {
-                        Backend.print("Image decode error");
+                        Backend.print("Image decode error"); // TODO prevent click
                         return;
                     }
                     holder.itemView.post(new Runnable() {

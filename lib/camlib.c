@@ -35,8 +35,7 @@ PTP_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
 
-	__android_log_write(ANDROID_LOG_ERROR, "camlib", "Trying to get thumbnail");
-
+	ptp_mutex_keep_locked(r);
     int rc = ptp_get_thumbnail(r, (int)handle);
     if (rc == PTP_CHECK_CODE) {
         __android_log_write(ANDROID_LOG_ERROR, "camlib", "Thumbnail get failed");
@@ -48,6 +47,8 @@ PTP_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 
     jbyteArray ret = (*env)->NewByteArray(env, ptp_get_payload_length(r));
     (*env)->SetByteArrayRegion(env, ret, 0, ptp_get_payload_length(r), (const jbyte *)(ptp_get_payload(r)));
+	ptp_mutex_unlock(r);
+
     return ret;
 }
 
@@ -73,4 +74,21 @@ PTP_FUNC(jint, cPtpCloseSession)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
 	return ptp_close_session(r);
+}
+
+PTP_FUNC(jstring, cGetObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
+	set_jni_env(env);
+	struct PtpRuntime *r = ptp_get();
+
+	struct PtpObjectInfo oi;
+	int rc = ptp_get_object_info(r, (int)handle, &oi);
+	if (rc) {
+		return NULL;
+	}
+
+	char buffer[1024];
+	ptp_object_info_json(&oi, buffer, sizeof(buffer));
+
+	jstring ret = (*env)->NewStringUTF(env, buffer);
+	return ret;
 }

@@ -17,6 +17,7 @@ int ndk_network_init() {
 	void *lib = dlopen("libandroid.so", RTLD_NOW);
 	_android_setsocknetwork_td _android_setsocknetwork = dlsym(lib, "android_setsocknetwork");
 
+	// todo
 }
 
 JNI_FUNC(jboolean, cSetProgressBar)(JNIEnv *env, jobject thiz, jobject pg) {
@@ -30,12 +31,13 @@ JNI_FUNC(void, cClearKillSwitch)(JNIEnv *env, jobject thiz) {
 }
 
 int ptpip_cmd_close(struct PtpRuntime *r) {
-	(*backend.env)->CallVoidMethod(backend.env, backend.conn, backend.cmd_close);
+	JNIEnv *env = get_jni_env();
+	(*env)->CallVoidMethod(env, backend.conn, backend.cmd_close);
 	return 0;
 }
 
 JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reason) {
-	backend.env = env;
+	set_jni_env(env);
 
 	const char *c_reason = (*env)->GetStringUTFChars(env, reason, 0);
 
@@ -67,6 +69,8 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
 		return -1;
 	}
 
+	JNIEnv *env = get_jni_env();
+
 	int written = 0;
 	while (written != length) {
 		int max_len = length - written;
@@ -74,9 +78,9 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
 			max_len = CMD_BUFFER_SIZE;
 		}
 
-		(*backend.env)->SetByteArrayRegion(backend.env, backend.cmd_buffer, 0, max_len, (const jbyte *)(to) + written);
+		(*env)->SetByteArrayRegion(env, backend.cmd_buffer, 0, max_len, (const jbyte *)(to) + written);
 
-		int ret = (*backend.env)->CallIntMethod(backend.env, backend.conn, backend.cmd_write, max_len);
+		int ret = (*env)->CallIntMethod(env, backend.conn, backend.cmd_write, max_len);
 		if (ret < 0) {
 			android_err("cmd_write failed: %d", ret);
 			return -1;
@@ -100,6 +104,8 @@ int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
 		return -1;
 	}
 
+	JNIEnv *env = get_jni_env();
+
 	int read = 0;
 	while (read != length) {
 		int max_len = length - read;
@@ -107,16 +113,16 @@ int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
 			max_len = CMD_BUFFER_SIZE;
 		}
 
-		int ret = (*backend.env)->CallIntMethod(backend.env, backend.conn, backend.cmd_read, max_len);
+		int ret = (*env)->CallIntMethod(env, backend.conn, backend.cmd_read, max_len);
 		if (ret < 0) {
 			android_err("failed to receive packet, rc=%d (length=%d)", ret, length);
 			return -1;
 		}
 
-		jbyte *bytes = (*backend.env)->GetByteArrayElements(backend.env, backend.cmd_buffer, 0);
+		jbyte *bytes = (*env)->GetByteArrayElements(env, backend.cmd_buffer, 0);
 		memcpy(to + read, bytes, ret);
 
-		(*backend.env)->ReleaseByteArrayElements(backend.env, backend.cmd_buffer, bytes, 0);
+		(*env)->ReleaseByteArrayElements(env, backend.cmd_buffer, bytes, 0);
 
 		read += ret;
 
@@ -124,8 +130,8 @@ int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
 			static int last_p = 0;
 			int n = (((double)read) / (double)length * 100.0);
 			if (last_p != n) {
-				jmethodID method = (*backend.env)->GetMethodID(backend.env, (*backend.env)->GetObjectClass(backend.env, backend.progress_bar), "setProgress", "(I)V");
-				(*backend.env)->CallVoidMethod(backend.env, backend.progress_bar, method, n);
+				jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, backend.progress_bar), "setProgress", "(I)V");
+				(*env)->CallVoidMethod(env, backend.progress_bar, method, n);
 			}
 			last_p = n;
 		}

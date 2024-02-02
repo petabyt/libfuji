@@ -200,7 +200,7 @@ public class Viewer extends AppCompatActivity {
             bitmap = BitmapFactory.decodeByteArray(file, 0, file.length);
             if (bitmap.getWidth() > GL10.GL_MAX_TEXTURE_SIZE) {
                 float ratio = ((float) bitmap.getHeight()) / ((float) bitmap.getWidth());
-                // Will result in ~11mb tex, can do 4096, but uses 40ish megs, sometimes Android compains about OOM
+                // Will result in ~11mb tex, can do 4096, but uses 40ish megs, sometimes Android complains about OOM
                 // Might be able to increase for newer Androids
                 Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap,
                         (int)(2048),

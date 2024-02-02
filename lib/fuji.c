@@ -78,8 +78,12 @@ int fuji_get_device_info(struct PtpRuntime *r) {
 }
 
 int fuji_get_events(struct PtpRuntime *r) {
+	ptp_mutex_keep_locked(r);
 	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_EventsList);
-	if (rc) return rc;
+	if (rc) {
+		ptp_mutex_unlock(r);
+		return rc;
+	}
 
 	struct PtpFujiEvents *ev = (struct PtpFujiEvents *)(ptp_get_payload(r));
 
@@ -101,6 +105,8 @@ int fuji_get_events(struct PtpRuntime *r) {
 			break;
 		}
 	}
+
+	ptp_mutex_unlock(r);
 
 	return 0;
 }

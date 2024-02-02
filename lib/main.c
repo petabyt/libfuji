@@ -13,8 +13,17 @@
 
 struct AndroidBackend backend;
 
+// This will be put in a __emutls_t.* variable
+// It's up to the compiler to decide how to implement it
+__thread JNIEnv *backend_env = NULL;
+
 void set_jni_env(JNIEnv *env) {
-	backend.env = env;
+	backend_env = env;
+}
+
+JNIEnv *get_jni_env() {
+	// Compiles to GCC/clang __emutls_get_address
+	return backend_env;
 }
 
 struct PtpRuntime *ptp_get() {
@@ -60,8 +69,8 @@ void app_print(char *fmt, ...) {
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
 
-	// TODO: check use before init
-	(*backend.env)->CallStaticVoidMethod(backend.env, backend.main, backend.jni_print, (*backend.env)->NewStringUTF(backend.env, buffer));
+	JNIEnv *env = get_jni_env();
+	(*env)->CallStaticVoidMethod(env, backend.main, backend.jni_print, (*env)->NewStringUTF(env, buffer));
 }
 
 void android_err(char *fmt, ...) {
@@ -84,7 +93,8 @@ void tester_log(char *fmt, ...) {
 
 	ptp_verbose_log("%s\n", buffer);
 
-	(*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_log, (*backend.env)->NewStringUTF(backend.env, buffer));
+	JNIEnv *env = get_jni_env();
+	(*env)->CallVoidMethod(env, backend.tester, backend.tester_log, (*env)->NewStringUTF(env, buffer));
 }
 
 void tester_fail(char *fmt, ...) {
@@ -97,14 +107,15 @@ void tester_fail(char *fmt, ...) {
 
 	ptp_verbose_log("%s\n", buffer);
 
-	(*backend.env)->CallVoidMethod(backend.env, backend.tester, backend.tester_fail, (*backend.env)->NewStringUTF(backend.env, buffer));
+	JNIEnv *env = get_jni_env();
+	(*env)->CallVoidMethod(env, backend.tester, backend.tester_fail, (*env)->NewStringUTF(env, buffer));
 }
 
 JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
 	// On init, all members in backend are garunteed to be NULL
 	memset(&backend, 0, sizeof(backend));
 
-	backend.env = env;
+	set_jni_env(env);
 
 	backend.main = (*env)->NewGlobalRef(env, thiz);
 	//jclass connClass = (*env)->GetObjectClass(env, conn);
@@ -126,23 +137,24 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
 	jobject buffer = (*env)->CallObjectMethod(env, soc_o, get_buffer_m);
 	backend.cmd_buffer = (*env)->NewGlobalRef(env, buffer);
 
-	ptp_generic_init(&backend.r);
+	ptp_init(&backend.r);
 	reset_connection();
 }
 
 // Init commands 
 JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
-	backend.env = env;
+	set_jni_env(env);
+
 	//jclass thizClass = (*env)->GetObjectClass(env, thiz);
 	jclass testerClass = (*env)->GetObjectClass(env, tester);
 	backend.tester = (*env)->NewGlobalRef(env, tester);
 
-	backend.tester_log = (*backend.env)->GetMethodID(backend.env, testerClass, "log", "(Ljava/lang/String;)V");
-	backend.tester_fail = (*backend.env)->GetMethodID(backend.env, testerClass, "fail", "(Ljava/lang/String;)V");
+	backend.tester_log = (*env)->GetMethodID(env, testerClass, "log", "(Ljava/lang/String;)V");
+	backend.tester_fail = (*env)->GetMethodID(env, testerClass, "fail", "(Ljava/lang/String;)V");
 }
 
 JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz, jstring path) {
-	backend.env = env;
+	set_jni_env(env);
 	const char *req = (*env)->GetStringUTFChars(env, path, 0);
 	if (req == NULL) return 1;
 
@@ -155,16 +167,15 @@ JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz, jstring path) {
 	ptp_verbose_log("ABI: %s\n", ABI);
 	ptp_verbose_log("Compile date: %s\n", __DATE__);
 	ptp_verbose_log("https://github.com/petabyt/fujiapp\n");
-
 	return 0;
 }
 
 JNI_FUNC(jstring, cEndLogs)(JNIEnv *env, jobject thiz) {
-	backend.env = env;
+	set_jni_env(env);
 
 	if (backend.log_buf == NULL) return NULL;
 
-	jstring str = (*backend.env)->NewStringUTF(backend.env, backend.log_buf);
+	jstring str = (*env)->NewStringUTF(env, backend.log_buf);
 
 	free(backend.log_buf);
 	backend.log_buf = NULL;
