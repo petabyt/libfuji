@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
         handler = new Handler(Looper.getMainLooper());
 
         LibUI.buttonBackgroundResource = R.drawable.grey_button;
+        LibUI.popupDrawableResource = R.drawable.border;
 
         Backend.init();
         Backend.updateLog();
@@ -81,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Idea: Show WiFi status on screen?
         WiFiComm.startNetworkListeners(m);
+
+        //Backend.cFujiScriptsScreen(MainActivity.this);
     }
 
     public void connectClick(View v) {

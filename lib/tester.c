@@ -144,6 +144,14 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 
 		tester_log("Object info: %s", buffer);
 		tester_log("Tag: '%s'", oi.keywords);
+
+		tester_log("Trying to get thumbnail for 1...");
+		rc = ptp_get_thumbnail(r, 1);
+		if (rc) {
+			tester_fail("Failed to get thumbnail: %d", rc);
+		}
+		tester_log("Got thumbnail: %u bytes", ptp_get_payload_length(r));
+		
 	}
 
 	return 0;

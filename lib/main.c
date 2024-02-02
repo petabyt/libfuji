@@ -21,6 +21,10 @@ struct PtpRuntime *ptp_get() {
 	return &backend.r;
 }
 
+struct PtpRuntime *luaptp_get_runtime() {
+	return ptp_get();
+}
+
 void reset_connection() {
 	memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
 	ptp_generic_reset(&backend.r);

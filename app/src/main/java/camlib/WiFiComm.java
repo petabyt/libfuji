@@ -23,7 +23,7 @@ import libui.LibUI;
 public class WiFiComm {
     public static final String TAG = "camlib";
 
-    public boolean killSwitch = true;
+    //public boolean killSwitch = true;
 
     static Network wifiDevice = null;
 
@@ -76,8 +76,8 @@ public class WiFiComm {
         connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
     }
 
-    public static Socket connectWiFiSocket(ConnectivityManager connectivityManager, String ip, int port) throws Exception {
-        NetworkInfo wifiInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+    public static Network getWiFiNetwork(ConnectivityManager cm) throws Exception {
+        NetworkInfo wifiInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
         if (!wifiInfo.isAvailable()) {
             throw new Exception("WiFi is not available.");
         } else if (!wifiInfo.isConnected()) {
@@ -88,6 +88,11 @@ public class WiFiComm {
             throw new Exception("Not connected to WiFi.");
         }
 
-        return tryConnectToSocket(wifiDevice, ip, port);
+        return wifiDevice;
+    }
+
+    public static Socket connectWiFiSocket(ConnectivityManager cm, String ip, int port) throws Exception {
+        Network dev = getWiFiNetwork(cm);
+        return tryConnectToSocket(dev, ip, port);
     }
 }

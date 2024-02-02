@@ -55,7 +55,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
             @Override
             public void run() {
                 int id = object_ids[adapterPosition];
-                byte[] jpegByteArray = Backend.cPtpGetThumb(id);
+                byte[] jpegByteArray = Backend._cPtpGetThumb(id);
                 if (jpegByteArray == null) {
                     Backend.reportError(Backend.PTP_IO_ERR, "Failed to get image thumbnail, stopping connection");
                     return;

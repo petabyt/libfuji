@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-
+#include <dlfcn.h>
 #include <camlib.h>
 
 #include "myjni.h"
@@ -10,6 +10,14 @@
 #include "backend.h"
 
 #define CMD_BUFFER_SIZE 512
+
+typedef int (*_android_setsocknetwork_td)(jlong handle, int fd);
+
+int ndk_network_init() {
+	void *lib = dlopen("libandroid.so", RTLD_NOW);
+	_android_setsocknetwork_td _android_setsocknetwork = dlsym(lib, "android_setsocknetwork");
+
+}
 
 JNI_FUNC(jboolean, cSetProgressBar)(JNIEnv *env, jobject thiz, jobject pg) {
 	backend.progress_bar = (*env)->NewGlobalRef(env, pg);
@@ -37,7 +45,7 @@ JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reaso
 }
 
 void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
-	android_err("KIll switch %d\n", r->io_kill_switch);
+	android_err("Kill switch %d\n", r->io_kill_switch);
 	if (r->io_kill_switch) return;
 	r->io_kill_switch = 1;
 
@@ -53,6 +61,7 @@ void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
 }
 
 int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
+	if (r->io_kill_switch) return -1;
 	if (length <= 0) {
 		android_err("Length is less than 1");
 		return -1;
@@ -80,6 +89,7 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
 }
 
 int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
+	if (r->io_kill_switch) return -1;
 	if (length <= 0) {
 		android_err("Length is less than 1");
 		return -1;

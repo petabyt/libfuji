@@ -104,13 +104,13 @@ public class LibU {
         prefs.edit().putString(ctx.getPackageName() + "." + key, value).apply();
     }
 
-    public static String readFileFromAssets(Context ctx, String file) throws Exception {
+    public static byte[] readFileFromAssets(Context ctx, String file) throws Exception {
         try {
             InputStream inputStream = ctx.getAssets().open(file);
-            Scanner scanner = new Scanner(inputStream).useDelimiter("\\A");
-            String fileContent = scanner.hasNext() ? scanner.next() : "";
-            scanner.close();
-            return fileContent;
+            byte buffer[] = new byte[inputStream.available()];
+            inputStream.read(buffer);
+            inputStream.close();
+            return buffer;
         } catch (IOException e) {
             e.printStackTrace();
             throw e;

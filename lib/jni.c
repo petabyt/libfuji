@@ -189,6 +189,7 @@ JNI_FUNC(void, cNotifyScreenStart)(JNIEnv *env, jobject thiz, jstring string) {
 }
 #endif
 
+// Return array of valid objects on main storage device
 JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
 	backend.env = env;
 

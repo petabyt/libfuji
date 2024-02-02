@@ -35,6 +35,8 @@ PTP_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
 
+	__android_log_write(ANDROID_LOG_ERROR, "camlib", "Trying to get thumbnail");
+
     int rc = ptp_get_thumbnail(r, (int)handle);
     if (rc == PTP_CHECK_CODE) {
         __android_log_write(ANDROID_LOG_ERROR, "camlib", "Thumbnail get failed");

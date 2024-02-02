@@ -148,6 +148,8 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	fuji_known.remote_image_view_version = ptp_parse_prop_value(r);
 	ptp_verbose_log("RemoteGetObjectVersion: 0x%X", fuji_known.remote_image_view_version);
 
+	// TODO: set PTP_PC_FUJI_RemoteGetObjectVersion
+
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageGetVersion);
 	if (rc) return rc;
 	fuji_known.image_get_version = ptp_parse_prop_value(r);
@@ -175,6 +177,10 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	}
 
 	ptp_verbose_log("Setting mode to %d", mode);
+
+	// On newer cams, setting function mode causes cam to have a dialog (Yes/No accept connection)
+	// We have to wait for a response in this case
+	r->wait_for_response = 255;
 
 	rc = ptp_set_prop_value16(r, PTP_PC_FUJI_FunctionMode, mode);
 	if (rc) return rc;
@@ -258,21 +264,21 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		rc = fuji_get_events(r);
 		if (rc) return rc;
 
-		//ptp_verbose_log("PTP_PC_FUJI_RemoteGetObjectVersion: %d\n", fuji_known.remote_image_view_version);
-
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, fuji_known.remote_image_view_version);
+		rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion);
+		fuji_known.remote_image_view_version = ptp_parse_prop_value(r);
 		if (rc) return rc;
 
-		// SD card slot?
+		// Check SD card slot, not really useful for now
 		rc = ptp_get_prop_value(r, PTP_PC_FUJI_StorageID);
 		if (rc) return rc;
 		ptp_verbose_log("Storage ID: %d\n", ptp_parse_prop_value(r));
 
+		// Now we finally enter the remote image viewer
 		rc = ptp_set_prop_value16(r, PTP_PC_FUJI_FunctionMode, FUJI_MODE_REMOTE_IMG_VIEW);
 		if (rc) return rc;
 
-		// Set the prop again! For no reason! beause fuji devs say so
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, fuji_known.remote_image_view_version);
+		// Set the prop higher - X-S10 and X-H1 want 4
+		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, 4);
 		if (rc) return rc;
 
 		// The props we set should show up here

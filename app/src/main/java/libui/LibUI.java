@@ -2,16 +2,13 @@ package libui;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -20,14 +17,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.PopupWindow;
-import android.widget.RelativeLayout;
 import android.widget.ScrollView;
-import android.widget.Space;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -45,6 +38,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.tabs.TabLayout;
 
 import java.util.ArrayList;
+import android.graphics.drawable.ColorDrawable;
 
 public class LibUI {
     public static Context ctx = null;
@@ -386,23 +380,6 @@ public class LibUI {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT));
 
-            Button back = new Button(ctx);
-            back.setText("Close");
-            if (buttonBackgroundResource != 0) {
-                back.setBackground(ContextCompat.getDrawable(ctx, buttonBackgroundResource));
-            }
-
-            back.setTextSize(14f);
-
-            back.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    userSleep();
-                    dismiss();
-                }
-            });
-
-            bar.addView(back);
             TextView tv = new TextView(ctx);
             tv.setText(title);
             tv.setLayoutParams(new ViewGroup.LayoutParams(
@@ -422,9 +399,9 @@ public class LibUI {
                     ViewGroup.LayoutParams.MATCH_PARENT));
 
             TypedValue typedValue = new TypedValue();
-            if (ctx.getTheme().resolveAttribute(android.R.attr.windowBackground, typedValue, true)) {
-                rel.setBackgroundColor(typedValue.data);
-            }
+//            if (ctx.getTheme().resolveAttribute(android.R.attr.windowBackground, typedValue, true)) {
+//                rel.setBackgroundColor(typedValue.data);
+//            }
 
             rel.addView(bar);
 
@@ -452,10 +429,14 @@ public class LibUI {
 
             this.popupWindow = new PopupWindow(
                     (int)(width / 1.2),
-                    (int)(height / 1.2)
+                    (int)(height / 1.9)
             );
 
-            this.popupWindow.setOutsideTouchable(false);
+//            if (popupDrawableResource != 0) {
+//                this.popupWindow.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
+//            }
+
+            this.popupWindow.setOutsideTouchable(true);
         }
     }
 
