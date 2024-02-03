@@ -66,8 +66,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.test_suite).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, Tester.class);
-                startActivity(intent);
+                Backend.cFujiScriptsScreen(MainActivity.this);
             }
         });
 
@@ -141,7 +140,9 @@ public class MainActivity extends AppCompatActivity {
             intent.setDataAndType(Uri.parse(path), mime);
             startActivity(intent);
         } else if (item.getTitle() == "script") {
-            Backend.cFujiScriptsScreen(MainActivity.this);
+            //Backend.cFujiScriptsScreen(MainActivity.this);
+            Intent intent = new Intent(MainActivity.this, Tester.class);
+            startActivity(intent);
         } else {
             return LibUI.handleOptions(item, false);
         }
@@ -162,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
 
         menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "script");
         menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-        menuItem.setIcon(R.drawable.baseline_terminal_24);
+        menuItem.setIcon(R.drawable.baseline_fact_check_24);
 
         return super.onCreateOptionsMenu(menu);
     }

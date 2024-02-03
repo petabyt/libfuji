@@ -21,6 +21,11 @@ int ndk_network_init() {
 }
 
 JNI_FUNC(jboolean, cSetProgressBar)(JNIEnv *env, jobject thiz, jobject pg) {
+	if (pg == NULL) {
+		(*env)->DeleteGlobalRef(env, backend.progress_bar);
+		backend.progress_bar = NULL;
+		return 0;
+	}
 	backend.progress_bar = (*env)->NewGlobalRef(env, pg);
 	return 0;
 }

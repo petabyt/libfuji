@@ -118,7 +118,6 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
 	set_jni_env(env);
 
 	backend.main = (*env)->NewGlobalRef(env, thiz);
-	//jclass connClass = (*env)->GetObjectClass(env, conn);
 	backend.conn = (*env)->NewGlobalRef(env, conn);
 
 	backend.jni_print = (*env)->GetStaticMethodID(env, backend.main, "print", "(Ljava/lang/String;)V");

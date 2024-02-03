@@ -116,6 +116,7 @@ public class Tester extends AppCompatActivity {
         setContentView(R.layout.activity_test);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+        actionBar.setTitle("Test Suite");
 
         handler = new Handler(Looper.getMainLooper());
 

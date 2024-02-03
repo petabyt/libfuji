@@ -30,7 +30,7 @@ import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import android.media.MediaScannerConnection;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -70,10 +70,13 @@ public class Viewer extends AppCompatActivity {
     public static void createDir(String directoryPath) {
         File directory = new File(directoryPath);
         if (!directory.exists()) {
-            if (!directory.mkdirs()) {
-                return;
-            }
+            directory.mkdirs();
         }
+    }
+
+    // Notify gallery app that there is a new image
+    public void scanImage(String path) {
+        MediaScannerConnection.scanFile(this, new String[] {path}, null, null);
     }
 
     public static String downloadedFilename = null;
@@ -96,6 +99,7 @@ public class Viewer extends AppCompatActivity {
             if (fos != null) {
                 try {
                     fos.close();
+                    this.scanImage(downloadedFilename);
                     Toast.makeText(Viewer.this, "Saved to " + filename, Toast.LENGTH_SHORT).show();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -143,10 +147,11 @@ public class Viewer extends AppCompatActivity {
 
         handler = new Handler(Looper.getMainLooper());
 
-        // Wait until activity is loaded
-        handler.post(new Runnable() {
+        ViewTreeObserver viewTreeObserver = getWindow().getDecorView().getViewTreeObserver();
+        viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
-            public void run() {
+            public void onGlobalLayout() {
+                getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 Viewer.progressBar = downloadPopup(Viewer.this);
                 new Thread(new Runnable() {
                     @Override
@@ -233,9 +238,12 @@ public class Viewer extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         bitmap = null;
         Runtime.getRuntime().gc();
+        handler = null;
+        progressBar = null;
+        popupWindow = null;
+        super.onDestroy();
     }
 
     @Override

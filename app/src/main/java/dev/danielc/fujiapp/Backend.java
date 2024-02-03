@@ -212,8 +212,8 @@ public class Backend extends CamlibBackend {
     }
 
     public static String getDownloads() {
-        String mainStorage = Environment.getExternalStorageDirectory().getAbsolutePath();
-        String fujifilm = mainStorage + File.separator + "DCIM" + File.separator + "fuji";
+        String mainStorage = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getPath();
+        String fujifilm = mainStorage + File.separator + "fudge";
         return fujifilm;
     }
 

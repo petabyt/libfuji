@@ -32,8 +32,7 @@
             style="@style/GreyButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Run test suite"
-            android:textStyle="italic"
+            android:text="Plugins"
             android:visibility="visible" />
 
         <Button

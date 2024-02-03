@@ -21,7 +21,7 @@ JNI_FUNC(jint, cFujiDownloadMultiple)(JNIEnv *env, jobject thiz) {
 
 static int download(char *name, void *data, size_t length) {
 	char path[128];
-	sprintf(path, "/storage/emulated/0/DCIM/fuji/%s", name);
+	sprintf(path, "/storage/emulated/0/Pictures/fudge/%s", name);
 
 	FILE *f = fopen(path, "wb");
 	if (f == NULL) return 1;

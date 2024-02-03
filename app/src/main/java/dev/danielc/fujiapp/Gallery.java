@@ -232,7 +232,8 @@ public class Gallery extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         // TODO: Press again to terminate connection
-        //finish();
+        fail(0, "Quitting");
+        finish();
     }
 
     @Override

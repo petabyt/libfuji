@@ -4,7 +4,6 @@
 struct AndroidBackend {
 	jobject main; // Backend class
 	jobject conn; // Conn class
-	JNIEnv *env; // Java env, updated on every JNI call
 
 	// Imported functions
 	jmethodID jni_print;

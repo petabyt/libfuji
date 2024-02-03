@@ -14,7 +14,7 @@
 JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
 
-	int rc = ptpip_fuji_init_req(&backend.r, "fudge");
+	int rc = ptpip_fuji_init_req(&backend.r, "Fudgyfilm");
 	if (rc) return rc;
 
 	struct PtpFujiInitResp resp;
@@ -41,6 +41,9 @@ JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
 JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
 
+	// This can be any number really, but best to keep under 20mb or so
+	int max = backend.r.data_length;
+
 	struct PtpObjectInfo oi;
 	int rc = ptp_get_object_info(&backend.r, (int)handle, &oi);
 	if (rc) {
@@ -54,8 +57,6 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 	int read = 0;
 	while (1) {
 		ptp_mutex_keep_locked(&backend.r);
-
-		int max = backend.r.data_length;
 
 		rc = ptp_get_partial_object(&backend.r, handle, read, max);
 		if (rc == PTP_CHECK_CODE) {
