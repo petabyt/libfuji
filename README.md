@@ -15,7 +15,9 @@ Beta builds are published on [Google Play](https://play.google.com/store/apps/de
 - [x] ZoomView image viewer + button to download to DCIM/fuji
 - [x] Working Downloading progress bar
 - [x] Download and Share images
+- [ ] Delete images?
 - [ ] Implement "select multiple / single" mode
+- [ ] Translate UI
 - [ ] Implement PTP/USB OTG support
 - [ ] Lua scripting and automation API
 - [ ] Implement Bluetooth communication (decode encrypted packets)
