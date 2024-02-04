@@ -3,20 +3,19 @@ package libui;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
-import android.util.TypedValue;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.PopupWindow;
@@ -38,11 +37,10 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.tabs.TabLayout;
 
 import java.util.ArrayList;
-import android.graphics.drawable.ColorDrawable;
 
 public class LibUI {
     public static Context ctx = null;
-    public static ActionBar actionBar = null;
+    static Menu menu = null;
 
     // uiWindow (popup) background drawable style resource
     public static int popupDrawableResource = 0;
@@ -50,11 +48,13 @@ public class LibUI {
     // Background drawable resource for buttons
     public static int buttonBackgroundResource = 0;
 
-    public static Boolean useActionBar = true;
+    public static void init(Activity act) {
+        ctx = (Context)act;
+    }
 
     public static void start(Activity act) {
-        ctx = (Context)act;
-        waitUntilActivityLoaded(act);
+        init(act);
+        initThiz(ctx);
     }
 
     // Common way of telling when activity is done loading
@@ -64,20 +64,8 @@ public class LibUI {
             @Override
             public void onGlobalLayout() {
                 activity.getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                init();
             }
         });
-    }
-
-    private static void init() {
-        if (useActionBar) {
-            actionBar = ((AppCompatActivity)ctx).getSupportActionBar();
-            actionBar.setDisplayHomeAsUpEnabled(true);
-        }
-    }
-
-    public static void setTitle(String title) {
-        actionBar.setTitle(title);
     }
 
     public static class MyFragment extends Fragment {
@@ -172,32 +160,6 @@ public class LibUI {
         ((LinearLayout)form).addView(entry);
     }
 
-    public static View button(String text) {
-        Button b = new Button(ctx);
-
-        if (buttonBackgroundResource != 0) {
-            b.setBackground(ContextCompat.getDrawable(ctx, buttonBackgroundResource));
-        }
-
-        b.setLayoutParams(new LinearLayout.LayoutParams(
-                LayoutParams.MATCH_PARENT,
-                LayoutParams.MATCH_PARENT,
-                1.0f
-        ));
-
-        b.setTextSize(14f);
-
-        b.setText(text);
-        return (View)b;
-    }
-
-    public static View label(String text) {
-        TextView lbl = new TextView(ctx);
-        lbl.setText(text);
-        lbl.setTextSize(15f);
-        return (View)lbl;
-    }
-
     public static View tabLayout() {
         LinearLayout layout = new LinearLayout(ctx);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -228,14 +190,10 @@ public class LibUI {
             public void onTabSelected(TabLayout.Tab tab) {
                 pager.setCurrentItem(tab.getPosition());
             }
-
             @Override
-            public void onTabUnselected(TabLayout.Tab tab) {
-            }
-
+            public void onTabUnselected(TabLayout.Tab tab) {}
             @Override
-            public void onTabReselected(TabLayout.Tab tab) {
-            }
+            public void onTabReselected(TabLayout.Tab tab) {}
         });
 
         pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -279,11 +237,7 @@ public class LibUI {
     static Screen origActivity = new Screen();
 
     public static void switchScreen(View view, String title) {
-        Boolean delay = true;
-
-        if (delay) {
-            userSleep();
-        }
+        userSleep();
 
         ActionBar actionBar = ((AppCompatActivity)ctx).getSupportActionBar();
 
@@ -303,9 +257,15 @@ public class LibUI {
 
         screens.add(screen);
 
+        // Now start constructing the new layout
         ((Activity)ctx).setContentView(layout);
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle(title);
+        if (menu != null) {
+            for (int i = 0; i < menu.size(); i++) {
+                menu.getItem(i).setVisible(false);
+            }
+        }
     }
 
     private static void screenGoBack() {
@@ -316,10 +276,15 @@ public class LibUI {
 
             ActionBar actionBar = ((AppCompatActivity)ctx).getSupportActionBar();
             actionBar.setTitle(origActivity.title);
-            if ((origActivity.displayOptions & ActionBar.DISPLAY_SHOW_HOME) == 1) {
+            if ((origActivity.displayOptions & ActionBar.DISPLAY_SHOW_HOME) != 0) {
                 actionBar.setDisplayHomeAsUpEnabled(true);
             } else {
                 actionBar.setDisplayHomeAsUpEnabled(false);
+            }
+            if (menu != null) {
+                for (int i = 0; i < menu.size(); i++) {
+                    menu.getItem(i).setVisible(true);
+                }
             }
         } else {
             ((Activity)ctx).setContentView(screen.content);
@@ -333,12 +298,13 @@ public class LibUI {
     public static boolean handleBack(boolean allowBack) {
         if (screens.size() == 0) {
             if (allowBack) {
-                ((Activity) ctx).finish();
+                ((Activity)ctx).finish();
+                return true;
             }
         } else {
             screenGoBack();
         }
-        return true;
+        return false;
     }
 
     public static boolean handleOptions(MenuItem item, boolean allowBack) {
@@ -351,7 +317,13 @@ public class LibUI {
         return ((Activity)ctx).onOptionsItemSelected(item);
     }
 
-    // Being too fast doesn't feel right, brain need delay
+    public static boolean handleMenu(Menu m) {
+        menu = m;
+        Log.d("libui", "menu added");
+        return true;
+    }
+
+    // TODO: Use Handler.postDelayed?
     public static void userSleep() {
         try {
             Thread.sleep(100);
@@ -369,12 +341,8 @@ public class LibUI {
         public void setChild(View v) {
             LinearLayout rel = new LinearLayout(ctx);
 
-            actionBar = ((AppCompatActivity)ctx).getSupportActionBar();
-            actionBar.setDisplayHomeAsUpEnabled(true);
-            actionBar.setTitle(title);
-
             LinearLayout bar = new LinearLayout(ctx);
-            rel.setPadding(10, 10, 10, 10);
+            rel.setPadding(30, 10, 10, 10);
             rel.setOrientation(LinearLayout.HORIZONTAL);
             rel.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -385,28 +353,18 @@ public class LibUI {
             tv.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
-            tv.setPadding(20, 0, 0, 0);
             tv.setTextSize(20f);
-            tv.setGravity(Gravity.CENTER);
             bar.addView(tv);
 
             rel.setOrientation(LinearLayout.VERTICAL);
-            if (popupDrawableResource != 0) {
-                rel.setBackground(ContextCompat.getDrawable(ctx, popupDrawableResource));
-            }
             rel.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
 
-            TypedValue typedValue = new TypedValue();
-//            if (ctx.getTheme().resolveAttribute(android.R.attr.windowBackground, typedValue, true)) {
-//                rel.setBackgroundColor(typedValue.data);
-//            }
-
             rel.addView(bar);
 
             LinearLayout layout = new LinearLayout(ctx);
-            layout.setPadding(20, 20, 20, 20);
+            layout.setPadding(0, 20, 20, 20);
             layout.setOrientation(LinearLayout.VERTICAL);
             layout.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -432,9 +390,9 @@ public class LibUI {
                     (int)(height / 1.9)
             );
 
-//            if (popupDrawableResource != 0) {
-//                this.popupWindow.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
-//            }
+            if (popupDrawableResource != 0) {
+                this.popupWindow.setBackgroundDrawable(ContextCompat.getDrawable(ctx, popupDrawableResource));
+            }
 
             this.popupWindow.setOutsideTouchable(true);
         }
@@ -488,9 +446,12 @@ public class LibUI {
     }
 
     private static native void callFunction(long ptr, long arg1, long arg2);
+    public static native void initThiz(Context ctx);
+    public static native void startWindow(String symbolName);
+    public static native void startNative(String symbolName);
 
-    private int dpToPx(int dp) {
-        Resources r = ctx.getResources();
-        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, r.getDisplayMetrics()));
-    }
+//    private int dpToPx(int dp) {
+//        Resources r = ctx.getResources();
+//        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, r.getDisplayMetrics()));
+//    }
 }

@@ -29,7 +29,7 @@ public class SimpleSocket {
     public String failReason;
 
     private byte[] buffer = null;
-    private int bufferSize = 512;
+    private int bufferSize = 512 * 10;
 
     public SimpleSocket() {
         this.buffer = new byte[bufferSize];
@@ -66,7 +66,7 @@ public class SimpleSocket {
             return inputStream.read(buffer, 0, size);
         } catch (IOException e) {
             failReason = e.toString();
-            alive = false;
+            //alive = false;
             return -1;
         }
     }
@@ -78,7 +78,7 @@ public class SimpleSocket {
             return size;
         } catch (IOException e) {
             failReason = e.toString();
-            alive = false;
+            //alive = false;
             return -1;
         }
     }

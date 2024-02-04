@@ -18,7 +18,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -51,8 +50,22 @@ public class Viewer extends AppCompatActivity {
     public static ProgressBar progressBar = null;
 
     public Bitmap bitmap = null;
-    public String filename = null;
-    public byte[] file = null;
+    public static String filename = null;
+    public byte[] fileByteData = null;
+    public boolean notEnoughMemoryToPreview = false;
+    public boolean fileIsDownloaded = false;
+    public boolean fileIsInMemory = false;
+
+    void fail(int code, String reason) {
+        if (Backend.cGetKillSwitch()) return;
+        Backend.reportError(code, reason);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Viewer.this.finish();
+            }
+        });
+    }
 
     // Create a popup - will set popupWindow, will be closed when finished
     public ProgressBar downloadPopup(Activity activity) {
@@ -67,40 +80,30 @@ public class Viewer extends AppCompatActivity {
         return popupView.findViewById(R.id.progress_bar);
     }
 
-    public static void createDir(String directoryPath) {
-        File directory = new File(directoryPath);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
-    }
-
     // Notify gallery app that there is a new image
     public void scanImage(String path) {
         MediaScannerConnection.scanFile(this, new String[] {path}, null, null);
     }
 
-    public static String downloadedFilename = null;
-
     // Must be ran on UI thread
-    public void writeFile(String filename, byte[] data) {
+    public void writeFile() {
         String saveDir = Backend.getDownloads();
-        createDir(saveDir);
 
-        downloadedFilename = saveDir + File.separator + filename;
-        File file = new File(downloadedFilename);
+        File file = new File(saveDir + File.separator + filename);
         FileOutputStream fos = null;
 
         try {
             fos = new FileOutputStream(file);
-            fos.write(data);
+            fos.write(fileByteData);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
             if (fos != null) {
                 try {
                     fos.close();
-                    this.scanImage(downloadedFilename);
+                    this.scanImage(filename);
                     Toast.makeText(Viewer.this, "Saved to " + filename, Toast.LENGTH_SHORT).show();
+                    fileIsDownloaded = true;
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -117,15 +120,35 @@ public class Viewer extends AppCompatActivity {
         });
     }
 
-    public void share(String filename, byte[] data) {
-        if (downloadedFilename == null) {
-            writeFile(filename, data);
-        }
-
+    public void share() {
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_VIEW);
-        intent.setDataAndType(Uri.parse("file://" + downloadedFilename), "image/jpeg");
+        intent.setDataAndType(Uri.parse("file://" + Backend.getDownloads() + File.separator + filename), "image/jpeg");
         this.startActivity(intent);
+    }
+
+    public void downloadAndShare() {
+        if (!fileIsDownloaded) {
+            writeFile();
+        }
+        share();
+    }
+
+    void downloadFileManually(int handle, int size) {
+        String saveDir = Backend.getDownloads();
+
+        Backend.cSetProgressBarObj(Viewer.progressBar, size);
+
+        int rc = Backend.cFujiDownloadFile(handle, saveDir + File.separator + filename);
+        if (rc != 0) {
+            toast("Download Error");
+            Backend.reportError(Backend.PTP_IO_ERR, "Download error");
+            return; // TODO: fail()
+        }
+
+        Backend.cSetProgressBarObj(null, 0);
+
+        fileIsDownloaded = true;
     }
 
     ActionBar actionBar;
@@ -165,7 +188,6 @@ public class Viewer extends AppCompatActivity {
 
     private void loadThumb(int handle) {
         try {
-            Log.d(TAG, "Getting object info");
             JSONObject jsonObject = Backend.fujiGetUncompressedObjectInfo(handle);
 
             filename = jsonObject.getString("filename");
@@ -174,8 +196,7 @@ public class Viewer extends AppCompatActivity {
             int imgY = jsonObject.getInt("imgHeight");
 
             if (filename.endsWith(".MOV")) {
-                Backend.cSetProgressBar(null);
-                toast("This is a MOV, not supported yet");
+                toast("MOV playback not supported yet");
                 return;
             }
 
@@ -190,19 +211,31 @@ public class Viewer extends AppCompatActivity {
                 }
             });
 
-            Backend.cSetProgressBar(Viewer.progressBar);
-            file = Backend.cFujiGetFile(handle);
-
-            if (file == null) {
-                // IO error in downloading
-                throw new Backend.PtpErr(Backend.PTP_IO_ERR);
-            } else if (file.length == 0) {
-                // Runtime error in downloading, no error yet
-                throw new Exception("Error downloading image");
+            try {
+                fileByteData = new byte[size];
+            } catch (OutOfMemoryError e) {
+                toast("Not enough memory to preview file");
+                notEnoughMemoryToPreview = true;
+                downloadFileManually(handle, size);
+                return;
             }
 
+            Backend.cSetProgressBarObj(Viewer.progressBar, size);
+            int rc = Backend.cFujiGetFile(handle, fileByteData, size);
+            if (rc == Backend.PTP_CHECK_CODE) {
+                toast("Can't download");
+                return;
+            } else if (rc != 0) {
+                fail(Backend.PTP_IO_ERR, "Failed to download image");
+                return;
+            }
+
+            fileIsInMemory = true;
+
+            Backend.cSetProgressBarObj(null, 0);
+
             // Scale image to acceptable texture size
-            bitmap = BitmapFactory.decodeByteArray(file, 0, file.length);
+            bitmap = BitmapFactory.decodeByteArray(fileByteData, 0, fileByteData.length);
             if (bitmap.getWidth() > GL10.GL_MAX_TEXTURE_SIZE) {
                 float ratio = ((float) bitmap.getHeight()) / ((float) bitmap.getWidth());
                 // Will result in ~11mb tex, can do 4096, but uses 40ish megs, sometimes Android complains about OOM
@@ -216,8 +249,6 @@ public class Viewer extends AppCompatActivity {
                 bitmap = newBitmap;
             }
 
-            Backend.cSetProgressBar(null);
-
             handler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -227,12 +258,9 @@ public class Viewer extends AppCompatActivity {
                     zoomageView.setImageBitmap(bitmap);
                 }
             });
-        } catch (Backend.PtpErr e) {
-            toast("Download IO Error: " + e.rc);
-            Backend.reportError(e.rc, "Download error");
         } catch (Exception e) {
-            toast("Download Error: " + e.toString());
-            Backend.reportError(Backend.PTP_IO_ERR, "Download error: " + e.toString());
+            fail(0, e.toString());
+            e.printStackTrace();
         }
     }
 
@@ -248,18 +276,25 @@ public class Viewer extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (filename == null || file == null) {
-            return true;
-        }
-
         switch (item.getItemId()) {
             case R.id.action_download:
-                writeFile(filename, file);
+                if (notEnoughMemoryToPreview) {
+                    toast("File is already downloaded");
+                } else {
+                    if (!fileIsInMemory) return true;
+                    writeFile();
+                }
                 return true;
             case R.id.action_share:
-                share(filename, file);
+                if (!fileIsDownloaded) return true;
+                if (notEnoughMemoryToPreview) {
+                    share();
+                } else {
+                    downloadAndShare();
+                }
                 return true;
             case android.R.id.home:
+                if (!fileIsInMemory) return true; // TODO: cancel download?
                 finish();
                 return true;
         }

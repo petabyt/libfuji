@@ -122,7 +122,7 @@ public class Tester extends AppCompatActivity {
 
         Backend.cTesterInit(this);
 
-        if (Backend.cRouteLogs(Backend.getLogPath()) == 0) {
+        if (Backend.cRouteLogs() == 0) {
             log("Routing logs to memory buffer.");
         }
 

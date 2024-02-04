@@ -10,6 +10,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
+import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.content.Intent;
@@ -17,6 +19,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.TextView;
+
+import libui.LibUI;
 
 public class Gallery extends AppCompatActivity {
     public static Gallery instance;
@@ -59,37 +63,21 @@ public class Gallery extends AppCompatActivity {
         }
     }
 
-    private void downloadSelectedImages() {
-        /*
-        showWarning("selected image downloading is in development.");
-
-        try {
-            JSONObject jsonObject = Camera.getObjectInfo(handle);
-        } catch (Exception e) {
-            
-        }
-
-        filename = jsonObject.getString("filename");
-        int size = jsonObject.getInt("compressedSize");
-        int imgX = jsonObject.getInt("imgWidth");
-        int imgY = jsonObject.getInt("imgHeight");
-
-        // GetObjectInfo - uncompressed, so need to guess buffer size
-        // GetObject - get the entire object into RAM
-        // GetEvents - if failed, end of stream
-
-        //Viewer.writeFile()
-         */
-    }
-
     void fail(int code, String reason) {
+        if (Backend.cGetKillSwitch()) return;
+        Backend.reportError(code, reason);
         handler.post(new Runnable() {
             @Override
             public void run() {
-                Backend.exitToMain(Gallery.this);
-                Backend.reportError(code, reason);
+                Gallery.this.finish();
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        LibUI.start(this);
+        super.onResume();
     }
 
     @Override
@@ -98,7 +86,9 @@ public class Gallery extends AppCompatActivity {
         setContentView(R.layout.activity_gallery);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+        actionBar.setTitle("Gallery");
         instance = this;
+        LibUI.start(this);
 
         ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
 
@@ -106,6 +96,8 @@ public class Gallery extends AppCompatActivity {
         recyclerView.setLayoutManager(new GridLayoutManager(this, GRID_SIZE));
 
         handler = new Handler(Looper.getMainLooper());
+
+        // If kill switch off, invalid state, finish()
 
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -117,6 +109,14 @@ public class Gallery extends AppCompatActivity {
                     fail(Backend.PTP_IO_ERR, "Failed to init socket");
                     return;
                 }
+
+                String camName = Backend.cPtpFujiGetName();
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        actionBar.setTitle("Gallery: " + camName);
+                    }
+                });
 
                 // Fuji cameras require delay after init
                 try {
@@ -148,7 +148,12 @@ public class Gallery extends AppCompatActivity {
 
                 if (Backend.cIsMultipleMode()) {
                     showWarning("View multiple mode in development");
-                    Backend.cFujiDownloadMultiple();
+                    rc = Backend.cFujiDownloadMultiple();
+                    if (rc != 0) {
+                        fail(rc, "Error importing images");
+                        return;
+                    }
+                    Backend.print("Check your file manager app/gallery.");
                     return;
                 }
 
@@ -231,21 +236,32 @@ public class Gallery extends AppCompatActivity {
     // When back pressed in gallery, do nothing
     @Override
     public void onBackPressed() {
-        // TODO: Press again to terminate connection
-        fail(0, "Quitting");
-        finish();
+        if (LibUI.handleBack(true)) {
+            Backend.reportError(0, "Quitting");
+        }
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                Backend.reportError(Backend.PTP_OK, "Graceful disconnect");
-                finish();
+        if (item.getItemId() == android.R.id.home) {
+            if (LibUI.handleOptions(item, true)) {
+                Backend.reportError(0, "Quitting");
                 return true;
+            }
+        } else if (item.getTitle() == "scripts") {
+            Backend.cFujiScriptsScreen(this);
         }
 
-        return super.onOptionsItemSelected(item);
+        return false;
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuItem menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "scripts");
+        menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        menuItem.setIcon(R.drawable.baseline_terminal_24);
+
+        return LibUI.handleMenu(menu);
     }
 }
 

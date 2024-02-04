@@ -14,15 +14,27 @@
 JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
 
-	int rc = ptpip_fuji_init_req(&backend.r, "Fudgyfilm");
-	if (rc) return rc;
-
 	struct PtpFujiInitResp resp;
-	ptp_fuji_get_init_info(&backend.r, &resp);
+	int rc = ptpip_fuji_init_req(&backend.r, "Fudge", &resp);
+	if (rc) return rc;
 
 	fuji_known.info = fuji_get_model_info(resp.cam_name);
 
 	return rc;
+}
+
+JNI_FUNC(jstring, cPtpFujiGetName)(JNIEnv *env, jobject thiz) {
+	set_jni_env(env);
+
+	if (fuji_known.info == NULL) {
+		return (*env)->NewStringUTF(env, "Unknown Camera");
+	} else {
+		return (*env)->NewStringUTF(env, fuji_known.info->name);
+	}
+}
+
+JNI_FUNC(jboolean, cGetKillSwitch)(JNIEnv *env, jobject thiz) {
+	return backend.r.io_kill_switch != 0;
 }
 
 JNI_FUNC(jint, cPtpFujiWaitUnlocked)(JNIEnv *env, jobject thiz) {
@@ -37,20 +49,34 @@ JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
 	return rc;
 }
 
+JNI_FUNC(jint, cFujiDownloadFile)(JNIEnv *env, jobject thiz, jint handle, jstring path) {
+	set_jni_env(env);
+
+	const char *c_path = (*env)->GetStringUTFChars(env, path, 0);
+
+	FILE *f = fopen(c_path, "wb");
+	if (f == NULL) return PTP_RUNTIME_ERR;
+
+	int rc = ptp_download_object(&backend.r, handle, f, 0x1000000);
+	fclose(f);
+	if (rc) {
+		app_print("Failed to save %s: %s", c_path, ptp_perror(rc));
+		return rc;
+	}
+
+	(*env)->ReleaseStringUTFChars(env, path, c_path);
+	(*env)->DeleteLocalRef(env, path);
+
+	return 0;
+}
+
 // Must be called after cFujiGetUncompressedObjectInfo
-JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
+JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray array, jint file_size) {
 	set_jni_env(env);
 
 	// This can be any number really, but best to keep under 20mb or so
+	// We try and get it as huge as possible to speed things up
 	int max = backend.r.data_length;
-
-	struct PtpObjectInfo oi;
-	int rc = ptp_get_object_info(&backend.r, (int)handle, &oi);
-	if (rc) {
-		return NULL;
-	}
-
-	jbyteArray array = (*env)->NewByteArray(env, oi.compressed_size);
 
 	// Makes sure to set the compression prop back to 0 after finished
 	// (extra data won't go through for some reason)
@@ -58,24 +84,25 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 	while (1) {
 		ptp_mutex_keep_locked(&backend.r);
 
-		rc = ptp_get_partial_object(&backend.r, handle, read, max);
+		int rc = ptp_get_partial_object(&backend.r, handle, read, max);
 		if (rc == PTP_CHECK_CODE) {
 			fuji_disable_compression(&backend.r);
 			ptp_mutex_unlock(&backend.r);
-			return NULL;
+			return rc;
 		} else if (rc) {
-			return NULL;
+			return rc;
 		}
+
 
 		size_t payload_size = ptp_get_payload_length(&backend.r);
 
 		if (payload_size == 0) {
-			fuji_disable_compression(&backend.r);
+			//fuji_disable_compression(&backend.r);
 			ptp_mutex_unlock(&backend.r);
-			return NULL;
+			return rc;
 		}
 
-		if (read + payload_size > oi.compressed_size) {
+		if (read + payload_size > file_size) {
 			android_err("ptp_get_object_info has lied about it's compressed size out of shame");
 		}
 
@@ -92,17 +119,17 @@ JNI_FUNC(jbyteArray, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle) {
 			android_err("SetByteArrayRegion exception");
 			(*env)->ExceptionClear(env);
 
-			fuji_disable_compression(&backend.r);
+			//fuji_disable_compression(&backend.r);
 
-			return NULL;
+			return rc;
 		}
 
 		read += ptp_get_payload_length(&backend.r);
 
-		if (read >= oi.compressed_size) {
+		if (read >= file_size) {
 			fuji_disable_compression(&backend.r);
 			android_err("Downloaded %d bytes", read);
-			return array;
+			return 0;
 		}
 	}
 }

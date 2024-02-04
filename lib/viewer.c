@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include "app.h"
+
 #include <camlib.h>
+#include "app.h"
 #include "fuji.h"
 #include "fujiptp.h"
 
@@ -19,40 +20,27 @@ JNI_FUNC(jint, cFujiDownloadMultiple)(JNIEnv *env, jobject thiz) {
 	return fuji_download_multiple(&backend.r);
 }
 
-static int download(char *name, void *data, size_t length) {
-	char path[128];
-	sprintf(path, "/storage/emulated/0/Pictures/fudge/%s", name);
-
-	FILE *f = fopen(path, "wb");
-	if (f == NULL) return 1;
-	fwrite(data, 1, length, f);
-	fclose(f);
-	return 0;
-}
-
 int fuji_download_classic(struct PtpRuntime *r) {
 	while (1) {
 		// This determines whether the connection is terminated or not
 		struct PtpObjectInfo oi;
 		int rc = ptp_get_object_info(r, 1, &oi);
-		if (rc) {
-			return NULL;
-		}
+		if (rc) return rc;
 
 		app_print("Downloading %s...", oi.filename);
 
-		// Give a generous 2mb buffer - allow the downloader to extend as needed
-		size_t size = 2 * 1000 * 1000;
-		uint8_t *buffer = malloc(size);
+		char path[128];
+		sprintf(path, "/storage/emulated/0/Pictures/fudge/%s", oi.filename);
+		FILE *f = fopen(path, "wb");
+		if (f == NULL) return PTP_RUNTIME_ERR;
 
-		int dsize = fuji_slow_download_object(r, 1, &buffer, size);
-		if (dsize < 0) return dsize;
-
-		if (download(oi.filename, buffer, dsize)) {
-			app_print("Failed to save %s", oi.filename);
+		// Not sure if 0x100000 is required or not, but we'll do what Fuji is doing.
+		rc = ptp_download_object(r, 1, f, 0x100000);
+		fclose(f);
+		if (rc) {
+			app_print("Failed to save %s: %s", oi.filename, ptp_perror(rc));
+			return rc;
 		}
-
-		free(buffer);
 
 		// Fuji's fujisystem will swap out object ID 1 with the next image. If there
 		// are no more images, the camera shuts down the connection and turns off.
@@ -68,11 +56,13 @@ int fuji_download_multiple(struct PtpRuntime *r) {
 	if (fuji_known.remote_version == -1) {
 		if (fuji_download_classic(r)) {
 			app_print("Error importing images");
+			return PTP_IO_ERR;
 		} else {
 			app_print("Done downloading images.");
 		}
 	} else {
 		app_print("Unsupported remote mode download");
+		return PTP_IO_ERR;
 	}
 	return 0;
 }

@@ -22,6 +22,9 @@ PTP_FUNC(jstring, cPtpRun)(JNIEnv *env, jobject thiz, jstring string) {
 
 	int rc = bind_run(r, (char *)req, buffer, PTP_BIND_DEFAULT_SIZE);
 
+	(*env)->ReleaseStringUTFChars(env, string, req);
+	(*env)->DeleteLocalRef(env, string);
+
 	if (rc == -1) {
 		return (*env)->NewStringUTF(env, "{\"error\": -1}");
 	}

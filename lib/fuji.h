@@ -6,12 +6,14 @@
 // (Not a part of camlib)
 void ptp_report_error(struct PtpRuntime *r, char *reason, int code);
 
+int fuji_reset_ptp(struct PtpRuntime *r);
+
 // Test suite stuff
 int fuji_test_setup(struct PtpRuntime *r);
 int fuji_test_filesystem(struct PtpRuntime *r);
 
 // Send init packet, recieve response
-int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name);
+int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp);
 
 int fuji_config_version(struct PtpRuntime *r);
 int fuji_config_init_mode(struct PtpRuntime *r);

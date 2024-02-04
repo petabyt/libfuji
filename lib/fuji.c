@@ -14,7 +14,14 @@
 
 struct FujiDeviceKnowledge fuji_known = {0};
 
-int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name) {
+int fuji_reset_ptp(struct PtpRuntime *r) {
+	memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
+	ptp_generic_reset(r);
+	r->connection_type = PTP_IP_USB;
+	r->response_wait_default = 3; // Fuji cams are slow!
+}
+
+int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp) {
 	struct FujiInitPacket *p = (struct FujiInitPacket *)r->data;
 	memset(p, 0, sizeof(struct FujiInitPacket));
 	p->length = 0x52;
@@ -36,6 +43,8 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name) {
 	if (x < 0) return PTP_IO_ERR;
 	x = ptpip_cmd_read(r, r->data + 4, p->length - 4);
 	if (x < 0) return PTP_IO_ERR;
+
+	ptp_fuji_get_init_info(r, resp);
 
 	if (ptp_get_return_code(r) == 0x0) {
 		return 0;
@@ -295,7 +304,8 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 	return 0;
 }
 
-int fuji_slow_download_object(struct PtpRuntime *r, int handle, uint8_t **buffer, size_t size) {
+#if 0
+int ptp_stream_download_object(struct PtpRuntime *r, int handle, FILE *f) {
 	int of = 0;
 	const int max = 0x100000;
 	while (1) {
@@ -318,3 +328,4 @@ int fuji_slow_download_object(struct PtpRuntime *r, int handle, uint8_t **buffer
 
 	return of;
 }
+#endif

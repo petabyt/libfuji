@@ -3,14 +3,12 @@
 
 package dev.danielc.fujiapp;
 import android.content.Context;
-import android.net.ConnectivityManager;
 import android.util.Log;
 import android.os.Environment;
 import java.io.File;
 import org.json.JSONObject;
 import java.util.Arrays;
-import android.content.Context;
-import android.content.Intent;
+
 import camlib.*;
 
 public class Backend extends CamlibBackend {
@@ -64,14 +62,9 @@ public class Backend extends CamlibBackend {
     // Write reason + code, and reconnect popup
     public native static void cReportError(int code, String reason);
     public static void reportError(int code, String reason) {
+        if (Backend.cGetKillSwitch()) return;
+        Log.d("fudge", reason);
         cReportError(code, reason);
-    }
-    public static void exitToMain(Context ctx) {
-        // Kill switch is operated by camlib, so checking socket kill switch will do for now
-        if (!Backend.cmdSocket.alive) return;
-
-        Intent intent = new Intent(ctx, MainActivity.class);
-        ctx.startActivity(intent);
     }
 
     // In order to give the backend access to the static methods, new objects must be made
@@ -98,13 +91,14 @@ public class Backend extends CamlibBackend {
 
     // IO kill switch is in C/camlib, so we must set it when a connection is established
     public native static void cClearKillSwitch();
+    public native static boolean cGetKillSwitch();
 
     // Note: 'synchronized' means only one of these methods can be used at time -
     // java's version of a mutex
     public native static void cInit(Backend b, SimpleSocket c);
     public native static int cPtpFujiInit();
     public native static int cPtpFujiPing();
-    //public native static int cPtpGetPropValue(int code);
+    public native static String cPtpFujiGetName();
     public native static int cPtpFujiWaitUnlocked();
     public native static int cFujiConfigVersion();
     public native static int cFujiConfigInitMode();
@@ -120,24 +114,21 @@ public class Backend extends CamlibBackend {
     public native static int cFujiTestStartRemoteSockets();
 
     // Must be called in order - first one enables compression, second disables compression
-    // This is a cheap fix for now, will be fixed in the next refactoring
+    // It must be this way to prevent too much data being passed JVM -> native
     public native static String cFujiGetUncompressedObjectInfo(int handle);
-    public native static byte[] cFujiGetFile(int handle);
+    public native static int cFujiGetFile(int handle, byte[] array, int fileSize);
+    public native static int cFujiDownloadFile(int handle, String path);
 
     // For test suite only
     public native static void cTesterInit(Tester t);
-    //public native static String cTestFunc();
     public native static int cFujiTestSetupImageGallery();
-    //public native static int cTestStuff();
     public native static int cFujiTestSuiteSetup();
-
-    // Enable disable verbose logging to file
-    public native static int cRouteLogs(String filename);
+    public native static int cRouteLogs();
     public native static String cEndLogs();
 
     public native static int cFujiScriptsScreen(Context ctx);
 
-    public native static int cSetProgressBar(Object progressBar);
+    public native static int cSetProgressBarObj(Object progressBar, int size);
 
     // Runs a request with integer parameters
     public static JSONObject run(String req, int[] arr) throws Exception {
@@ -211,9 +202,14 @@ public class Backend extends CamlibBackend {
         }
     }
 
+    // Return directory is guaranteed to exist
     public static String getDownloads() {
         String mainStorage = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getPath();
         String fujifilm = mainStorage + File.separator + "fudge";
+        File directory = new File(fujifilm);
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
         return fujifilm;
     }
 

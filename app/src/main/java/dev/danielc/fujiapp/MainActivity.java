@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -30,17 +31,23 @@ public class MainActivity extends AppCompatActivity {
     Handler handler;
 
     @Override
+    protected void onResume() {
+        LibUI.start(this);
+        super.onResume();
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         instance = this;
         handler = new Handler(Looper.getMainLooper());
 
-        LibUI.buttonBackgroundResource = R.drawable.grey_button;
-        LibUI.popupDrawableResource = R.drawable.border;
-
         Backend.init();
         Backend.updateLog();
+
+        LibUI.buttonBackgroundResource = R.drawable.grey_button;
+        LibUI.popupDrawableResource = R.drawable.border;
 
         findViewById(R.id.reconnect).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -66,6 +73,8 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.test_suite).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+//                Intent intent = new Intent(MainActivity.this, Scripts.class);
+//                startActivity(intent);
                 Backend.cFujiScriptsScreen(MainActivity.this);
             }
         });
@@ -75,12 +84,10 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         }
 
-        ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        SimpleSocket.setConnectivityManager(m);
+        SimpleSocket.setConnectivityManager((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
 
         // Idea: Show WiFi status on screen?
-        WiFiComm.startNetworkListeners(m);
+        WiFiComm.startNetworkListeners(this);
 
         //Backend.cFujiScriptsScreen(MainActivity.this);
     }
@@ -130,8 +137,8 @@ public class MainActivity extends AppCompatActivity {
                 mime = "image/*";
             }
 
-            if (Viewer.downloadedFilename != null) {
-                path = Viewer.downloadedFilename;
+            if (Viewer.filename!= null) {
+                path = Viewer.filename;
                 mime = "image/*";
             }
 
@@ -139,8 +146,7 @@ public class MainActivity extends AppCompatActivity {
             intent.setAction(Intent.ACTION_VIEW);
             intent.setDataAndType(Uri.parse(path), mime);
             startActivity(intent);
-        } else if (item.getTitle() == "script") {
-            //Backend.cFujiScriptsScreen(MainActivity.this);
+        } else if (item.getTitle() == "tester") {
             Intent intent = new Intent(MainActivity.this, Tester.class);
             startActivity(intent);
         } else {
@@ -152,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        LibUI.handleBack(false);
+        LibUI.handleBack(true);
     }
 
     @Override
@@ -161,10 +167,10 @@ public class MainActivity extends AppCompatActivity {
         menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         menuItem.setIcon(R.drawable.baseline_folder_open_24);
 
-        menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "script");
+        menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "tester");
         menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         menuItem.setIcon(R.drawable.baseline_fact_check_24);
 
-        return super.onCreateOptionsMenu(menu);
+        return LibUI.handleMenu(menu);
     }
 }

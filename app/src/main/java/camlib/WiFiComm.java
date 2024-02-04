@@ -2,12 +2,16 @@
 // Copyright Daniel Cook - Apache License
 package camlib;
 
+import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkRequest;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
 import java.net.InetSocketAddress;
 import java.io.IOException;
@@ -52,7 +56,8 @@ public class WiFiComm {
         return sock;
     }
 
-    public static void startNetworkListeners(ConnectivityManager connectivityManager) {
+    public static void startNetworkListeners(Context ctx) {
+        ConnectivityManager m = (ConnectivityManager)ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
         requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
         ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
@@ -73,7 +78,13 @@ public class WiFiComm {
             }
         };
 
-        connectivityManager.requestNetwork(requestBuilder.build(), networkCallback);
+        try {
+            m.requestNetwork(requestBuilder.build(), networkCallback);
+        } catch (Exception e) {
+            Intent goToSettings = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
+            goToSettings.setData(Uri.parse("package:" + ctx.getPackageName()));
+            ctx.startActivity(goToSettings);
+        }
     }
 
     public static Network getWiFiNetwork(ConnectivityManager cm) throws Exception {

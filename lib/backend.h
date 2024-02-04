@@ -13,6 +13,8 @@ struct AndroidBackend {
 
 	jobject cmd_buffer;
 	jobject progress_bar;
+	int download_progress;
+	int download_size;
 
 	jobject tester;
 	jmethodID tester_log;

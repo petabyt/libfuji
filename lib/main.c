@@ -34,13 +34,24 @@ struct PtpRuntime *luaptp_get_runtime() {
 	return ptp_get();
 }
 
-void reset_connection() {
-	memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
-	ptp_generic_reset(&backend.r);
-	backend.r.connection_type = PTP_IP_USB;
+void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
+	android_err("Kill switch: %d tid: %d\n", r->io_kill_switch, gettid());
+	if (r->io_kill_switch) return;
+	r->io_kill_switch = 1;
+
+	if (reason == NULL) {
+		if (code == PTP_IO_ERR) {
+			app_print("Disconnected: IO Error");
+		} else {
+			app_print("Disconnected: Runtime error");
+		}
+	} else {
+		app_print("Disconnected: %s", reason);
+	}
 }
 
 void ptp_verbose_log(char *fmt, ...) {
+	//__android_log_write(ANDROID_LOG_ERROR, "ptp_verbose_log", buffer);
 	if (backend.log_buf == NULL) return;
 
 	char buffer[512];
@@ -48,7 +59,6 @@ void ptp_verbose_log(char *fmt, ...) {
 	va_start(args, fmt);
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
-	//__android_log_write(ANDROID_LOG_ERROR, "ptp-verbose", buffer);
 
 	if (strlen(buffer) + backend.log_pos + 1 > backend.log_size) {
 		backend.log_buf = realloc(backend.log_buf, strlen(buffer) + backend.log_pos + 1);
@@ -60,6 +70,7 @@ void ptp_verbose_log(char *fmt, ...) {
 
 void ptp_panic(char *fmt, ...) {
 	// TODO: abort()
+	abort();
 }
 
 void app_print(char *fmt, ...) {
@@ -70,7 +81,9 @@ void app_print(char *fmt, ...) {
 	va_end(args);
 
 	JNIEnv *env = get_jni_env();
-	(*env)->CallStaticVoidMethod(env, backend.main, backend.jni_print, (*env)->NewStringUTF(env, buffer));
+	jstring j_str = (*env)->NewStringUTF(env, buffer);
+	(*env)->CallStaticVoidMethod(env, backend.main, backend.jni_print, j_str);
+	(*env)->DeleteLocalRef(env, j_str);
 }
 
 void android_err(char *fmt, ...) {
@@ -80,7 +93,7 @@ void android_err(char *fmt, ...) {
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
 
-	__android_log_write(ANDROID_LOG_ERROR, "fujiapp-dbg", buffer);
+	__android_log_write(ANDROID_LOG_ERROR, "fudge", buffer);
 }
 
 void tester_log(char *fmt, ...) {
@@ -94,7 +107,9 @@ void tester_log(char *fmt, ...) {
 	ptp_verbose_log("%s\n", buffer);
 
 	JNIEnv *env = get_jni_env();
-	(*env)->CallVoidMethod(env, backend.tester, backend.tester_log, (*env)->NewStringUTF(env, buffer));
+	jstring j_str = (*env)->NewStringUTF(env, buffer);
+	(*env)->CallVoidMethod(env, backend.tester, backend.tester_log, j_str);
+	(*env)->DeleteLocalRef(env, j_str);
 }
 
 void tester_fail(char *fmt, ...) {
@@ -137,7 +152,7 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
 	backend.cmd_buffer = (*env)->NewGlobalRef(env, buffer);
 
 	ptp_init(&backend.r);
-	reset_connection();
+	fuji_reset_ptp(&backend.r);
 }
 
 // Init commands 
@@ -152,10 +167,8 @@ JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
 	backend.tester_fail = (*env)->GetMethodID(env, testerClass, "fail", "(Ljava/lang/String;)V");
 }
 
-JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz, jstring path) {
+JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
-	const char *req = (*env)->GetStringUTFChars(env, path, 0);
-	if (req == NULL) return 1;
 
 	backend.log_buf = malloc(1000);
 	backend.log_size = 1000;

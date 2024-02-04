@@ -161,16 +161,14 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 int fuji_test_setup(struct PtpRuntime *r) {
 	tester_log("Running test suite from C");
 
-	int rc = ptpip_fuji_init_req(r, "fudge-test");
+	struct PtpFujiInitResp resp;
+	int rc = ptpip_fuji_init_req(r, "fudge-test", &resp);
 	if (rc) {
 		tester_fail("Failed to initialize command socket");
 		return rc;
 	} else {
 		tester_log("Initialized command socket");
 	}
-
-	struct PtpFujiInitResp resp;
-	ptp_fuji_get_init_info(r, &resp);
 
 	tester_log("Connected to %s", resp.cam_name);
 

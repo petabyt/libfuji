@@ -20,18 +20,20 @@ int ndk_network_init() {
 	// todo
 }
 
-JNI_FUNC(jboolean, cSetProgressBar)(JNIEnv *env, jobject thiz, jobject pg) {
+JNI_FUNC(jboolean, cSetProgressBarObj)(JNIEnv *env, jobject thiz, jobject pg, jint size) {
 	if (pg == NULL) {
 		(*env)->DeleteGlobalRef(env, backend.progress_bar);
 		backend.progress_bar = NULL;
 		return 0;
 	}
+	backend.download_size = size;
+	backend.download_progress = 0;
 	backend.progress_bar = (*env)->NewGlobalRef(env, pg);
 	return 0;
 }
 
 JNI_FUNC(void, cClearKillSwitch)(JNIEnv *env, jobject thiz) {
-	reset_connection();
+	fuji_reset_ptp(&backend.r);
 	backend.r.io_kill_switch = 0;
 }
 
@@ -49,22 +51,9 @@ JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reaso
 	ptp_report_error(&backend.r, (char *)c_reason, (int)code);
 
 	ptpip_cmd_close(&backend.r);
-}
 
-void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
-	android_err("Kill switch %d\n", r->io_kill_switch);
-	if (r->io_kill_switch) return;
-	r->io_kill_switch = 1;
-
-	if (reason == NULL) {
-		if (code == PTP_IO_ERR) {
-			app_print("Disconnected: IO Error");
-		} else {
-			app_print("Disconnected: Runtime error");
-		}
-	} else {
-		app_print("Disconnected: %s", reason);
-	}
+	(*env)->ReleaseStringUTFChars(env, reason, c_reason);
+	(*env)->DeleteLocalRef(env, reason);
 }
 
 int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
@@ -97,15 +86,24 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *to, int length) {
 	return written;
 }
 
+static void increment_progress_bar(JNIEnv *env, int read) {
+	static int last_p = 0;
+
+	backend.download_progress += read;
+
+	int n = (((double)backend.download_progress) / (double)backend.download_size * 100.0);
+	if (last_p != n) {
+		if (n > 100) return;
+		jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, backend.progress_bar), "setProgress", "(I)V");
+		(*env)->CallVoidMethod(env, backend.progress_bar, method, n);
+	}
+	last_p = n;
+}
+
 int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
 	if (r->io_kill_switch) return -1;
 	if (length <= 0) {
 		android_err("Length is less than 1");
-		return -1;
-	}
-
-	if (length > 50000000) {
-		android_err("Camera is trying to send too much data - breaking connection.");
 		return -1;
 	}
 
@@ -132,13 +130,7 @@ int ptpip_cmd_read(struct PtpRuntime *r, void *to, int length) {
 		read += ret;
 
 		if (backend.progress_bar != NULL) {
-			static int last_p = 0;
-			int n = (((double)read) / (double)length * 100.0);
-			if (last_p != n) {
-				jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, backend.progress_bar), "setProgress", "(I)V");
-				(*env)->CallVoidMethod(env, backend.progress_bar, method, n);
-			}
-			last_p = n;
+			increment_progress_bar(env, ret);
 		}
 	}
 

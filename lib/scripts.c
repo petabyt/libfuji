@@ -5,25 +5,27 @@
 #include <string.h>
 #include <ui.h>
 #include <uifw.h>
-#include "myjni.h"
-
 #include <camlib.h>
 #include <camlua.h>
 
+#include "myjni.h"
+
 int luaopen_libuilua(lua_State *L);
+
+static uiMultilineEntry *script_box = NULL;
 
 int cam_lua_setup(lua_State *L) {
 	luaL_requiref(L, "ui", luaopen_libuilua, 1);
+	return 0;
 }
 
 static void on_click(uiButton *b, void *dat) {
-	char *file = libu_get_txt_file(uiAndroidGetEnv(), uiAndroidGetCtx(), "script.lua");
-
-	if (cam_run_lua_script_async(file) < 0) {
+	char *file = uiMultilineEntryText(script_box);
+	if (cam_run_lua_script(file) < 0) {
 		uiToast(cam_lua_get_error());
 	}
 
-	free(file);
+	uiFreeText(file);
 }
 
 void *libu_get_assets_file(JNIEnv *env, jobject ctx, char *filename, int *length);
@@ -32,7 +34,15 @@ void fudge_scripts_screen() {
 	uiBox *box = uiNewVerticalBox();
 	uiBoxSetPadded(box, 1);
 
-	uiButton *b = uiNewButton("Hello, World");
+	char *file = libu_get_txt_file(uiAndroidGetEnv(), uiAndroidGetCtx(), "script.lua");
+
+	script_box = uiNewMultilineEntry();
+	uiMultilineEntrySetText(script_box, file);
+	uiBoxAppend(box, uiControl(script_box), 0);
+
+	free(file);
+
+	uiButton *b = uiNewButton("Run script");
 	uiButtonOnClicked(b, on_click, NULL);
 	uiBoxAppend(box, uiControl(b), 0);
 
@@ -44,7 +54,7 @@ void fudge_scripts_screen() {
 						"- Bleeding edge experimental features!\n"
 						"- Buffer overflows!")), 0);
 
-	uiSwitchScreen(box, "Scripts");
+	uiSwitchScreen(uiControl(box), "Scripts");
 }
 
 JNI_FUNC(jint, cFujiScriptsScreen)(JNIEnv *env, jobject thiz, jobject ctx) {
@@ -52,5 +62,10 @@ JNI_FUNC(jint, cFujiScriptsScreen)(JNIEnv *env, jobject thiz, jobject ctx) {
 
 	fudge_scripts_screen();
 
+	return 0;
+}
+
+int fuji_scripts_screen(uiWindow *win) {
+	uiWindowSetChild(win, uiNewLabel("Hello"));
 	return 0;
 }

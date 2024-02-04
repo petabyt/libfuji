@@ -23,6 +23,9 @@
             android:name=".Help"
             android:exported="false" />
         <activity
+            android:name=".Scripts"
+            android:exported="false" />
+        <activity
             android:name=".Viewer"
             android:screenOrientation="portrait"
             android:exported="false" />
