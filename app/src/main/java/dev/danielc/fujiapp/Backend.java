@@ -98,6 +98,8 @@ public class Backend extends CamlibBackend {
 
     public native static int cSetProgressBarObj(Object progressBar, int size);
 
+    public native static void cFujiScriptsScreen(Context ctx);
+
     public static JSONObject fujiGetUncompressedObjectInfo(int handle) throws Exception {
         try {
             String resp = cFujiGetUncompressedObjectInfo(handle);

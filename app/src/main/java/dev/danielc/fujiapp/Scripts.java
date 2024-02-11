@@ -17,7 +17,7 @@ public class Scripts extends AppCompatActivity {
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle("Scripts");
         LibUI.start(this);
-        LibUI.startWindow("fuji_scripts_screen");
+        Backend.cFujiScriptsScreen(this);
     }
 
     @Override

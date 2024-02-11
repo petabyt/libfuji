@@ -21,7 +21,6 @@ import androidx.core.content.ContextCompat;
 
 import java.io.File;
 
-import camlib.SimpleSocket;
 import camlib.WiFiComm;
 import libui.LibUI;
 
