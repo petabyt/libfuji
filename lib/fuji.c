@@ -6,9 +6,7 @@
 #include <errno.h>
 #include <string.h>
 #include <camlib.h>
-
-//#include "myjni.h"
-#include "models.h"
+#include "app.h"
 #include "fuji.h"
 #include "fujiptp.h"
 
@@ -16,9 +14,109 @@ struct FujiDeviceKnowledge fuji_known = {0};
 
 int fuji_reset_ptp(struct PtpRuntime *r) {
 	memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
-	ptp_generic_reset(r);
+	ptp_reset(r);
 	r->connection_type = PTP_IP_USB;
 	r->response_wait_default = 3; // Fuji cams are slow!
+}
+
+// Call after cmd socket is opened
+int fuji_setup(struct PtpRuntime *r, char *ip) {
+	struct PtpFujiInitResp resp;
+	int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+	if (rc) {
+		app_print("Failed to initialize connection");
+		return rc;
+	}
+	app_print("Initialized connection.");
+
+	fuji_known.info = fuji_get_model_info(resp.cam_name);
+
+	ui_send_text("cam_name", resp.cam_name);
+
+	// Fuji cameras require delay after init
+	app_print("Waiting on camera..");
+	usleep(50000);
+
+	rc = ptp_open_session(r);
+	if (rc) {
+		app_print("Failed to open session.");
+		return rc;
+	}
+
+	rc = fuji_wait_for_access(r);
+	if (rc) {
+		app_print("Failed to get access to the camera.");
+		return rc;
+	}
+
+	// Remote cams don't need to wait for access, so waiting for the 'OK'
+	// is done somewhere else
+	if (fuji_known.camera_state != FUJI_REMOTE_ACCESS) {
+		app_print("Gained access to the camera.");
+	}
+
+	// NOTE: cFujiConfigInitMode *must* be called before fuji_config_version, or anything else.
+	// If not, it will break up the connection and destroy packets for any file operation.
+	rc = fuji_config_init_mode(r);
+	if (rc) {
+		app_print("Failed to setup the camera's mode");
+		return rc;
+	}
+
+	if (fuji_known.camera_state == FUJI_MULTIPLE_TRANSFER) {
+		rc = fuji_download_multiple(r);
+		if (rc) {
+			app_print("Error downloading images");
+			return rc;
+		}
+		app_print("Check your file manager app/gallery.");
+		ptp_report_error(r, "Disconnected", 0);
+		return 0;
+	}
+
+	// Misnomer, should be config_image_viewer
+	rc = fuji_config_version(r);
+	if (rc) {
+		app_print("Failed to check versions.");
+		return rc;
+	}
+
+//	rc = fuji_config_device_info_routine(r);
+//	if (rc) return rc;
+
+	// Setup remote mode
+	if (fuji_known.remote_version != -1) {
+		rc = fuji_setup_remote_mode(r, ip);
+		if (rc) return rc;
+	}
+
+	return 0;
+}
+
+int fuji_setup_remote_mode(struct PtpRuntime *r, char *ip) {
+	int rc = fuji_remote_mode_open_sockets(r);
+	if (rc) {
+		app_print("Failed to start remote mode");
+		return rc;
+	} else {
+		app_print("Started remote mode.");
+	}
+
+	rc = ptpip_connect_events(r, ip, FUJI_EVENT_IP_PORT);
+	if (rc) return rc;
+
+	rc = ptpip_connect_video(r, ip, FUJI_LIVEVIEW_IP_PORT);
+	if (rc) return rc;
+
+	rc = fuji_remote_mode_end(r);
+	if (rc) {
+		app_print("Failed to finish remote setup.");
+		return rc;
+	} else {
+		app_print("Finished remote setup.");
+	}
+
+	return 0;
 }
 
 int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp) {
@@ -303,29 +401,3 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 
 	return 0;
 }
-
-#if 0
-int ptp_stream_download_object(struct PtpRuntime *r, int handle, FILE *f) {
-	int of = 0;
-	const int max = 0x100000;
-	while (1) {
-		int rc = ptp_get_partial_object(r, handle, of, max);
-		if (rc) return rc;
-
-		if (of + ptp_get_payload_length(r) >= size) {
-			size = size + 1 * 1000 * 1000;
-			(*buffer) = realloc((*buffer), size);
-		}
-
-		memcpy((*buffer) + of, ptp_get_payload(r), ptp_get_payload_length(r));
-
-		of += ptp_get_payload_length(r);
-
-		if (ptp_get_payload_length(r) != max) {
-			break;
-		}
-	}
-
-	return of;
-}
-#endif

@@ -2,9 +2,6 @@
 // Copyright Daniel Cook - Apache License
 package camlib;
 
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
 import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
@@ -12,7 +9,7 @@ import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 
-public class UsbComm {
+public class SimpleUSB {
     public UsbDevice dev = null;
     UsbInterface interf = null;
 
@@ -27,9 +24,6 @@ public class UsbComm {
 
     UsbDeviceConnection connection;
     UsbManager inMan;
-
-    // Once this is enabled (during connection), all comm will be disabled
-    public boolean killSwitch = true;
 
     public void getEndpoints() throws Exception {
         endpointOut = null;
@@ -83,12 +77,13 @@ public class UsbComm {
         if (connection == null) {
             throw new Exception("Could not connect to the USB device.");
         }
+    }
 
-        killSwitch = false;
+    public int getFileDescriptor() {
+        return connection.getFileDescriptor();
     }
 
     public int write(byte[] data, int length) throws Exception {
-        if (killSwitch) return -1;
         try {
             return connection.bulkTransfer(endpointOut, data, length, timeout);
         } catch (Error e) {
@@ -97,7 +92,6 @@ public class UsbComm {
     }
 
     public int read(byte[] data, int length) throws Exception {
-        if (killSwitch) return -1;
         try {
             return connection.bulkTransfer(endpointIn, data, length, timeout);
         } catch (Error e) {

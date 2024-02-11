@@ -5,9 +5,8 @@
 #include <errno.h>
 #include <string.h>
 #include <camlib.h>
-
+#include "app.h"
 #include "fuji.h"
-#include "models.h"
 #include "fujiptp.h"
 
 // Test suite verbose logging
@@ -205,6 +204,29 @@ int fuji_test_setup(struct PtpRuntime *r) {
 	if (rc) return rc;
 
 	rc = fuji_init_setup(r);
+	if (rc) return rc;
+
+	return 0;
+}
+
+int fuji_test_suite(struct PtpRuntime *r, char *ip) {
+	int rc = fuji_test_setup(r);
+	if (rc) return rc;
+
+	if (fuji_known.remote_version != -1) {
+		int rc = fuji_setup_remote_mode(r, ip);
+		if (rc) return rc;
+	}
+
+	rc = fuji_config_image_viewer(r);
+	if (rc) {
+		tester_fail("Failed to config image viewer");
+		return rc;
+	} else {
+		tester_log("Configured image viewer");
+	}
+
+	rc = fuji_test_filesystem(r);
 	if (rc) return rc;
 
 	return 0;

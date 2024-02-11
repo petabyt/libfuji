@@ -80,6 +80,16 @@ public class Gallery extends AppCompatActivity {
         super.onResume();
     }
 
+    void setTitleCamName(String name) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                ActionBar actionBar = getSupportActionBar();
+                actionBar.setTitle("Gallery: " + name);
+            }
+        });
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -88,7 +98,6 @@ public class Gallery extends AppCompatActivity {
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle("Gallery");
         instance = this;
-        LibUI.start(this);
 
         ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
 
@@ -97,98 +106,13 @@ public class Gallery extends AppCompatActivity {
 
         handler = new Handler(Looper.getMainLooper());
 
-        // If kill switch off, invalid state, finish()
-
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                int rc;
-                if (Backend.cPtpFujiInit() == 0) {
-                    Backend.print("Initialized connection.");
-                } else {
-                    fail(Backend.PTP_IO_ERR, "Failed to init socket");
-                    return;
-                }
-
-                String camName = Backend.cPtpFujiGetName();
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        actionBar.setTitle("Gallery: " + camName);
-                    }
-                });
-
-                // Fuji cameras require delay after init
-                try {
-                    Thread.sleep(500);
-                } catch (Exception e) {
-                    return;
-                }
-
-                try {
-                    Backend.cPtpOpenSession();
-                } catch (Exception e) {
-                    fail(Backend.PTP_IO_ERR, "Failed to open session.");
-                    return;
-                }
-
-                Backend.print("Waiting for device access...");
-                if (Backend.cPtpFujiWaitUnlocked() == 0) {
-                    Backend.print("Gained access to device.");
-                } else {
-                    fail(Backend.PTP_IO_ERR, "Failed to gain access to device.");
-                    return;
-                }
-
-                // Camera mode must be set before anything else
-                if (Backend.cFujiConfigInitMode() != 0) {
-                    fail(Backend.PTP_IO_ERR, "Failed to configure mode with the camera.");
-                    return;
-                }
-
-                if (Backend.cIsMultipleMode()) {
-                    showWarning("View multiple mode in development");
-                    rc = Backend.cFujiDownloadMultiple();
-                    if (rc != 0) {
-                        fail(rc, "Error importing images");
-                        return;
-                    }
-                    Backend.print("Check your file manager app/gallery.");
-                    return;
-                }
-
-                if (Backend.cIsUntestedMode()) {
-                    showWarning("Support for this camera is under development.");
-                }
-
-                Backend.print("Configuring versions and stuff..");
-                rc = Backend.cFujiConfigVersion();
+                int rc = Backend.cFujiSetup(Backend.chosenIP);
                 if (rc != 0) {
-                    fail(rc, "Failed to configure camera versions.");
+                    fail(rc, "Setup error");
                     return;
-                }
-
-                // Enter and 'exit' remote mode
-                if (Backend.cCameraWantsRemote()) {
-                    Backend.print("Entering remote mode..");
-                    rc = Backend.cFujiTestStartRemoteSockets();
-                    if (rc != 0) {
-                        fail(rc, "Failed to init remote mode");
-                        return;
-                    }
-
-                    try {
-                        Backend.fujiConnectEventAndVideo();
-                    } catch (Exception e) {
-                        fail(Backend.PTP_RUNTIME_ERR, "Failed to enter remote mode");
-                        return;
-                    }
-
-                    rc = Backend.cFujiEndRemoteMode();
-                    if (rc != 0) {
-                        fail(rc, "Failed to exit remote mode");
-                        return;
-                    }
                 }
 
                 Backend.print("Entering image gallery..");
@@ -249,7 +173,8 @@ public class Gallery extends AppCompatActivity {
                 return true;
             }
         } else if (item.getTitle() == "scripts") {
-            Backend.cFujiScriptsScreen(this);
+            Intent intent = new Intent(Gallery.this, Scripts.class);
+            startActivity(intent);
         }
 
         return false;

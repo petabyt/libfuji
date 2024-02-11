@@ -10,7 +10,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -49,11 +48,27 @@ public class MainActivity extends AppCompatActivity {
         LibUI.buttonBackgroundResource = R.drawable.grey_button;
         LibUI.popupDrawableResource = R.drawable.border;
 
-        findViewById(R.id.reconnect).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.connect_wifi).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Backend.clearPrint();
-                connectClick(v);
+                connectClick();
+            }
+        });
+
+        findViewById(R.id.connect_usb).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Backend.clearPrint();
+                connectUSB();
+            }
+        });
+
+        findViewById(R.id.plugins).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, Scripts.class);
+                startActivity(intent);
             }
         });
 
@@ -70,12 +85,11 @@ public class MainActivity extends AppCompatActivity {
         bottomText.append("Download location: " + Backend.getDownloads() + "\n");
         bottomText.append(getString(R.string.motd_thing) + " " + BuildConfig.VERSION_NAME);
 
-        findViewById(R.id.test_suite).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.plugins).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                Intent intent = new Intent(MainActivity.this, Scripts.class);
-//                startActivity(intent);
-                Backend.cFujiScriptsScreen(MainActivity.this);
+                Intent intent = new Intent(MainActivity.this, Scripts.class);
+                startActivity(intent);
             }
         });
 
@@ -84,20 +98,37 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         }
 
-        SimpleSocket.setConnectivityManager((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
+        WiFiComm.setConnectivityManager((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
 
         // Idea: Show WiFi status on screen?
         WiFiComm.startNetworkListeners(this);
 
-        //Backend.cFujiScriptsScreen(MainActivity.this);
+        //Intent intent = new Intent(MainActivity.this, Tester.class);
+        //startActivity(intent);
     }
 
-    public void connectClick(View v) {
+    public void connectClick() {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     Backend.fujiConnectToCmd();
+                    Backend.print("Connected to the camera");
+                    Intent intent = new Intent(MainActivity.this, Gallery.class);
+                    startActivity(intent);
+                } catch (Exception e) {
+                    Backend.print(e.getMessage());
+                }
+            }
+        }).start();
+    }
+
+    public void connectUSB() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Backend.connectUSB(MainActivity.this);
                     Backend.print("Connected to the camera");
                     Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);
@@ -119,33 +150,36 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    void openFiles() {
+        File[] fileList;
+        File file = new File(Backend.getDownloads());
+        if (!file.isDirectory()) {
+            return;
+        }
+
+        fileList = file.listFiles();
+        String mime = "*/*";
+        String path = Backend.getDownloads();
+        if (fileList.length != 0) {
+            path = fileList[0].getPath();
+            mime = "image/*";
+        }
+
+        if (Viewer.filename!= null) {
+            path = Viewer.filename;
+            mime = "image/*";
+        }
+
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_VIEW);
+        intent.setDataAndType(Uri.parse(path), mime);
+        startActivity(intent);
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getTitle() == "open") {
-
-            File[] fileList;
-            File file = new File(Backend.getDownloads());
-            if (!file.isDirectory()) {
-                return super.onOptionsItemSelected(item);
-            }
-
-            fileList = file.listFiles();
-            String mime = "*/*";
-            String path = Backend.getDownloads();
-            if (fileList.length != 0) {
-                path = fileList[0].getPath();
-                mime = "image/*";
-            }
-
-            if (Viewer.filename!= null) {
-                path = Viewer.filename;
-                mime = "image/*";
-            }
-
-            Intent intent = new Intent();
-            intent.setAction(Intent.ACTION_VIEW);
-            intent.setDataAndType(Uri.parse(path), mime);
-            startActivity(intent);
+            openFiles();
         } else if (item.getTitle() == "tester") {
             Intent intent = new Intent(MainActivity.this, Tester.class);
             startActivity(intent);

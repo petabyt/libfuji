@@ -16,6 +16,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.PopupWindow;
@@ -258,6 +259,7 @@ public class LibUI {
         screens.add(screen);
 
         // Now start constructing the new layout
+        layout.startAnimation(AnimationUtils.loadAnimation(ctx, android.R.anim.fade_in));
         ((Activity)ctx).setContentView(layout);
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle(title);

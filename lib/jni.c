@@ -5,42 +5,26 @@
 #include <errno.h>
 #include <string.h>
 #include <camlib.h>
-
-#include "myjni.h"
+#include "app.h"
 #include "backend.h"
 #include "fuji.h"
 #include "fujiptp.h"
 
-JNI_FUNC(jint, cPtpFujiInit)(JNIEnv *env, jobject thiz) {
+JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reason) {
 	set_jni_env(env);
 
-	struct PtpFujiInitResp resp;
-	int rc = ptpip_fuji_init_req(&backend.r, "Fudge", &resp);
-	if (rc) return rc;
+	const char *c_reason = (*env)->GetStringUTFChars(env, reason, 0);
 
-	fuji_known.info = fuji_get_model_info(resp.cam_name);
+	ptp_report_error(&backend.r, (char *)c_reason, (int)code);
 
-	return rc;
-}
+	ptpip_close(&backend.r);
 
-JNI_FUNC(jstring, cPtpFujiGetName)(JNIEnv *env, jobject thiz) {
-	set_jni_env(env);
-
-	if (fuji_known.info == NULL) {
-		return (*env)->NewStringUTF(env, "Unknown Camera");
-	} else {
-		return (*env)->NewStringUTF(env, fuji_known.info->name);
-	}
+	(*env)->ReleaseStringUTFChars(env, reason, c_reason);
+	(*env)->DeleteLocalRef(env, reason);
 }
 
 JNI_FUNC(jboolean, cGetKillSwitch)(JNIEnv *env, jobject thiz) {
 	return backend.r.io_kill_switch != 0;
-}
-
-JNI_FUNC(jint, cPtpFujiWaitUnlocked)(JNIEnv *env, jobject thiz) {
-	set_jni_env(env);
-	int rc = fuji_wait_for_access(&backend.r);
-	return rc;
 }
 
 JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
@@ -103,7 +87,7 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 		}
 
 		if (read + payload_size > file_size) {
-			android_err("ptp_get_object_info has lied about it's compressed size out of shame");
+			plat_dbg("ptp_get_object_info has lied about it's compressed size out of shame");
 		}
 
 		(*env)->SetByteArrayRegion(
@@ -116,7 +100,7 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 
 		// Check for possible buffer overflow
 		if ((*env)->ExceptionCheck(env)) {
-			android_err("SetByteArrayRegion exception");
+			plat_dbg("SetByteArrayRegion exception");
 			(*env)->ExceptionClear(env);
 
 			//fuji_disable_compression(&backend.r);
@@ -128,7 +112,7 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 
 		if (read >= file_size) {
 			fuji_disable_compression(&backend.r);
-			android_err("Downloaded %d bytes", read);
+			plat_dbg("Downloaded %d bytes", read);
 			return 0;
 		}
 	}
@@ -158,28 +142,17 @@ JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jin
 	return ret;
 }
 
-// NOTE: cFujiConfigInitMode *must* be called before cFujiConfigVersion, or anything else.
-// If not, it will break up the connection and destroy packets for any file operation.
-JNI_FUNC(jint, cFujiConfigInitMode)(JNIEnv *env, jobject thiz) {
+JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz, jstring ip) {
 	set_jni_env(env);
 
-	int rc = fuji_config_init_mode(&backend.r);
+	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
+
+	int rc = fuji_setup(&backend.r, c_ip);
+
+	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
+	(*env)->DeleteLocalRef(env, ip);
 
 	return rc;
-}
-
-// Misnomer, should be configImageViewer
-JNI_FUNC(jint, cFujiConfigVersion)(JNIEnv *env, jobject thiz) {
-	set_jni_env(env);
-
-	int rc = fuji_config_version(&backend.r);
-	if (rc) {
-		return rc;
-	}
-
-	rc = fuji_config_device_info_routine(&backend.r);
-
-	return 0;
 }
 
 JNI_FUNC(jint, cFujiConfigImageGallery)(JNIEnv *env, jobject thiz) {
@@ -189,27 +162,6 @@ JNI_FUNC(jint, cFujiConfigImageGallery)(JNIEnv *env, jobject thiz) {
 	if (rc) return rc;
 
 	return 0;
-}
-
-JNI_FUNC(jboolean, cIsUntestedMode)(JNIEnv *env, jobject thiz) {
-	if (fuji_known.info == NULL) {
-		return 1;
-	}
-
-	if (fuji_known.get_object_version != 2) {
-		return 1;
-	}
-
-	return 0;
-}
-
-JNI_FUNC(jboolean, cCameraWantsRemote)(JNIEnv *env, jobject thiz) {
-	// Determine if camera supports remote mode -> then it will probably require it
-	return fuji_known.remote_version != -1;
-}
-
-JNI_FUNC(jboolean, cIsMultipleMode)(JNIEnv *env, jobject thiz) {
-	return fuji_known.camera_state == FUJI_MULTIPLE_TRANSFER;
 }
 
 // Return array of valid objects on main storage device
@@ -232,47 +184,17 @@ JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
 	return result;
 }
 
-JNI_FUNC(jint, cFujiTestSuiteSetup)(JNIEnv *env, jobject thiz) {
+JNI_FUNC(jint, cFujiTestSuite)(JNIEnv *env, jobject thiz, jstring ip) {
 	set_jni_env(env);
-	return fuji_test_setup(&backend.r);
-}
 
-JNI_FUNC(jint, cFujiTestStartRemoteSockets)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
-	int rc = fuji_remote_mode_open_sockets(&backend.r);
-	if (rc) {
-		tester_fail("Failed to open sockets");
-	} else {
-		tester_log("Opened sockets in remote mode");
-	}
+
+	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
+
+	int rc = fuji_test_suite(&backend.r, c_ip);
+
+	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
+	(*env)->DeleteLocalRef(env, ip);
 
 	return rc;
-}
-
-JNI_FUNC(jint, cFujiEndRemoteMode)(JNIEnv *env, jobject thiz) {
-	set_jni_env(env);
-	int rc = fuji_remote_mode_end(&backend.r);
-	if (rc) {
-		tester_fail("Failed to end remote mode");
-	} else {
-		tester_log("Ended remote mode after setting up sockets");
-	}
-
-	return rc;
-}
-
-JNI_FUNC(jint, cFujiTestSetupImageGallery)(JNIEnv *env, jobject thiz) {
-	set_jni_env(env);
-	int rc = fuji_config_image_viewer(&backend.r);
-	if (rc) {
-		tester_fail("Failed to config image viewer");
-		return rc;
-	} else {
-		tester_log("Configured image viewer");
-	}
-
-	rc = fuji_test_filesystem(&backend.r);
-	if (rc) return rc;
-
-	return 0;
 }

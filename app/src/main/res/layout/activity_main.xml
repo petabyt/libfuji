@@ -21,14 +21,22 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <Button
-            android:id="@+id/reconnect"
+            android:id="@+id/connect_wifi"
             style="@style/GoButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Connect" />
+            android:text="Connect to WiFi" />
 
         <Button
-            android:id="@+id/test_suite"
+            style="@style/GoButton"
+            android:id="@+id/connect_usb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/go_button2"
+            android:text="Connect to USB" />
+
+        <Button
+            android:id="@+id/plugins"
             style="@style/GreyButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

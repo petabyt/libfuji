@@ -74,7 +74,8 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
                     Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length, opt);
                     if (bitmap == null) {
-                        Backend.print("Image decode error"); // TODO prevent click
+                        Backend.print("Image decode error");
+                        holder.itemView.setOnClickListener(null);
                         return;
                     }
                     holder.itemView.post(new Runnable() {

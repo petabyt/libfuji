@@ -30,7 +30,7 @@
 #define PTP_OC_FUJI_Unknown1	0x9054
 #define PTP_OC_FUJI_Unknown2	0x9055
 
-// Property codes, others are in camlib ptp.h
+// Device property codes, IP only
 #define PTP_PC_FUJI_Unknown4		0xD228
 #define PTP_PC_FUJI_Unknown15		0xD22B
 #define PTP_PC_FUJI_CompressionCutOff	0xD235

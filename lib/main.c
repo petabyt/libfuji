@@ -7,8 +7,8 @@
 
 #include <camlib.h>
 
-#include "myjni.h"
 #include "fuji.h"
+#include "app.h"
 #include "backend.h"
 
 struct AndroidBackend backend;
@@ -22,7 +22,11 @@ void set_jni_env(JNIEnv *env) {
 }
 
 JNIEnv *get_jni_env() {
-	// Compiles to GCC/clang __emutls_get_address
+	if (backend_env == NULL) {
+		plat_dbg("JNIEnv not set for this thread");
+		abort();
+	}
+
 	return backend_env;
 }
 
@@ -35,9 +39,13 @@ struct PtpRuntime *luaptp_get_runtime() {
 }
 
 void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
-	android_err("Kill switch: %d tid: %d\n", r->io_kill_switch, gettid());
+	plat_dbg("Kill switch: %d tid: %d\n", r->io_kill_switch, gettid());
 	if (r->io_kill_switch) return;
 	r->io_kill_switch = 1;
+
+	if (r->connection_type == PTP_IP_USB) ptpip_close(r);
+
+	fuji_reset_ptp(r);
 
 	if (reason == NULL) {
 		if (code == PTP_IO_ERR) {
@@ -86,7 +94,7 @@ void app_print(char *fmt, ...) {
 	(*env)->DeleteLocalRef(env, j_str);
 }
 
-void android_err(char *fmt, ...) {
+void plat_dbg(char *fmt, ...) {
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
@@ -126,40 +134,39 @@ void tester_fail(char *fmt, ...) {
 	(*env)->CallVoidMethod(env, backend.tester, backend.tester_fail, (*env)->NewStringUTF(env, buffer));
 }
 
-JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz, jobject pac, jobject conn) {
+void ui_send_text(char *key, char *fmt, ...) {
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+
+	JNIEnv *env = get_jni_env();
+	jstring j_str = (*env)->NewStringUTF(env, buffer);
+	jstring j_key = (*env)->NewStringUTF(env, key);
+	(*env)->CallStaticVoidMethod(env, backend.main, backend.send_text_m, j_key, j_str);
+	(*env)->DeleteLocalRef(env, j_str);
+	(*env)->DeleteLocalRef(env, j_key);
+}
+
+JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz) {
 	// On init, all members in backend are garunteed to be NULL
 	memset(&backend, 0, sizeof(backend));
 
 	set_jni_env(env);
 
 	backend.main = (*env)->NewGlobalRef(env, thiz);
-	backend.conn = (*env)->NewGlobalRef(env, conn);
 
 	backend.jni_print = (*env)->GetStaticMethodID(env, backend.main, "print", "(Ljava/lang/String;)V");
-
-	jfieldID soc_f = (*env)->GetStaticFieldID(env, backend.main, "cmdSocket", "Lcamlib/SimpleSocket;");
-	jobject soc_o = (*env)->GetStaticObjectField(env, backend.main, soc_f);
-	jclass soc_class = (*env)->GetObjectClass(env, soc_o);
-	backend.conn = (*env)->NewGlobalRef(env, soc_o);
-
-	backend.cmd_write = (*env)->GetMethodID(env, soc_class, "write", "(I)I");
-	backend.cmd_read = (*env)->GetMethodID(env, soc_class, "read", "(I)I");
-	backend.cmd_close = (*env)->GetMethodID(env, soc_class, "close", "()V");
-
-	// Get socket IO buffer
-	jmethodID get_buffer_m = (*env)->GetMethodID(env, soc_class, "getBuffer", "()Ljava/lang/Object;");
-	jobject buffer = (*env)->CallObjectMethod(env, soc_o, get_buffer_m);
-	backend.cmd_buffer = (*env)->NewGlobalRef(env, buffer);
+	backend.send_text_m = (*env)->GetStaticMethodID(env, backend.main, "sendTextUpdate", "(Ljava/lang/String;Ljava/lang/String;)V");
 
 	ptp_init(&backend.r);
 	fuji_reset_ptp(&backend.r);
 }
 
-// Init commands 
 JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
 	set_jni_env(env);
 
-	//jclass thizClass = (*env)->GetObjectClass(env, thiz);
 	jclass testerClass = (*env)->GetObjectClass(env, tester);
 	backend.tester = (*env)->NewGlobalRef(env, tester);
 

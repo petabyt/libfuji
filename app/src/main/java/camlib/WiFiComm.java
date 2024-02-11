@@ -27,6 +27,11 @@ import libui.LibUI;
 public class WiFiComm {
     public static final String TAG = "camlib";
 
+    private static ConnectivityManager cm = null;
+    public static void setConnectivityManager(ConnectivityManager cm) {
+        WiFiComm.cm = cm;
+    }
+
     //public boolean killSwitch = true;
 
     static Network wifiDevice = null;
@@ -87,7 +92,7 @@ public class WiFiComm {
         }
     }
 
-    public static Network getWiFiNetwork(ConnectivityManager cm) throws Exception {
+    public static Network getWiFiNetwork() throws Exception {
         NetworkInfo wifiInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
         if (!wifiInfo.isAvailable()) {
             throw new Exception("WiFi is not available.");
@@ -102,8 +107,31 @@ public class WiFiComm {
         return wifiDevice;
     }
 
-    public static Socket connectWiFiSocket(ConnectivityManager cm, String ip, int port) throws Exception {
-        Network dev = getWiFiNetwork(cm);
+    public static final int NOT_AVAILABLE = -101;
+    public static final int NOT_CONNECTED = -102;
+    public static final int UNSUPPORTED_SDK = -103;
+
+    public static long getNetworkHandle() {
+        NetworkInfo wifiInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        if (!wifiInfo.isAvailable()) {
+            return NOT_AVAILABLE; // not available
+        } else if (!wifiInfo.isConnected()) {
+            return NOT_CONNECTED; // not connected
+        }
+
+        if (wifiDevice == null) {
+            return NOT_CONNECTED;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return wifiDevice.getNetworkHandle();
+        } else {
+            return UNSUPPORTED_SDK;
+        }
+    }
+
+    public static Socket connectWiFiSocket(String ip, int port) throws Exception {
+        Network dev = getWiFiNetwork();
         return tryConnectToSocket(dev, ip, port);
     }
 }

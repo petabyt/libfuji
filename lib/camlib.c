@@ -5,9 +5,7 @@
 
 #include <camlib.h>
 
-#ifndef PTP_FUNC
 #define PTP_FUNC(ret, name) JNIEXPORT ret JNICALL Java_camlib_CamlibBackend_##name
-#endif
 
 void set_jni_env(JNIEnv *env);
 struct PtpRuntime *ptp_get();

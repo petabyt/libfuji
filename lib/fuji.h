@@ -3,16 +3,23 @@
 
 #include "models.h"
 
+#define DEVICE_NAME "Fudge"
+
 // (Not a part of camlib)
 void ptp_report_error(struct PtpRuntime *r, char *reason, int code);
 
 int fuji_reset_ptp(struct PtpRuntime *r);
 
+int fuji_setup_remote_mode(struct PtpRuntime *r, char *ip);
+
+int fuji_setup(struct PtpRuntime *r, char *ip);
+
 // Test suite stuff
+int fuji_test_suite(struct PtpRuntime *r, char *ip);
 int fuji_test_setup(struct PtpRuntime *r);
 int fuji_test_filesystem(struct PtpRuntime *r);
 
-// Send init packet, recieve response
+// Send init packet, receive response
 int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp);
 
 int fuji_config_version(struct PtpRuntime *r);
@@ -26,14 +33,17 @@ int fuji_remote_mode_end(struct PtpRuntime *r);
 
 int fuji_wait_for_access(struct PtpRuntime *r);
 
-// Recieves events once, and updates info struct with changes
+// Receives events once, and updates info struct with changes
 int fuji_get_events(struct PtpRuntime *r);
 
 // Enable/disable compression prop for downloading photos
 int fuji_disable_compression(struct PtpRuntime *r);
 int fuji_enable_compression(struct PtpRuntime *r);
 
-int fuji_slow_download_object(struct PtpRuntime *r, int handle, uint8_t **buffer, size_t size);
+int fuji_download_multiple(struct PtpRuntime *r);
+
+// Another socket on top of the 2 that camlib connects to
+int ptpip_connect_video(struct PtpRuntime *r, char *addr, int port);
 
 // Holds runtime info about the camera
 struct FujiDeviceKnowledge {

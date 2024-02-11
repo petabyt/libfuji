@@ -1,4 +1,4 @@
-// WIP util lib
+// Temporary helper class for JNI
 package libui;
 
 import android.Manifest;
@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.DocumentsContract;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
@@ -25,54 +26,6 @@ import java.io.InputStream;
 import java.util.Scanner;
 
 public class LibU {
-    public static void createDir(String directoryPath) {
-        File directory = new File(directoryPath);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
-    }
-
-    public static void toast(Context ctx, String arg) {
-        Toast.makeText(ctx, arg, Toast.LENGTH_SHORT).show();
-    }
-
-    public static void shareJpeg(Context ctx, String path, String action) {
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setType("image/jpeg");
-
-        Uri imageUri = Uri.parse("file://" + path);
-        shareIntent.putExtra(Intent.EXTRA_STREAM, imageUri);
-
-        Intent chooserIntent = Intent.createChooser(shareIntent, action);
-        chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-        if (chooserIntent.resolveActivity(ctx.getPackageManager()) != null) {
-            ctx.startActivity(chooserIntent);
-        }
-    }
-
-    public static void writeFile(String path, byte[] data) throws Exception {
-        File file = new File(path);
-        FileOutputStream fos = null;
-
-        try {
-            fos = new FileOutputStream(file);
-            fos.write(data);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw e;
-        } finally {
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    throw e;
-                }
-            }
-        }
-    }
-
     public void getFilePermissions(Activity ctx) {
         // Require legacy Android write permissions
         if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {

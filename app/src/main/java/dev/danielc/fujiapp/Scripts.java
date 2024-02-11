@@ -15,19 +15,13 @@ public class Scripts extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-
+        actionBar.setTitle("Scripts");
         LibUI.start(this);
         LibUI.startWindow("fuji_scripts_screen");
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                finish();
-                return true;
-        }
-
-        return super.onOptionsItemSelected(item);
+        return LibUI.handleOptions(item, true);
     }
 }

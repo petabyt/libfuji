@@ -1,17 +1,58 @@
 #ifndef BACKEND_H
 #define BACKEND_H
 
+#include <jni.h>
+#include <android/log.h>
+
+#ifndef JNI_FUNC
+#define JNI_FUNC(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_fujiapp_Backend_##name
+#endif
+
+#if defined(__arm__)
+#if defined(__ARM_ARCH_7A__)
+#if defined(__ARM_NEON__)
+#if defined(__ARM_PCS_VFP)
+#define ABI "armeabi-v7a/NEON (hard-float)"
+#else
+#define ABI "armeabi-v7a/NEON"
+#endif
+#else
+#if defined(__ARM_PCS_VFP)
+	#define ABI "armeabi-v7a (hard-float)"
+	#else
+	#define ABI "armeabi-v7a"
+	#endif
+#endif
+#else
+#define ABI "armeabi"
+#endif
+#elif defined(__i386__)
+#define ABI "x86"
+#elif defined(__x86_64__)
+#define ABI "x86_64"
+	#elif defined(__mips64)  /* mips64el-* toolchain defines __mips__ too */
+	#define ABI "mips64"
+	#elif defined(__mips__)
+	#define ABI "mips"
+	#elif defined(__aarch64__)
+	#define ABI "arm64-v8a"
+	#else
+	#define ABI "unknown"
+#endif
+
 struct AndroidBackend {
-	jobject main; // Backend class
-	jobject conn; // Conn class
+	jobject main; // Backend global obj
+//	jobject cmd_socket;
 
-	// Imported functions
 	jmethodID jni_print;
-	jmethodID cmd_read;
-	jmethodID cmd_write;
-	jmethodID cmd_close;
 
-	jobject cmd_buffer;
+	jmethodID send_text_m;
+
+//	jmethodID wifi_cmd_read;
+//	jmethodID wifi_cmd_write;
+//	jmethodID wifi_cmd_close;
+//	jobject wifi_cmd_buffer;
+
 	jobject progress_bar;
 	int download_progress;
 	int download_size;
@@ -30,20 +71,14 @@ struct AndroidBackend {
 
 extern struct AndroidBackend backend;
 
-#include "app.h"
-
-// printf to kernel
-void android_err(char *fmt, ...);
+void set_jni_env(JNIEnv *env);
+JNIEnv *get_jni_env();
 
 // Verbose print to log file
 void jni_verbose_log(char *str);
 
 void reset_connection();
 
-// lib.c
-int libu_write_file(JNIEnv *env, char *path, void *data, size_t length);
-
-void set_jni_env(JNIEnv *env);
-JNIEnv *get_jni_env();
+int jni_setup_usb(JNIEnv *env, jobject obj);
 
 #endif

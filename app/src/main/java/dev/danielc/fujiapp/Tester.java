@@ -24,6 +24,7 @@ import android.os.Build;
 
 import java.net.Socket;
 import android.content.ClipboardManager;
+import android.widget.Toast;
 
 import libui.LibU;
 
@@ -60,67 +61,20 @@ public class Tester extends AppCompatActivity {
         bt.getConnectedDevice();
     }
 
-    // Deprecated WiFi/socket tester, for testing only
-    Socket testSock = null;
-    void socketTest(ConnectivityManager m) {
-        try {
-            NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
-            requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
-            ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
-                @Override
-                public void onAvailable(Network network) {
-                    Log.e("tester", "Wifi available");
-                    ConnectivityManager.setProcessDefaultNetwork(network);
-
-                    try {
-                        Socket s = new Socket(Backend.FUJI_IP, Backend.FUJI_CMD_PORT);
-                        s.setKeepAlive(true);
-                        s.setTcpNoDelay(true);
-                        s.setReuseAddress(true);
-                        testSock = s;
-                        log("Success socket");
-                    } catch (Exception e) {
-                        fail(e.toString());
-                    }
-
-                    m.unregisterNetworkCallback(this);
-                }
-            };
-
-            if (Build.VERSION.SDK_INT >= 26) {
-                m.requestNetwork(requestBuilder.build(), networkCallback, Backend.OPEN_TIMEOUT);
-            } else {
-                m.requestNetwork(requestBuilder.build(), networkCallback);
-            }
-        } catch (Exception e) {
-            fail(e.toString());
-        }
-
-        try {
-            Thread.sleep(1000);
-            if (testSock != null) {
-                byte[] data = {12, 12, 12, 12};
-                testSock.getOutputStream().write(data);
-                testSock.getOutputStream().flush();
-
-                testSock.close();
-            }
-        } catch (Exception e) {
-            fail(e.toString());
-        }
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setTitle("Test Suite");
+        actionBar.setTitle("Regression Testing");
 
         handler = new Handler(Looper.getMainLooper());
 
         Backend.cTesterInit(this);
+
+        //connectBluetooth();
+        //if (true) return;
 
         if (Backend.cRouteLogs() == 0) {
             log("Routing logs to memory buffer.");
@@ -139,10 +93,10 @@ public class Tester extends AppCompatActivity {
                     return;
                 }
 
-                log("Established connection, starting test thread");
+                log("Established connection, starting test");
 
                 mainTest(m);
-                Backend.cmdSocket.close();
+
                 verboseLog = Backend.cEndLogs();
                 log("Hit the copy button to share the verbose log with devs.");
             }
@@ -168,34 +122,9 @@ public class Tester extends AppCompatActivity {
     }
 
     public void mainTest(ConnectivityManager m) {
-        int rc = Backend.cFujiTestSuiteSetup();
+        int rc = Backend.cFujiTestSuite(Backend.chosenIP);
         log("Return code: " + rc);
         if (rc != 0) return;
-
-        if (Backend.cCameraWantsRemote()) {
-            rc = Backend.cFujiTestStartRemoteSockets();
-            if (rc != 0) return;
-
-            try {
-                Backend.fujiConnectEventAndVideo();
-                log("Accepted connection from event and video ports");
-            } catch (Exception e) {
-                fail("Failed to accept connections from event and video ports");
-                return;
-            }
-
-            rc = Backend.cFujiEndRemoteMode();
-            if (rc != 0) return;
-        }
-
-        rc = Backend.cFujiTestSetupImageGallery();
-        if (rc != 0) return;
-
-        try {
-            Backend.cPtpCloseSession();
-        } catch (Exception e) {
-            fail("Failed to close session");
-        }
 
         log("Test completed.");
     }
@@ -211,7 +140,7 @@ public class Tester extends AppCompatActivity {
                 ClipData clip = ClipData.newPlainText("Fudge log", verboseLog);
                 clipboard.setPrimaryClip(clip);
             } else {
-                LibU.toast(this, "Test not completed yet");
+                Toast.makeText(this, "Test not completed yet", Toast.LENGTH_SHORT).show();
             }
         }
 

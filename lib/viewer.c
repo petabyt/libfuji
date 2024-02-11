@@ -4,13 +4,10 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-
 #include <camlib.h>
 #include "app.h"
 #include "fuji.h"
 #include "fujiptp.h"
-
-#include "myjni.h"
 #include "backend.h"
 
 int fuji_download_multiple(struct PtpRuntime *r);

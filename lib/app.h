@@ -1,6 +1,11 @@
 #ifndef APP_H
 #define APP_H
 
+void ui_send_text(char *key, char *fmt, ...);
+
+// printf to kernel
+void plat_dbg(char *fmt, ...);
+
 // printf to UI
 void app_print(char *fmt, ...);
 

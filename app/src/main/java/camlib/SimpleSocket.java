@@ -11,11 +11,6 @@ import java.net.Socket;
 import dev.danielc.fujiapp.Backend;
 
 public class SimpleSocket {
-    private static ConnectivityManager m = null;
-    public static void setConnectivityManager(ConnectivityManager m) {
-        SimpleSocket.m = m;
-    }
-
     public int port;
     public String ip;
     public boolean alive;
@@ -46,7 +41,7 @@ public class SimpleSocket {
     public void connectWiFi(String ip, int port) throws Exception {
         Socket s;
         try {
-            s = WiFiComm.connectWiFiSocket(m, ip, port);
+            s = WiFiComm.connectWiFiSocket(ip, port);
         } catch (Exception e) {
             throw e;
         }
