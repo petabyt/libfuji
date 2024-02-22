@@ -2,7 +2,9 @@
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 
 package dev.danielc.fujiapp;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
 import android.os.Environment;
@@ -17,20 +19,49 @@ public class Backend extends CamlibBackend {
         System.loadLibrary("fujiapp");
     }
 
+    public static String getString(int res) {
+        return MainActivity.instance.getString(res);
+    }
+
     static SimpleUSB usb = new SimpleUSB();
 
     public static void connectUSB(Context ctx) throws Exception {
         UsbManager man = (UsbManager)ctx.getSystemService(Context.USB_SERVICE);
         usb.getUsbDevices(man);
-        usb.openConnection();
-        usb.getInterface();
-        usb.getEndpoints();
+
+        Backend.print("Trying to get permission...");
+        usb.waitPermission(ctx);
+
+        for (int i = 0; i < 100; i++) {
+            if (usb.havePermission()) {
+                Log.d("perm", "Have USB permission");
+                continueOpenUSB();
+                break;
+            }
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    static void continueOpenUSB() {
+        try {
+            usb.openConnection();
+            usb.getInterface();
+            usb.getEndpoints();
+
+            cUSBConnectNative(usb);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     static String chosenIP = Backend.FUJI_IP;
 
     public static void fujiConnectToCmd() throws Exception {
-        Backend.print("Connecting...");
+        Backend.print(getString(R.string.connecting));
 
         int rc = cConnectNative(Backend.FUJI_IP, Backend.FUJI_CMD_PORT);
         if (rc != 0) {
@@ -60,7 +91,7 @@ public class Backend extends CamlibBackend {
     // In order to give the backend access to the static methods, new objects must be made
     private static boolean haveInited = false;
     public static void init() {
-        if (haveInited == false) {
+        if (!haveInited) {
             cInit();
         }
         haveInited = true;
@@ -75,6 +106,7 @@ public class Backend extends CamlibBackend {
     public native static void cClearKillSwitch();
     public native static boolean cGetKillSwitch();
 
+    public native static int cUSBConnectNative(SimpleUSB usb);
     public native static int cConnectNative(String ip, int port);
     public native static void cInit();
     public native static int cFujiSetup(String ip);
@@ -101,13 +133,9 @@ public class Backend extends CamlibBackend {
     public native static void cFujiScriptsScreen(Context ctx);
 
     public static JSONObject fujiGetUncompressedObjectInfo(int handle) throws Exception {
-        try {
-            String resp = cFujiGetUncompressedObjectInfo(handle);
-            if (resp == null) throw new Exception("Failed to get obj info");
-            return new JSONObject(resp);
-        } catch (Exception e) {
-            throw e;
-        }
+        String resp = cFujiGetUncompressedObjectInfo(handle);
+        if (resp == null) throw new Exception("Failed to get obj info");
+        return new JSONObject(resp);
     }
 
     // C/Java -> async UI logging
@@ -159,9 +187,7 @@ public class Backend extends CamlibBackend {
                 if (Gallery.instance == null) return;
                 Gallery.instance.setTitleCamName(value);
                 return;
-            default:
-                Log.d("fudge", "Unknown update key " + key);
-                return;
         }
+        Log.d("fudge", "Unknown update key " + key);
     }
 }

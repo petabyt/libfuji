@@ -171,20 +171,6 @@ int fuji_test_setup(struct PtpRuntime *r) {
 
 	tester_log("Connected to %s", resp.cam_name);
 
-	fuji_known.info = fuji_get_model_info(resp.cam_name);
-	if (fuji_known.info == NULL) {
-		tester_fail("Couldn't get model info from database");
-	} else {
-		if (fuji_known.info->gps_support)
-			tester_log("- Supports gps");
-		if (fuji_known.info->has_bluetooth)
-			tester_log("- Has bluetooth");
-		if (fuji_known.info->capture_support)
-			tester_log("- Supports remote capture");
-		if (fuji_known.info->firm_update_support)
-			tester_log("- Supports firmware updates");
-	}
-
 	tester_log("sleep 500ms for good measure...");
 	CAMLIB_SLEEP(500);
 
@@ -209,7 +195,25 @@ int fuji_test_setup(struct PtpRuntime *r) {
 	return 0;
 }
 
+int fuji_test_usb(struct PtpRuntime *r) {
+	int rc = ptp_open_session(r);
+	if (rc) return rc;
+
+	struct PtpDeviceInfo di;
+	rc = ptp_get_device_info(r, &di);
+	if (rc) return rc;
+
+	tester_log("Camera name: %s", di.model);
+
+	rc = ptp_close_session(r);
+	if (rc) return rc;
+}
+
 int fuji_test_suite(struct PtpRuntime *r, char *ip) {
+	if (r->connection_type == PTP_USB) {
+		return fuji_test_usb(r);
+	}
+
 	int rc = fuji_test_setup(r);
 	if (rc) return rc;
 

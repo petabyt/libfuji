@@ -1,8 +1,6 @@
 #ifndef FUJIAPP_FUJI_H
 #define FUJIAPP_FUJI_H
 
-#include "models.h"
-
 #define DEVICE_NAME "Fudge"
 
 // (Not a part of camlib)

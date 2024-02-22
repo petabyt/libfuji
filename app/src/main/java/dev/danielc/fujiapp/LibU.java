@@ -26,37 +26,6 @@ import java.io.InputStream;
 import java.util.Scanner;
 
 public class LibU {
-    public void getFilePermissions(Activity ctx) {
-        // Require legacy Android write permissions
-        if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(ctx, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-        }
-    }
-
-    public static String getDCIM() {
-        String mainStorage = Environment.getExternalStorageDirectory().getAbsolutePath();
-        return mainStorage + File.separator + "DCIM" + File.separator;
-    }
-
-    public static String getDocuments() {
-        String mainStorage = Environment.getExternalStorageDirectory().getAbsolutePath();
-        return mainStorage + File.separator + "Documents" + File.separator;
-    }
-
-    public static JSONObject getJSONSettings(Activity ctx, String key) throws Exception {
-        SharedPreferences prefs = ctx.getSharedPreferences(ctx.getPackageName(), Context.MODE_PRIVATE);
-
-        String value = prefs.getString(ctx.getPackageName() + "." + key, null);
-        if (value == null) return null;
-
-        return new JSONObject(value);
-    }
-
-    public static void storeJSONSettings(Activity ctx, String key, String value) throws Exception {
-        SharedPreferences prefs = ctx.getSharedPreferences(ctx.getPackageName(), Context.MODE_PRIVATE);
-        prefs.edit().putString(ctx.getPackageName() + "." + key, value).apply();
-    }
-
     public static byte[] readFileFromAssets(Context ctx, String file) throws Exception {
         try {
             InputStream inputStream = ctx.getAssets().open(file);

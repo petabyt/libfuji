@@ -2,12 +2,18 @@
 // Copyright Daniel Cook - Apache License
 package camlib;
 
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
+import android.util.Log;
+
+import dev.danielc.fujiapp.Backend;
 
 public class SimpleUSB {
     public UsbDevice dev = null;
@@ -25,6 +31,22 @@ public class SimpleUSB {
     UsbDeviceConnection connection;
     UsbManager inMan;
 
+    public boolean havePermission() {
+        return inMan.hasPermission(dev);
+    }
+
+    public void waitPermission(Context ctx) throws Exception {
+        Backend.print("Trying to get permission...");
+        PendingIntent permissionIntent = PendingIntent.getBroadcast(
+                ctx, 0, new Intent(ctx.getPackageName() + ".USB_PERMISSION"), PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_NO_CREATE);
+
+        if (permissionIntent == null) {
+            throw new Exception("USB permissions denied!");
+        }
+
+        inMan.requestPermission(dev, permissionIntent);
+    }
+
     public void getEndpoints() throws Exception {
         endpointOut = null;
         endpointIn = null;
@@ -34,9 +56,11 @@ public class SimpleUSB {
             if (ep.getType() == UsbConstants.USB_ENDPOINT_XFER_BULK) {
                 if (ep.getDirection() == UsbConstants.USB_DIR_OUT) {
                     endpointOut = ep;
+                    Log.d("usb", "Endpoint out: " + endpointOut.getAddress());
                     //max = ep.getMaxPacketSize();
                 } else {
                     endpointIn = ep;
+                    Log.d("usb", "Endpoint in: " + endpointIn.getAddress());
                 }
             }
         }

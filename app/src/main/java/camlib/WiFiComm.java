@@ -32,34 +32,7 @@ public class WiFiComm {
         WiFiComm.cm = cm;
     }
 
-    //public boolean killSwitch = true;
-
     static Network wifiDevice = null;
-
-    static Socket tryConnectToSocket(Network net, String ip, int port) throws Exception {
-        Socket sock;
-        try {
-            // Create and connect to socket
-            sock = new Socket();
-
-            // Bind socket to the network device we selected
-            net.bindSocket(sock);
-            
-            //sock.setKeepAlive(true);
-            sock.setTcpNoDelay(true);
-            sock.setReuseAddress(true);
-
-            sock.connect(new InetSocketAddress(ip, port), 1000);
-        } catch (SocketTimeoutException e) {
-            Log.d(TAG, e.toString());
-            throw new Exception("Connection timed out");
-        } catch (Exception e) {
-            Log.d(TAG, e.toString());
-            throw new Exception("Failed to connect.");
-        }
-
-        return sock;
-    }
 
     public static void startNetworkListeners(Context ctx) {
         ConnectivityManager m = (ConnectivityManager)ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -128,10 +101,5 @@ public class WiFiComm {
         } else {
             return UNSUPPORTED_SDK;
         }
-    }
-
-    public static Socket connectWiFiSocket(String ip, int port) throws Exception {
-        Network dev = getWiFiNetwork();
-        return tryConnectToSocket(dev, ip, port);
     }
 }

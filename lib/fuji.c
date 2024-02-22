@@ -13,7 +13,6 @@
 struct FujiDeviceKnowledge fuji_known = {0};
 
 int fuji_reset_ptp(struct PtpRuntime *r) {
-	memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
 	ptp_reset(r);
 	r->connection_type = PTP_IP_USB;
 	r->response_wait_default = 3; // Fuji cams are slow!
@@ -21,6 +20,8 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 
 // Call after cmd socket is opened
 int fuji_setup(struct PtpRuntime *r, char *ip) {
+	memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
+
 	struct PtpFujiInitResp resp;
 	int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
 	if (rc) {
@@ -28,8 +29,6 @@ int fuji_setup(struct PtpRuntime *r, char *ip) {
 		return rc;
 	}
 	app_print("Initialized connection.");
-
-	fuji_known.info = fuji_get_model_info(resp.cam_name);
 
 	ui_send_text("cam_name", resp.cam_name);
 

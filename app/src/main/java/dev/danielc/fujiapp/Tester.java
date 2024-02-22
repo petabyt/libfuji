@@ -6,6 +6,7 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.ClipData;
+import android.hardware.usb.UsbManager;
 import android.util.Log;
 import android.content.Intent;
 import android.text.Html;
@@ -67,14 +68,11 @@ public class Tester extends AppCompatActivity {
         setContentView(R.layout.activity_test);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setTitle("Regression Testing");
+        actionBar.setTitle(getString(R.string.regressiontesting));
 
         handler = new Handler(Looper.getMainLooper());
 
         Backend.cTesterInit(this);
-
-        //connectBluetooth();
-        //if (true) return;
 
         if (Backend.cRouteLogs() == 0) {
             log("Routing logs to memory buffer.");
@@ -82,15 +80,24 @@ public class Tester extends AppCompatActivity {
 
         ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
 
+        Context ctx = this;
+
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     Backend.fujiConnectToCmd();
                 } catch (Exception e) {
-                    fail(e.toString());
-                    verboseLog = Backend.cEndLogs();
-                    return;
+                    fail("WIFI: " + e.toString());
+
+                    try {
+                        Backend.connectUSB(ctx);
+                    } catch (Exception e2) {
+                        fail("USB: " + e2.toString());
+
+                        verboseLog = Backend.cEndLogs();
+                        return;
+                    }
                 }
 
                 log("Established connection, starting test");
@@ -106,7 +113,7 @@ public class Tester extends AppCompatActivity {
     private String verboseLog = null;
     private String currentLogs = "";
     public void log(String str) {
-        Log.d("fujiapp-dbg-tester", str);
+        Log.d("fudge-tester", str);
         handler.post(new Runnable() {
             @Override
             public void run() {

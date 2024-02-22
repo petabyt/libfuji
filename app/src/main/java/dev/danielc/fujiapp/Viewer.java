@@ -201,13 +201,13 @@ public class Viewer extends AppCompatActivity {
             }
 
             handler.post(new Runnable() {
-                @SuppressLint({"SetTextI18n", "DefaultLocale"})
+                //@SuppressLint({"SetTextI18n", "DefaultLocale"})
                 @Override
                 public void run() {
                     actionBar.setTitle(filename);
                     TextView tv = findViewById(R.id.fileInfo);
-                    tv.setText("File size: " + String.format("%.2f", size / 1024.0 / 1024.0)
-                            + "MB\n" + "Dimensions: " + imgX + "x" + imgY);
+                    tv.setText(String.format(getString(R.string.filesize) + ": %.2fMB\n", size / 1024.0 / 1024.0));
+                    tv.append(String.format(getString(R.string.dimensions) + ": %dx%d\n", imgX, imgY));
                 }
             });
 
@@ -223,7 +223,7 @@ public class Viewer extends AppCompatActivity {
             Backend.cSetProgressBarObj(Viewer.progressBar, size);
             int rc = Backend.cFujiGetFile(handle, fileByteData, size);
             if (rc == Backend.PTP_CHECK_CODE) {
-                toast("Can't download");
+                toast("Can't download this file");
                 return;
             } else if (rc != 0) {
                 fail(Backend.PTP_IO_ERR, "Failed to download image");
@@ -279,14 +279,13 @@ public class Viewer extends AppCompatActivity {
         switch (item.getItemId()) {
             case R.id.action_download:
                 if (notEnoughMemoryToPreview) {
-                    toast("File is already downloaded");
+                    toast(getString(R.string.alreadydownloaded));
                 } else {
                     if (!fileIsInMemory) return true;
                     writeFile();
                 }
                 return true;
             case R.id.action_share:
-                if (!fileIsDownloaded) return true;
                 if (notEnoughMemoryToPreview) {
                     share();
                 } else {

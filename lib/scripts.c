@@ -24,7 +24,9 @@ static void on_click(uiButton *b, void *dat) {
 	uiFreeText(file);
 }
 
-uiBox *fudge_scripts_screen() {
+uiScroll *fudge_scripts_screen() {
+	uiScroll *scroll = uiNewScroll();
+
 	uiBox *box = uiNewVerticalBox();
 	uiBoxSetPadded(box, 1);
 
@@ -48,10 +50,19 @@ uiBox *fudge_scripts_screen() {
 						"- Automate things and workflows\n"
 						"- Bleeding edge experimental features!\n"
 						"- Buffer overflows!")), 0);
-	return box;
+
+	uiBoxAppend((uiBox *)scroll, uiControl(box), 0);
+
+	return scroll;
 }
 
-int fuji_scripts_screen(uiWindow *win) {
-	uiWindowSetChild(win, uiControl(fudge_scripts_screen()));
+#ifdef ANDROID
+#include "backend.h"
+JNI_FUNC(jint, cFujiScriptsScreen)(JNIEnv *env, jobject thiz, jobject ctx) {
+	uiAndroidInit(env, ctx);
+
+	uiAndroidSetContent(uiControl(fudge_scripts_screen()));
+
 	return 0;
 }
+#endif

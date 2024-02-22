@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <string.h>
 #include <camlib.h>
+#include <ui.h>
 #include "app.h"
 #include "backend.h"
 #include "fuji.h"
@@ -17,10 +18,18 @@ JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reaso
 
 	ptp_report_error(&backend.r, (char *)c_reason, (int)code);
 
-	ptpip_close(&backend.r);
+	if (backend.r.connection_type == PTP_USB) {
+		ptp_device_close(&backend.r);
+	} else {
+		ptpip_close(&backend.r);
+	}
 
 	(*env)->ReleaseStringUTFChars(env, reason, c_reason);
 	(*env)->DeleteLocalRef(env, reason);
+}
+
+JNI_FUNC(void, cClearKillSwitch)(JNIEnv *env, jobject thiz) {
+	backend.r.io_kill_switch = 0;
 }
 
 JNI_FUNC(jboolean, cGetKillSwitch)(JNIEnv *env, jobject thiz) {
@@ -29,6 +38,9 @@ JNI_FUNC(jboolean, cGetKillSwitch)(JNIEnv *env, jobject thiz) {
 
 JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
+	if (backend.r.connection_type == PTP_USB) {
+		return 0;
+	}
 	int rc = fuji_get_events(&backend.r);
 	return rc;
 }
@@ -145,18 +157,30 @@ JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jin
 JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz, jstring ip) {
 	set_jni_env(env);
 
-	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
+	if (backend.r.connection_type == PTP_USB) {
+		int rc = ptp_open_session(&backend.r);
+		if (rc) {
+			app_print("Failed to open session.");
+			return rc;
+		}
 
-	int rc = fuji_setup(&backend.r, c_ip);
+		return rc;
+	} else {
+		const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
 
-	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
-	(*env)->DeleteLocalRef(env, ip);
+		int rc = fuji_setup(&backend.r, (char *)c_ip);
 
-	return rc;
+		(*env)->ReleaseStringUTFChars(env, ip, c_ip);
+		(*env)->DeleteLocalRef(env, ip);
+
+		return rc;
+	}
 }
 
 JNI_FUNC(jint, cFujiConfigImageGallery)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
+
+	if (backend.r.connection_type == PTP_USB) return 0;
 
 	int rc = fuji_config_image_viewer(&backend.r);
 	if (rc) return rc;
@@ -164,37 +188,69 @@ JNI_FUNC(jint, cFujiConfigImageGallery)(JNIEnv *env, jobject thiz) {
 	return 0;
 }
 
-// Return array of valid objects on main storage device
-JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
-	// By this point num_objects should be known - by gain_access
-	if (fuji_known.num_objects == 0 || fuji_known.num_objects == -1) {
-		return NULL;
+jintArray ptpusb_get_object_handles(JNIEnv *env, struct PtpRuntime *r) {
+	struct PtpArray *arr;
+	int rc = ptp_get_storage_ids(r, &arr);
+	if (rc) return NULL;
+
+	if (arr->length == 0) {
+		jintArray result = (*env)->NewIntArray(env, 0);
+		return result;
 	}
 
-	// (Object handles 0x0 is invalid, as per spec)
-	int *list = malloc(sizeof(int) * fuji_known.num_objects);
-	for (int i = 0; i < fuji_known.num_objects; i++) {
-		list[i] = i + 1;
-	}
+	int id = arr->data[0];
 
-	jintArray result = (*env)->NewIntArray(env, fuji_known.num_objects);
-	(*env)->SetIntArrayRegion(env, result, 0, fuji_known.num_objects, list);
-	free(list);
+	free(arr);
+
+	// Get all objects in root
+	rc = ptp_get_object_handles(r, id, 0, 0, &arr);
+	if (rc) return NULL;
+
+	jintArray result = (*env)->NewIntArray(env, arr->length);
+	(*env)->SetIntArrayRegion(env, result, 0, arr->length, (const int *)arr->data);
+
+	free(arr);
 
 	return result;
+}
+
+// Return array of valid objects on main storage device
+JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
+	if (backend.r.connection_type == PTP_USB) {
+		return ptpusb_get_object_handles(env, &backend.r);
+	} else {
+		// By this point num_objects should be known - by gain_access
+		if (fuji_known.num_objects == 0 || fuji_known.num_objects == -1) {
+			return NULL;
+		}
+
+		// (Object handles 0x0 is invalid, as per spec)
+		int *list = malloc(sizeof(int) * fuji_known.num_objects);
+		for (int i = 0; i < fuji_known.num_objects; i++) {
+			list[i] = i + 1;
+		}
+
+		jintArray result = (*env)->NewIntArray(env, fuji_known.num_objects);
+		(*env)->SetIntArrayRegion(env, result, 0, fuji_known.num_objects, list);
+		free(list);
+
+		return result;
+	}
 }
 
 JNI_FUNC(jint, cFujiTestSuite)(JNIEnv *env, jobject thiz, jstring ip) {
 	set_jni_env(env);
 
-	set_jni_env(env);
+	if (backend.r.connection_type == PTP_USB) {
+		return fuji_test_suite(&backend.r, NULL);
+	} else {
+		const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
 
-	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
+		int rc = fuji_test_suite(&backend.r, (char *)c_ip);
 
-	int rc = fuji_test_suite(&backend.r, c_ip);
+		(*env)->ReleaseStringUTFChars(env, ip, c_ip);
+		(*env)->DeleteLocalRef(env, ip);
 
-	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
-	(*env)->DeleteLocalRef(env, ip);
-
-	return rc;
+		return rc;
+	}
 }

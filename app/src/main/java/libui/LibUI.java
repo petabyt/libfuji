@@ -321,7 +321,6 @@ public class LibUI {
 
     public static boolean handleMenu(Menu m) {
         menu = m;
-        Log.d("libui", "menu added");
         return true;
     }
 
@@ -418,10 +417,6 @@ public class LibUI {
         return (ViewGroup)layout;
     }
 
-    private static void setPadding(View v, int l, int t, int r, int b) {
-        v.setPadding(l, t, r, b);
-    }
-
     private static String getString(String name) {
         Resources res = ctx.getResources();
         return res.getString(res.getIdentifier(name, "string", ctx.getPackageName()));
@@ -449,11 +444,4 @@ public class LibUI {
 
     private static native void callFunction(long ptr, long arg1, long arg2);
     public static native void initThiz(Context ctx);
-    public static native void startWindow(String symbolName);
-    public static native void startNative(String symbolName);
-
-//    private int dpToPx(int dp) {
-//        Resources r = ctx.getResources();
-//        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, r.getDisplayMetrics()));
-//    }
 }

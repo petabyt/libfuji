@@ -150,7 +150,7 @@ void ui_send_text(char *key, char *fmt, ...) {
 }
 
 JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz) {
-	// On init, all members in backend are garunteed to be NULL
+	// On init, all members in backend are guaranteed to be NULL
 	memset(&backend, 0, sizeof(backend));
 
 	set_jni_env(env);
@@ -181,11 +181,11 @@ JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz) {
 	backend.log_size = 1000;
 	backend.log_pos = 0;
 
-	strcpy(backend.log_buf, "Fujiapp log file - Send this to devs!\n");
+	strcpy(backend.log_buf, "Fudge log file - Send this to devs!\n");
 
 	ptp_verbose_log("ABI: %s\n", ABI);
 	ptp_verbose_log("Compile date: %s\n", __DATE__);
-	ptp_verbose_log("https://github.com/petabyt/fujiapp\n");
+	ptp_verbose_log("https://github.com/petabyt/fudge\n");
 	return 0;
 }
 

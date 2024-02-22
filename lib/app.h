@@ -1,6 +1,7 @@
 #ifndef APP_H
 #define APP_H
 
+// Ping user with technical updates
 void ui_send_text(char *key, char *fmt, ...);
 
 // printf to kernel

@@ -42,11 +42,6 @@ JNI_FUNC(jboolean, cSetProgressBarObj)(JNIEnv *env, jobject thiz, jobject pg, ji
 	return 0;
 }
 
-JNI_FUNC(void, cClearKillSwitch)(JNIEnv *env, jobject thiz) {
-	fuji_reset_ptp(&backend.r);
-	backend.r.io_kill_switch = 0;
-}
-
 static jlong get_handle() {
 	JNIEnv *env = get_jni_env();
 
@@ -216,6 +211,8 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 
 	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
 	(*env)->DeleteLocalRef(env, ip);
+
+	fuji_reset_ptp(&backend.r);
 
 	return rc;
 }

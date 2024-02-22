@@ -1,7 +1,10 @@
-// Custom image adapter to download and show an image from byte[]
+// recyclerview image adapter to load images LIFO style
+// Android has an awful archaic system of doing everything so I either have to improvise
+// or use the last bloat frameworks.
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -15,11 +18,17 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.ArrayList;
+
+import libui.LibUI;
 
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> {
     private Context context;
-    private int[] object_ids;
+    private static int[] object_ids;
+    public static RecyclerView recyclerView;
 
     public ImageAdapter(Context context, int[] object_ids) {
         this.context = context;
@@ -42,64 +51,93 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         return holder;
     }
 
-    // When image is scrolled into view, it will be downloaded TODO: store images in a 10mb(?) stack
-    // to prevent re-downloading (slow)
+    public static class Request {
+        Context ctx;
+        ImageViewHolder holder;
+        int position;
+        int object_id;
+    };
+
+    // LIFO stack
+    static ArrayList<Request> requests = new ArrayList<Request>();
+
+    static void requestThread() {
+        while (!Backend.cGetKillSwitch()) {
+            if (requests.size() == 0) {
+                try {
+                    Thread.sleep(100);
+                } catch (Exception e) {}
+                continue;
+            }
+            Request req = requests.remove(requests.size() - 1);
+
+//            try {
+//                int adapterPosition = req.holder.getAdapterPosition();
+//                LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+//                int firstVisiblePosition = layoutManager.findFirstVisibleItemPosition();
+//                int lastVisiblePosition = layoutManager.findLastVisibleItemPosition();
+//
+//                if (adapterPosition >= firstVisiblePosition && adapterPosition <= lastVisiblePosition) {
+//                    Log.d("img", "Visisble");
+//                } else {
+//                    Log.d("img", "invisible");
+//                    requests.add(req);
+//                    continue;
+//                }
+//            } catch (Exception e) {}
+
+            int id = req.object_id;
+            byte[] jpegByteArray = Backend.cPtpGetThumb(id);
+            if (jpegByteArray == null) {
+                Backend.reportError(Backend.PTP_IO_ERR, "Failed to get image thumbnail, stopping connection");
+                return;
+            } else if (jpegByteArray.length == 0) {
+                // Unable to find thumbnail - assume it's a folder or non-jpeg
+                req.holder.itemView.setOnClickListener(null);
+                Backend.print("Failed to get thumbnail #" + id);
+                continue;
+            }
+
+            try {
+                BitmapFactory.Options opt = new BitmapFactory.Options();
+                opt.inScaled = true;
+                opt.inDensity = 320;
+                opt.inTargetDensity = 160;
+
+                Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length, opt);
+                if (bitmap == null) {
+                    Backend.print("Image decode error");
+                    req.holder.itemView.setOnClickListener(null);
+                    continue;
+                }
+                req.holder.itemView.post(new Runnable() {
+                    @SuppressLint("UseCompatLoadingForDrawables")
+                    @Override
+                    public void run() {
+                        req.holder.image.setImageBitmap(bitmap);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            req.holder.image.setForeground(req.ctx.getDrawable(R.drawable.ripple));
+                        }
+                    }
+                });
+            } catch (OutOfMemoryError e) {
+                Backend.reportError(Backend.PTP_RUNTIME_ERR, "Out of memory");
+            }
+        }
+    }
+
     @Override
     public void onBindViewHolder(ImageViewHolder holder, int position) {
-        holder.image.setImageResource(0);
-        int adapterPosition = holder.getAdapterPosition();
-        if (adapterPosition >= object_ids.length) return;
-        holder.handle = object_ids[adapterPosition];
+        holder.image.setBackground(context.getDrawable(R.drawable.light_button)); // :)
+        position = holder.getAdapterPosition();
+        Request req = new Request();
+        req.ctx = context;
+        req.holder = holder;
+        req.position = position;
+        req.object_id = object_ids[position];
+        holder.handle = req.object_id;
 
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                int id = object_ids[adapterPosition];
-                byte[] jpegByteArray = Backend.cPtpGetThumb(id);
-                if (jpegByteArray == null) {
-                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to get image thumbnail, stopping connection");
-                    return;
-                } else if (jpegByteArray.length == 0) {
-                    // Unable to find thumbnail - assume it's a folder or non-jpeg
-                    holder.itemView.setOnClickListener(null);
-                    Backend.print("Failed to get thumbnail #" + id);
-                    return;
-                }
-
-                try {
-                    BitmapFactory.Options opt = new BitmapFactory.Options();
-                    opt.inScaled = true;
-                    opt.inDensity = 320;
-                    opt.inTargetDensity = 160;
-
-                    Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length, opt);
-                    if (bitmap == null) {
-                        Backend.print("Image decode error");
-                        holder.itemView.setOnClickListener(null);
-                        return;
-                    }
-                    holder.itemView.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            holder.image.setImageBitmap(bitmap);
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                holder.image.setForeground(context.getDrawable(R.drawable.ripple));
-                            }
-                        }
-                    });
-                } catch (OutOfMemoryError e) {
-                    Backend.reportError(Backend.PTP_RUNTIME_ERR, "Out of memory");
-                    return;
-                }
-            }
-        });
-
-        try {
-            thread.join();
-            thread.start();
-        } catch (Exception e) {
-
-        }
+        requests.add(req);
     }
 
     @Override
@@ -114,6 +152,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         public ImageViewHolder(@NonNull View itemView) {
             super(itemView);
             image = itemView.findViewById(R.id.imageView);
+            handle = -1;
         }
 
         public static ImageViewHolder inflate(ViewGroup parent) {
