@@ -106,24 +106,24 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:singleLine="false"
-                android:text="Thanks:"
+                android:text="@string/help_text11"
                 android:textAllCaps="false"
                 android:textSize="20sp" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="\@spaqin for X-S10 packet dumps" />
+                android:text="@string/help_text12" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="\@mxr_1 for bluetooth work" />
+                android:text="@string/help_text13" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Beta-testing: \@spaqin, \@matthias, \@nutterbuttersforeveryoneyippeeee" />
+                android:text="@string/help_test14" />
 
         </LinearLayout>
     </ScrollView>

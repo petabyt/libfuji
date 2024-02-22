@@ -13,4 +13,21 @@
 
     <string name="url">https://github.com/petabyt/fudge</string>
     <string name="motd_thing">Fudge open beta-testing release</string>
+    <string name="connect_to_usb">Connect to USB</string>
+    <string name="plugins">Plugins</string>
+    <string name="help">Help</string>
+    <string name="connect_to_wifi">Connect to WiFi</string>
+    <string name="help_text11">Thanks:</string>
+    <string name="help_text12">\@spaqin for X-S10 packet dumps</string>
+    <string name="help_text13">\@mxr_1 for bluetooth work</string>
+    <string name="help_test14">Beta-testing: @spaqin, @matthias, @nutter</string>
+    <string name="downloading_image">Downloading image...</string>
+    <string name="connecting">Connecting...</string>
+    <string name="dimensions">Image size</string>
+    <string name="filesize">File size</string>
+    <string name="alreadydownloaded">File is already downloaded</string>
+    <string name="regressiontesting">Regression Testing</string>
+    <string name="gallery">Gallery</string>
+    <string name="getImages2">Maybe you only have RAW files? Fuji doesn\'t let us view RAW over WiFi :(</string>
+    <string name="noImages1">No images available on camera.</string>
 </resources>

@@ -6,6 +6,14 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <TextView
+        android:id="@+id/error_msg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@+id/boxLayout"
+        tools:layout_editor_absoluteX="46dp" />
+
     <LinearLayout
         android:id="@+id/boxLayout"
         android:layout_width="match_parent"
@@ -25,22 +33,22 @@
             style="@style/GoButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Connect to WiFi" />
+            android:text="@string/connect_to_wifi" />
 
         <Button
-            style="@style/GoButton"
             android:id="@+id/connect_usb"
+            style="@style/GoButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/go_button2"
-            android:text="Connect to USB" />
+            android:text="@string/connect_to_usb" />
 
         <Button
             android:id="@+id/plugins"
             style="@style/GreyButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Plugins"
+            android:text="@string/plugins"
             android:visibility="visible" />
 
         <Button
@@ -48,13 +56,7 @@
             style="@style/GreyButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Help" />
-
-        <TextView
-            android:id="@+id/error_msg"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center" />
+            android:text="@string/help" />
 
     </LinearLayout>
 
