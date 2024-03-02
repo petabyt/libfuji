@@ -61,7 +61,19 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     // LIFO stack
     static ArrayList<Request> requests = new ArrayList<Request>();
 
+    static void invalidThumb(Request req, int drawable_id) {
+        req.holder.itemView.post(new Runnable() {
+            @SuppressLint("UseCompatLoadingForDrawables")
+            @Override
+            public void run() {
+                req.holder.itemView.setOnClickListener(null);
+                req.holder.image.setBackground(req.ctx.getDrawable(drawable_id));
+            }
+        });
+    }
+
     static void requestThread() {
+        Log.d("adpater", "Thread");
         while (!Backend.cGetKillSwitch()) {
             if (requests.size() == 0) {
                 try {
@@ -71,21 +83,6 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
             }
             Request req = requests.remove(requests.size() - 1);
 
-//            try {
-//                int adapterPosition = req.holder.getAdapterPosition();
-//                LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
-//                int firstVisiblePosition = layoutManager.findFirstVisibleItemPosition();
-//                int lastVisiblePosition = layoutManager.findLastVisibleItemPosition();
-//
-//                if (adapterPosition >= firstVisiblePosition && adapterPosition <= lastVisiblePosition) {
-//                    Log.d("img", "Visisble");
-//                } else {
-//                    Log.d("img", "invisible");
-//                    requests.add(req);
-//                    continue;
-//                }
-//            } catch (Exception e) {}
-
             int id = req.object_id;
             byte[] jpegByteArray = Backend.cPtpGetThumb(id);
             if (jpegByteArray == null) {
@@ -93,8 +90,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                 return;
             } else if (jpegByteArray.length == 0) {
                 // Unable to find thumbnail - assume it's a folder or non-jpeg
-                req.holder.itemView.setOnClickListener(null);
-                Backend.print("Failed to get thumbnail #" + id);
+                invalidThumb(req, R.drawable.baseline_question_mark_24);
                 continue;
             }
 
@@ -115,9 +111,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                     @Override
                     public void run() {
                         req.holder.image.setImageBitmap(bitmap);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            req.holder.image.setForeground(req.ctx.getDrawable(R.drawable.ripple));
-                        }
+                        req.holder.image.setForeground(req.ctx.getDrawable(R.drawable.ripple));
                     }
                 });
             } catch (OutOfMemoryError e) {

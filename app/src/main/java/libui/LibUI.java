@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -17,13 +16,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.animation.AnimationUtils;
+import android.widget.AdapterView;
 import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.PopupWindow;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
@@ -34,7 +33,6 @@ import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Lifecycle;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
-
 import com.google.android.material.tabs.TabLayout;
 
 import java.util.ArrayList;
@@ -103,19 +101,30 @@ public class LibUI {
         }
     }
 
-    public static class MyOnClickListener implements View.OnClickListener {
-        private long ptr;
-        private long arg1;
-        private long arg2;
-        public MyOnClickListener(long ptr, long arg1, long arg2) {
-            this.ptr = ptr;
-            this.arg1 = arg1;
-            this.arg2 = arg2;
+    private static class MySelectListener implements AdapterView.OnItemSelectedListener {
+        byte[] struct;
+        public MySelectListener(byte[] struct) {
+            this.struct = struct;
+        }
+
+        @Override
+        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            LibUI.callFunction(this.struct);
+        }
+
+        @Override
+        public void onNothingSelected(AdapterView<?> parent) {}
+    }
+
+    private static class MyOnClickListener2 implements View.OnClickListener {
+        byte[] struct;
+        public MyOnClickListener2(byte[] struct) {
+            this.struct = struct;
         }
 
         @Override
         public void onClick(View v) {
-            LibUI.callFunction(ptr, arg1, arg2);
+            LibUI.callFunction(struct);
         }
     }
 
@@ -227,84 +236,10 @@ public class LibUI {
         frag.addViewGroup(sv);
     }
 
-    public static class Screen {
-        int displayOptions;
-        int id;
-        String title;
-        View content;
-    };
-
-    static ArrayList<Screen> screens = new ArrayList<Screen>();
-    static Screen origActivity = new Screen();
-
-    public static void switchScreen(View view, String title) {
-        userSleep();
-
-        ActionBar actionBar = ((AppCompatActivity)ctx).getSupportActionBar();
-
-        ScrollView layout = new ScrollView(ctx);
-        layout.addView(view);
-
-        Screen screen = new Screen();
-        screen.id = screens.size();
-        screen.title = title;
-        screen.content = layout;
-
-        if (screens.size() == 0) {
-            origActivity.content = ((ViewGroup)((Activity)ctx).findViewById(android.R.id.content)).getChildAt(0);
-            origActivity.title = (String)actionBar.getTitle();
-            origActivity.displayOptions = actionBar.getDisplayOptions();
-        }
-
-        screens.add(screen);
-
-        // Now start constructing the new layout
-        layout.startAnimation(AnimationUtils.loadAnimation(ctx, android.R.anim.fade_in));
-        ((Activity)ctx).setContentView(layout);
-        actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setTitle(title);
-        if (menu != null) {
-            for (int i = 0; i < menu.size(); i++) {
-                menu.getItem(i).setVisible(false);
-            }
-        }
-    }
-
-    private static void screenGoBack() {
-        Screen screen = screens.remove(screens.size() - 1);
-
-        if (screens.size() == 0) {
-            ((Activity)ctx).setContentView(origActivity.content);
-
-            ActionBar actionBar = ((AppCompatActivity)ctx).getSupportActionBar();
-            actionBar.setTitle(origActivity.title);
-            if ((origActivity.displayOptions & ActionBar.DISPLAY_SHOW_HOME) != 0) {
-                actionBar.setDisplayHomeAsUpEnabled(true);
-            } else {
-                actionBar.setDisplayHomeAsUpEnabled(false);
-            }
-            if (menu != null) {
-                for (int i = 0; i < menu.size(); i++) {
-                    menu.getItem(i).setVisible(true);
-                }
-            }
-        } else {
-            ((Activity)ctx).setContentView(screen.content);
-
-            ActionBar actionBar = ((AppCompatActivity)ctx).getSupportActionBar();
-            actionBar.setDisplayHomeAsUpEnabled(true);
-            actionBar.setTitle(screen.title);
-        }
-    }
-
     public static boolean handleBack(boolean allowBack) {
-        if (screens.size() == 0) {
-            if (allowBack) {
-                ((Activity)ctx).finish();
-                return true;
-            }
-        } else {
-            screenGoBack();
+        if (allowBack) {
+            ((Activity)ctx).finish();
+            return true;
         }
         return false;
     }
@@ -404,10 +339,6 @@ public class LibUI {
         return popup;
     }
 
-    private static void setClickListener(View v, long ptr, long arg1, long arg2) {
-        v.setOnClickListener(new MyOnClickListener(ptr, arg1, arg2));
-    }
-
     private static ViewGroup linearLayout(int orientation) {
         LinearLayout layout = new LinearLayout(ctx);
         layout.setOrientation(orientation);
@@ -432,16 +363,16 @@ public class LibUI {
         Toast.makeText(ctx, text, Toast.LENGTH_SHORT).show();
     }
 
-    private static void runRunnable(long ptr, long arg1, long arg2) {
+    private static void runRunnable(byte[] data) {
         Handler handler = new Handler(Looper.getMainLooper());
         handler.post(new Runnable() {
             @Override
             public void run() {
-                callFunction(ptr, arg1, arg2);
+                LibUI.callFunction(data);
             }
         });
     }
 
-    private static native void callFunction(long ptr, long arg1, long arg2);
+    public static native void callFunction(byte[] struct);
     public static native void initThiz(Context ctx);
 }

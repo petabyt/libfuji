@@ -53,6 +53,8 @@ public class Backend extends CamlibBackend {
             usb.getEndpoints();
 
             cUSBConnectNative(usb);
+
+            cClearKillSwitch();
         } catch (Exception e) {
             e.printStackTrace();
         }

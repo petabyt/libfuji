@@ -29,12 +29,6 @@ public class MainActivity extends AppCompatActivity {
     Handler handler;
 
     @Override
-    protected void onResume() {
-        LibUI.start(this);
-        super.onResume();
-    }
-
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -101,9 +95,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Idea: Show WiFi status on screen?
         WiFiComm.startNetworkListeners(this);
-
-        //Intent intent = new Intent(MainActivity.this, Tester.class);
-        //startActivity(intent);
     }
 
     public void connectClick() {

@@ -38,7 +38,7 @@ public class SimpleUSB {
     public void waitPermission(Context ctx) throws Exception {
         Backend.print("Trying to get permission...");
         PendingIntent permissionIntent = PendingIntent.getBroadcast(
-                ctx, 0, new Intent(ctx.getPackageName() + ".USB_PERMISSION"), PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_NO_CREATE);
+                ctx, 0, new Intent(ctx.getPackageName() + ".USB_PERMISSION"), PendingIntent.FLAG_IMMUTABLE);
 
         if (permissionIntent == null) {
             throw new Exception("USB permissions denied!");
