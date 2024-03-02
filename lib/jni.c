@@ -82,13 +82,14 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 
 		int rc = ptp_get_partial_object(&backend.r, handle, read, max);
 		if (rc == PTP_CHECK_CODE) {
-			fuji_disable_compression(&backend.r);
+			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
 			ptp_mutex_unlock(&backend.r);
 			return rc;
 		} else if (rc) {
+			plat_dbg("Download fail %d", rc);
+			ptp_mutex_unlock(&backend.r);
 			return rc;
 		}
-
 
 		size_t payload_size = ptp_get_payload_length(&backend.r);
 
@@ -123,7 +124,7 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 		read += ptp_get_payload_length(&backend.r);
 
 		if (read >= file_size) {
-			fuji_disable_compression(&backend.r);
+			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
 			plat_dbg("Downloaded %d bytes", read);
 			return 0;
 		}
@@ -134,9 +135,12 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
 
-	int rc = fuji_enable_compression(&backend.r);
-	if (rc) {
-		return NULL;
+	int rc;
+	if (backend.r.connection_type == PTP_IP_USB) {
+		rc = fuji_enable_compression(&backend.r);
+		if (rc) {
+			return NULL;
+		}
 	}
 
 	struct PtpObjectInfo oi;
@@ -158,13 +162,7 @@ JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz, jstring ip) {
 	set_jni_env(env);
 
 	if (backend.r.connection_type == PTP_USB) {
-		int rc = ptp_open_session(&backend.r);
-		if (rc) {
-			app_print("Failed to open session.");
-			return rc;
-		}
-
-		return rc;
+		return fujiusb_setup(&backend.r);
 	} else {
 		const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
 

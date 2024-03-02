@@ -62,4 +62,7 @@ struct FujiDeviceKnowledge {
 
 extern struct FujiDeviceKnowledge fuji_known;
 
+// Fuji USB
+int fujiusb_setup(struct PtpRuntime *r);
+
 #endif

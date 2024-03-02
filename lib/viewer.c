@@ -8,14 +8,16 @@
 #include "app.h"
 #include "fuji.h"
 #include "fujiptp.h"
-#include "backend.h"
 
+#ifdef ANDROID
+#include "backend.h"
 int fuji_download_multiple(struct PtpRuntime *r);
 
 JNI_FUNC(jint, cFujiDownloadMultiple)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
 	return fuji_download_multiple(&backend.r);
 }
+#endif
 
 int fuji_download_classic(struct PtpRuntime *r) {
 	while (1) {

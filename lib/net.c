@@ -19,6 +19,8 @@
 #include "fuji.h"
 #include "backend.h"
 
+void app_increment_progress_bar(int read);
+
 #define CMD_BUFFER_SIZE 512
 
 struct PtpIpBackend {
@@ -26,21 +28,6 @@ struct PtpIpBackend {
 	int evfd;
 	int vidfd;
 };
-
-JNI_FUNC(jboolean, cSetProgressBarObj)(JNIEnv *env, jobject thiz, jobject pg, jint size) {
-	static clock_t tm;
-	if (pg == NULL) {
-		plat_dbg("Time taken to download: %f", (double)(clock() - tm) / CLOCKS_PER_SEC);
-		(*env)->DeleteGlobalRef(env, backend.progress_bar);
-		backend.progress_bar = NULL;
-		return 0;
-	}
-	tm = clock();
-	backend.download_size = size;
-	backend.download_progress = 0;
-	backend.progress_bar = (*env)->NewGlobalRef(env, pg);
-	return 0;
-}
 
 static jlong get_handle() {
 	JNIEnv *env = get_jni_env();
@@ -54,6 +41,7 @@ static jlong get_handle() {
 int ndk_set_socket_wifi(int fd) {
 	typedef int (*_android_setsocknetwork_td)(jlong handle, int fd);
 
+	// https://developer.android.com/ndk/reference/group/networking#android_setsocknetwork
 	void *lib = dlopen("libandroid.so", RTLD_NOW);
 	_android_setsocknetwork_td _android_setsocknetwork = dlsym(lib, "android_setsocknetwork");
 
@@ -143,6 +131,7 @@ int ptpip_new_timeout_socket(char *addr, int port) {
 		return -1;
 	}
 
+	errno = 0;
 	if (connect(sockfd, (struct sockaddr*)&sa, sizeof(sa)) < 0) {
 		if (errno != EINPROGRESS) {
 			close(sockfd);
@@ -151,15 +140,19 @@ int ptpip_new_timeout_socket(char *addr, int port) {
 		}
 	}
 
+	plat_dbg("Errno: %d", errno);
+
 	// timeout handling
 	fd_set fdset;
 	FD_ZERO(&fdset);
 	FD_SET(sockfd, &fdset);
 	struct timeval tv;
-	tv.tv_sec = 0;
-	tv.tv_usec = 1000 * 500;
+	tv.tv_sec = 2;
+	tv.tv_usec = 0;
 
+	plat_dbg("Waiting for select");
 	rc = select(sockfd + 1, NULL, &fdset, NULL, &tv);
+	plat_dbg("Select over");
 	if (rc == 1) {
 		int so_error = 0;
 		socklen_t len = sizeof(so_error);
@@ -175,6 +168,8 @@ int ptpip_new_timeout_socket(char *addr, int port) {
 			return sockfd;
 		}
 	}
+
+	//if (errno == 115) return sockfd;
 
 	close(sockfd);
 	ptp_verbose_log("Failed to connect: %d, %d\n", rc, errno);
@@ -219,16 +214,11 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 
 int ptpip_connect_events(struct PtpRuntime *r, char *addr, int port) {
 	int fd = ptpip_new_timeout_socket(addr, port);
-
 	struct PtpIpBackend *b = init_comm(r);
-
-	if (fd > 0) {
-		b->evfd = fd;
-		return 0;
-	} else {
-		b->evfd = 0;
-		return fd;
-	}
+	b->evfd = fd;
+	// No error checking.
+	// this can fail on blocking network (?) will return EINPROGRESS but socket is technically still valid and waiting to be connected
+	return 0;
 }
 
 JNI_FUNC(jint, cConnectNativeEvents)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
@@ -245,16 +235,9 @@ JNI_FUNC(jint, cConnectNativeEvents)(JNIEnv *env, jobject thiz, jstring ip, jint
 
 int ptpip_connect_video(struct PtpRuntime *r, char *addr, int port) {
 	int fd = ptpip_new_timeout_socket(addr, port);
-
 	struct PtpIpBackend *b = init_comm(r);
-
-	if (fd > 0) {
-		b->vidfd = fd;
-		return 0;
-	} else {
-		b->vidfd = 0;
-		return fd;
-	}
+	b->vidfd = fd;
+	return 0;
 }
 
 JNI_FUNC(jint, cConnectVideoSocket)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
@@ -287,23 +270,6 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *data, int size) {
 	}
 }
 
-static inline void increment_progress_bar(int read) {
-	static int last_p = 0;
-
-	backend.download_progress += read;
-
-	int n = (((double)backend.download_progress) / (double)backend.download_size * 100.0);
-	if (last_p != n) {
-		if (n > 100) return;
-
-		JNIEnv *env = get_jni_env();
-
-		jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, backend.progress_bar), "setProgress", "(I)V");
-		(*env)->CallVoidMethod(env, backend.progress_bar, method, n);
-	}
-	last_p = n;
-}
-
 int ptpip_cmd_read(struct PtpRuntime *r, void *data, int size) {
 	if (r->io_kill_switch) return -1;
 	struct PtpIpBackend *b = init_comm(r);
@@ -312,7 +278,7 @@ int ptpip_cmd_read(struct PtpRuntime *r, void *data, int size) {
 		return -1;
 	} else {
 		if (backend.progress_bar != NULL) {
-			increment_progress_bar(result);
+			app_increment_progress_bar(result);
 		}
 		return result;
 	}

@@ -16,6 +16,8 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 	ptp_reset(r);
 	r->connection_type = PTP_IP_USB;
 	r->response_wait_default = 3; // Fuji cams are slow!
+
+	return 0;
 }
 
 // Call after cmd socket is opened

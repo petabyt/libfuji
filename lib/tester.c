@@ -161,7 +161,7 @@ int fuji_test_setup(struct PtpRuntime *r) {
 	tester_log("Running test suite from C");
 
 	struct PtpFujiInitResp resp;
-	int rc = ptpip_fuji_init_req(r, "fudge-test", &resp);
+	int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
 	if (rc) {
 		tester_fail("Failed to initialize command socket");
 		return rc;
@@ -205,6 +205,27 @@ int fuji_test_usb(struct PtpRuntime *r) {
 
 	tester_log("Camera name: %s", di.model);
 
+	struct PtpArray *arr;
+	rc = ptp_get_storage_ids(r, &arr);
+	if (rc) return rc;
+
+	if (arr->length == 0) {
+		tester_log("Camera has no SD card. It's okay.");
+		return 0;
+	}
+	int id = arr->data[0];
+
+	rc = ptp_get_object_handles(r, id, PTP_OF_JPEG, 0, &arr);
+	if (rc) return rc;
+	tester_log("Found %d objects", arr->length);
+
+	// Check size
+
+	tester_log("Downloading object of ID %d", arr->data[1]);
+	rc = ptp_get_object(r, arr->data[1]);
+	tester_fail("Return code: %x, %d", ptp_get_return_code(r), ptp_get_payload_length(r));
+	if (rc) return rc;
+
 	rc = ptp_close_session(r);
 	if (rc) return rc;
 }
@@ -218,7 +239,7 @@ int fuji_test_suite(struct PtpRuntime *r, char *ip) {
 	if (rc) return rc;
 
 	if (fuji_known.remote_version != -1) {
-		int rc = fuji_setup_remote_mode(r, ip);
+		rc = fuji_setup_remote_mode(r, ip);
 		if (rc) return rc;
 	}
 

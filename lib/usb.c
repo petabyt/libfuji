@@ -47,6 +47,7 @@ int ptp_device_init(struct PtpRuntime *r) {
 }
 
 int ptp_cmd_write(struct PtpRuntime *r, void *to, int length) {
+	if (r->io_kill_switch) return -1;
 	struct usbdevfs_bulktransfer ctrl;
 	ctrl.ep = 0x01;
 	ctrl.len = length;
@@ -56,8 +57,9 @@ int ptp_cmd_write(struct PtpRuntime *r, void *to, int length) {
 }
 
 int ptp_cmd_read(struct PtpRuntime *r, void *to, int length) {
+	if (r->io_kill_switch) return -1;
 	struct usbdevfs_bulktransfer ctrl;
-	ctrl.ep = 0x82;
+	ctrl.ep = 0x81; // 0x82
 	ctrl.len = length;
 	ctrl.data = to;
 	ctrl.timeout = PTP_TIMEOUT;

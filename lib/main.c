@@ -43,7 +43,11 @@ void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
 	if (r->io_kill_switch) return;
 	r->io_kill_switch = 1;
 
-	if (r->connection_type == PTP_IP_USB) ptpip_close(r);
+	if (r->connection_type == PTP_IP_USB) {
+		ptpip_close(r);
+	} else if (r->connection_type == PTP_USB) {
+		ptp_close(r);
+	}
 
 	fuji_reset_ptp(r);
 
@@ -59,8 +63,7 @@ void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
 }
 
 void ptp_verbose_log(char *fmt, ...) {
-	//__android_log_write(ANDROID_LOG_ERROR, "ptp_verbose_log", buffer);
-	if (backend.log_buf == NULL) return;
+	//if (backend.log_buf == NULL) return;
 
 	char buffer[512];
 	va_list args;
@@ -68,6 +71,8 @@ void ptp_verbose_log(char *fmt, ...) {
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
 
+	__android_log_write(ANDROID_LOG_ERROR, "ptp_verbose_log", buffer);
+	if (backend.log_buf == NULL) return;
 	if (strlen(buffer) + backend.log_pos + 1 > backend.log_size) {
 		backend.log_buf = realloc(backend.log_buf, strlen(buffer) + backend.log_pos + 1);
 	}
@@ -77,7 +82,13 @@ void ptp_verbose_log(char *fmt, ...) {
 }
 
 void ptp_panic(char *fmt, ...) {
-	// TODO: abort()
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+
+	__android_log_write(ANDROID_LOG_ERROR, "ptp_panic", buffer);
 	abort();
 }
 
