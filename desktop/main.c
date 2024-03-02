@@ -4,12 +4,47 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include <camlib.h>
 
+#include <ui.h>
+#include <camlib.h>
 #include <fuji.h>
+#include <fujiptp.h>
 
 int fuji_test_filesystem(struct PtpRuntime *r);
 int fuji_test_setup(struct PtpRuntime *r);
+
+void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
+	plat_dbg("Kill switch: %d tid: %d\n", r->io_kill_switch, getpid());
+	if (r->io_kill_switch) return;
+	r->io_kill_switch = 1;
+
+	if (r->connection_type == PTP_IP_USB) {
+		ptpip_close(r);
+	} else if (r->connection_type == PTP_USB) {
+		ptp_close(r);
+	}
+
+	fuji_reset_ptp(r);
+
+	if (reason == NULL) {
+		if (code == PTP_IO_ERR) {
+			app_print("Disconnected: IO Error");
+		} else {
+			app_print("Disconnected: Runtime error");
+		}
+	} else {
+		app_print("Disconnected: %s", reason);
+	}
+}
+
+void plat_dbg(char *fmt, ...) {
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+	printf("fudge: %s\n", buffer);
+}
 
 void tester_log(char *fmt, ...) {
 	char buffer[512];
@@ -30,6 +65,8 @@ void tester_fail(char *fmt, ...) {
 }
 
 int main() {
+	return fudge_main_ui();
+
 	int rc = 0;
 	char *ip_addr = "192.168.1.33";
 
