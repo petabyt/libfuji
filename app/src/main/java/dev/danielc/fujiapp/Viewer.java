@@ -270,6 +270,7 @@ public class Viewer extends AppCompatActivity {
         Runtime.getRuntime().gc();
         handler = null;
         progressBar = null;
+        popupWindow.dismiss();
         popupWindow = null;
         super.onDestroy();
     }
@@ -299,6 +300,13 @@ public class Viewer extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (fileIsInMemory) {
+            super.onBackPressed();
+        }
     }
 
     @Override

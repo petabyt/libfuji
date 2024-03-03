@@ -19,8 +19,6 @@
 #include "fuji.h"
 #include "backend.h"
 
-void app_increment_progress_bar(int read);
-
 #define CMD_BUFFER_SIZE 512
 
 struct PtpIpBackend {
@@ -43,7 +41,7 @@ int ndk_set_socket_wifi(int fd) {
 
 	// https://developer.android.com/ndk/reference/group/networking#android_setsocknetwork
 	void *lib = dlopen("libandroid.so", RTLD_NOW);
-	_android_setsocknetwork_td _android_setsocknetwork = dlsym(lib, "android_setsocknetwork");
+	_android_setsocknetwork_td _android_setsocknetwork = (_android_setsocknetwork_td)dlsym(lib, "android_setsocknetwork");
 
 	if (_android_setsocknetwork == NULL) {
 		return -1;
@@ -77,7 +75,7 @@ static int set_nonblocking_io(int sockfd, int enable) {
 
 #define ptp_verbose_log plat_dbg
 
-int ptpip_new_timeout_socket(char *addr, int port) {
+int ptpip_new_timeout_socket(char *addr, int port, long timeout_sec) {
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
 	int rc = ndk_set_socket_wifi(sockfd);
@@ -147,7 +145,7 @@ int ptpip_new_timeout_socket(char *addr, int port) {
 	FD_ZERO(&fdset);
 	FD_SET(sockfd, &fdset);
 	struct timeval tv;
-	tv.tv_sec = 2;
+	tv.tv_sec = timeout_sec;
 	tv.tv_usec = 0;
 
 	plat_dbg("Waiting for select");
@@ -185,7 +183,7 @@ static struct PtpIpBackend *init_comm(struct PtpRuntime *r) {
 }
 
 int ptpip_connect(struct PtpRuntime *r, char *addr, int port) {
-	int fd = ptpip_new_timeout_socket(addr, port);
+	int fd = ptpip_new_timeout_socket(addr, port, 1);
 
 	struct PtpIpBackend *b = init_comm(r);
 
@@ -213,7 +211,7 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 }
 
 int ptpip_connect_events(struct PtpRuntime *r, char *addr, int port) {
-	int fd = ptpip_new_timeout_socket(addr, port);
+	int fd = ptpip_new_timeout_socket(addr, port, 1);
 	struct PtpIpBackend *b = init_comm(r);
 	b->evfd = fd;
 	// No error checking.
@@ -234,7 +232,7 @@ JNI_FUNC(jint, cConnectNativeEvents)(JNIEnv *env, jobject thiz, jstring ip, jint
 }
 
 int ptpip_connect_video(struct PtpRuntime *r, char *addr, int port) {
-	int fd = ptpip_new_timeout_socket(addr, port);
+	int fd = ptpip_new_timeout_socket(addr, port, 1);
 	struct PtpIpBackend *b = init_comm(r);
 	b->vidfd = fd;
 	return 0;

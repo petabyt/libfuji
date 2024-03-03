@@ -6,7 +6,6 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.ClipData;
-import android.hardware.usb.UsbManager;
 import android.util.Log;
 import android.content.Intent;
 import android.text.Html;
@@ -17,17 +16,10 @@ import android.os.Looper;
 import android.os.Bundle;
 import android.content.Context;
 import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkRequest;
 import android.os.Handler;
-import android.os.Build;
 
-import java.net.Socket;
 import android.content.ClipboardManager;
 import android.widget.Toast;
-
-import libui.LibU;
 
 public class Tester extends AppCompatActivity {
     private Handler handler;

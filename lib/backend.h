@@ -42,16 +42,8 @@
 
 struct AndroidBackend {
 	jobject main; // Backend global obj
-//	jobject cmd_socket;
-
 	jmethodID jni_print;
-
 	jmethodID send_text_m;
-
-//	jmethodID wifi_cmd_read;
-//	jmethodID wifi_cmd_write;
-//	jmethodID wifi_cmd_close;
-//	jobject wifi_cmd_buffer;
 
 	jobject progress_bar;
 	int download_progress;
@@ -71,14 +63,31 @@ struct AndroidBackend {
 
 extern struct AndroidBackend backend;
 
+// Thread safe JNIEnv storage
 void set_jni_env(JNIEnv *env);
 JNIEnv *get_jni_env();
 
 // Verbose print to log file
 void jni_verbose_log(char *str);
 
-void reset_connection();
-
 int jni_setup_usb(JNIEnv *env, jobject obj);
+
+static inline void app_increment_progress_bar(int read) {
+	// Measures progress on all threads
+	static int last_p = 0;
+
+	backend.download_progress += read;
+
+	int n = (((double)backend.download_progress) / (double)backend.download_size * 100.0);
+	if (last_p != n) {
+		if (n > 100) return;
+
+		JNIEnv *env = get_jni_env();
+
+		jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, backend.progress_bar), "setProgress", "(I)V");
+		(*env)->CallVoidMethod(env, backend.progress_bar, method, n);
+	}
+	last_p = n;
+}
 
 #endif

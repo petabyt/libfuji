@@ -41,12 +41,19 @@ struct PtpRuntime *luaptp_get_runtime() {
 void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
 	plat_dbg("Kill switch: %d tid: %d\n", r->io_kill_switch, gettid());
 	if (r->io_kill_switch) return;
+
+	// Safely disconnect if intentional
+	if (code == 0) {
+		plat_dbg("Closing session");
+		ptp_close_session(r);
+	}
+
 	r->io_kill_switch = 1;
 
 	if (r->connection_type == PTP_IP_USB) {
 		ptpip_close(r);
 	} else if (r->connection_type == PTP_USB) {
-		ptp_close(r);
+		ptp_device_close(r);
 	}
 
 	fuji_reset_ptp(r);
@@ -63,7 +70,7 @@ void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
 }
 
 void ptp_verbose_log(char *fmt, ...) {
-	//if (backend.log_buf == NULL) return;
+	if (backend.log_buf == NULL) return;
 
 	char buffer[512];
 	va_list args;
@@ -72,12 +79,12 @@ void ptp_verbose_log(char *fmt, ...) {
 	va_end(args);
 
 	__android_log_write(ANDROID_LOG_ERROR, "ptp_verbose_log", buffer);
-	if (backend.log_buf == NULL) return;
+	//if (backend.log_buf == NULL) return;
 	if (strlen(buffer) + backend.log_pos + 1 > backend.log_size) {
 		backend.log_buf = realloc(backend.log_buf, strlen(buffer) + backend.log_pos + 1);
 	}
 
-	strcpy(backend.log_buf + backend.log_pos, buffer);
+	strcpy(((char *)backend.log_buf) + backend.log_pos, buffer);
 	backend.log_pos += strlen(buffer);
 }
 

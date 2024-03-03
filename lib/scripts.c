@@ -30,7 +30,7 @@ uiScroll *fudge_scripts_screen() {
 	uiBox *box = uiNewVerticalBox();
 	uiBoxSetPadded(box, 1);
 
-	char *file = libu_get_txt_file(uiAndroidGetEnv(), uiAndroidGetCtx(), "script.lua");
+	char *file = ui_get_txt_file(uiAndroidGetEnv(), uiAndroidGetCtx(), "script.lua");
 
 	script_box = uiNewMultilineEntry();
 	uiMultilineEntrySetText(script_box, file);
@@ -42,10 +42,10 @@ uiScroll *fudge_scripts_screen() {
 	uiButtonOnClicked(b, on_click, NULL);
 	uiBoxAppend(box, uiControl(b), 0);
 
-	uiBoxAppend(box, uiControl(uiNewLabel("Lua plugins coming soon")), 0);
+	uiBoxAppend(box, uiControl(uiNewLabel("Lua plugins are a WIP")), 0);
 
 	uiBoxAppend(box, uiControl(uiNewLabel("Planned features:\n"
-						"- Scripts can have custom UIs\n"
+						"- Scripts can have custom UIs (libui-lua)\n"
 						"- Scripts can run as background tasks\n"
 						"- Automate things and workflows\n"
 						"- Bleeding edge experimental features!\n"

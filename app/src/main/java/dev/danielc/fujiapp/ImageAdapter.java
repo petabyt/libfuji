@@ -9,21 +9,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.Build;
-import android.util.Log;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
-
-import libui.LibUI;
 
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> {
     private Context context;
@@ -66,6 +60,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
             @SuppressLint("UseCompatLoadingForDrawables")
             @Override
             public void run() {
+                // TODO: Open a popup with some file information
                 req.holder.itemView.setOnClickListener(null);
                 req.holder.image.setBackground(req.ctx.getDrawable(drawable_id));
             }
@@ -73,7 +68,6 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     }
 
     static void requestThread() {
-        Log.d("adpater", "Thread");
         while (!Backend.cGetKillSwitch()) {
             if (requests.size() == 0) {
                 try {
@@ -86,7 +80,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
             int id = req.object_id;
             byte[] jpegByteArray = Backend.cPtpGetThumb(id);
             if (jpegByteArray == null) {
-                Backend.reportError(Backend.PTP_IO_ERR, "Failed to get image thumbnail, stopping connection");
+                Backend.reportError(Backend.PTP_IO_ERR, "Failed to get thumbnail");
                 return;
             } else if (jpegByteArray.length == 0) {
                 // Unable to find thumbnail - assume it's a folder or non-jpeg
@@ -102,8 +96,8 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
                 Bitmap bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length, opt);
                 if (bitmap == null) {
-                    Backend.print("Image decode error");
-                    req.holder.itemView.setOnClickListener(null);
+                    // Invalid JPEG
+                    invalidThumb(req, R.drawable.baseline_question_mark_24);
                     continue;
                 }
                 req.holder.itemView.post(new Runnable() {
@@ -111,7 +105,6 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
                     @Override
                     public void run() {
                         req.holder.image.setImageBitmap(bitmap);
-                        req.holder.image.setForeground(req.ctx.getDrawable(R.drawable.ripple));
                     }
                 });
             } catch (OutOfMemoryError e) {
@@ -122,7 +115,9 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
     @Override
     public void onBindViewHolder(ImageViewHolder holder, int position) {
-        holder.image.setBackground(context.getDrawable(R.drawable.light_button)); // :)
+        holder.image.setForeground(context.getDrawable(R.drawable.ripple));
+        holder.image.setBackground(context.getDrawable(R.drawable.light_button));
+        holder.image.setImageBitmap(null);
         position = holder.getAdapterPosition();
         Request req = new Request();
         req.ctx = context;

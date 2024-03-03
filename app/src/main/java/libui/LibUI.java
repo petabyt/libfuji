@@ -116,12 +116,11 @@ public class LibUI {
         public void onNothingSelected(AdapterView<?> parent) {}
     }
 
-    private static class MyOnClickListener2 implements View.OnClickListener {
+    private static class MyOnClickListener implements View.OnClickListener {
         byte[] struct;
-        public MyOnClickListener2(byte[] struct) {
+        public MyOnClickListener(byte[] struct) {
             this.struct = struct;
         }
-
         @Override
         public void onClick(View v) {
             LibUI.callFunction(struct);
@@ -337,30 +336,6 @@ public class LibUI {
     private static LibUI.Popup openWindow(String title, int options) {
         LibUI.Popup popup = new LibUI.Popup(title, options);
         return popup;
-    }
-
-    private static ViewGroup linearLayout(int orientation) {
-        LinearLayout layout = new LinearLayout(ctx);
-        layout.setOrientation(orientation);
-        layout.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-        return (ViewGroup)layout;
-    }
-
-    private static String getString(String name) {
-        Resources res = ctx.getResources();
-        return res.getString(res.getIdentifier(name, "string", ctx.getPackageName()));
-    }
-
-    private static View getView(String name) {
-        Resources res = ctx.getResources();
-        int id = res.getIdentifier(name, "id", ctx.getPackageName());
-        return ((Activity)ctx).findViewById(id);
-    }
-
-    private static void toast(String text) {
-        Toast.makeText(ctx, text, Toast.LENGTH_SHORT).show();
     }
 
     private static void runRunnable(byte[] data) {

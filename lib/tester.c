@@ -221,13 +221,15 @@ int fuji_test_usb(struct PtpRuntime *r) {
 
 	// Check size
 
-	tester_log("Downloading object of ID %d", arr->data[1]);
+	tester_log("Downloading object of ID %X", arr->data[1]);
 	rc = ptp_get_object(r, arr->data[1]);
 	tester_fail("Return code: %x, %d", ptp_get_return_code(r), ptp_get_payload_length(r));
 	if (rc) return rc;
 
 	rc = ptp_close_session(r);
 	if (rc) return rc;
+
+	ptp_device_close(r);
 }
 
 int fuji_test_suite(struct PtpRuntime *r, char *ip) {

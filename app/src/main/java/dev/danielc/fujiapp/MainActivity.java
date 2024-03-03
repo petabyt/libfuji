@@ -195,6 +195,6 @@ public class MainActivity extends AppCompatActivity {
         menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         menuItem.setIcon(R.drawable.baseline_fact_check_24);
 
-        return LibUI.handleMenu(menu);
+        return true;
     }
 }
