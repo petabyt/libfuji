@@ -24,7 +24,6 @@
             android:id="@+id/zoom_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:src="@drawable/zoomable"
             app:zoomage_animateOnReset="true"
             app:zoomage_autoCenter="true"
             app:zoomage_autoResetMode="UNDER"

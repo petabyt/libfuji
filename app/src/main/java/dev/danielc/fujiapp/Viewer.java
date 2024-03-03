@@ -1,8 +1,6 @@
 // Download the image, button for share and download
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 
-// TODO: prevent back arrow when downloading image
-
 package dev.danielc.fujiapp;
 
 import android.annotation.SuppressLint;
@@ -143,7 +141,7 @@ public class Viewer extends AppCompatActivity {
         if (rc != 0) {
             toast("Download Error");
             Backend.reportError(Backend.PTP_IO_ERR, "Download error");
-            return; // TODO: fail()
+            return; // TODO: exit Viewer?
         }
 
         Backend.cSetProgressBarObj(null, 0);

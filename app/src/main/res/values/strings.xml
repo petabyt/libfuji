@@ -3,13 +3,13 @@
     <string name="help_text">This app is a reimplementation of Fujifilm\'s WiFi app. Expect bugs! There are no promises that it will be better than the official app.</string>
     <string name="help_text2">Troubleshooting:</string>
     <string name="help_text3">Your camera\'s WiFi menu should be accessible from the \'Fn\' button on the top of the body.</string>
-    <string name="help_text4">Sorry, modern cameras with Bluetooth aren\'t supported yet. That\'s on the roadmap!</string>
+    <string name="help_text3_1">On newer cameras, it\'s available from \'PLAY BACK MENU\' -> \'WIRELESS COMMUNICATION\'</string>
+    <string name="help_text4">Bluetooth is not supported yet. That\'s on the roadmap!</string>
     <string name="help_text5">Please report any bugs on this project\'s Github page: https://github.com/petabyt/fudge</string>
     <string name="help_text6">Credits:</string>
     <string name="help_text7">camlib (Apache license)</string>
     <string name="help_text8">com.jsibbold.zoomage.ZoomageView (Apache license)</string>
     <string name="help_text9">Google Material Icons (Apache license)</string>
-    <string name="help_text10">Default image landscape painting is by me :)</string>
 
     <string name="url">https://github.com/petabyt/fudge</string>
     <string name="motd_thing">Fudge open beta-testing release</string>
