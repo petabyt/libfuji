@@ -1,7 +1,7 @@
 # Fudge
 This is a reverse-engineered alternative to Fujifilm's official WiFi app. The short-term goal is to serve as a simple photo gallery and downloader, and focus primarly on reliability.
 
-<img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20230830-213156.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20230830-213215.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20230830-213428.png' width='250'>
+<img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20240305-104928.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20240305-104948.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20240305-105032.png' width='250'>
 
 ## Improvements over XApp / Camera Connect
 - Location and notification permissions are not required
