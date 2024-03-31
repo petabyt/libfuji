@@ -49,6 +49,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        findViewById(R.id.connect_wifi).setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Intent intent = new Intent(MainActivity.this, Tester.class);
+                startActivity(intent);
+                return false;
+            }
+        });
+
         findViewById(R.id.connect_usb).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -191,9 +200,9 @@ public class MainActivity extends AppCompatActivity {
         menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         menuItem.setIcon(R.drawable.baseline_folder_open_24);
 
-        menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "tester");
-        menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-        menuItem.setIcon(R.drawable.baseline_fact_check_24);
+//        menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "tester");
+//        menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+//        menuItem.setIcon(R.drawable.baseline_fact_check_24);
 
         return true;
     }

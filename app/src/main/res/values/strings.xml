@@ -16,6 +16,7 @@
     <string name="connect_to_usb">Connect to USB</string>
     <string name="plugins">Plugins</string>
     <string name="help">Help</string>
+    <string name="scripts">Scripts</string>
     <string name="connect_to_wifi">Connect to WiFi</string>
     <string name="help_text11">Thanks:</string>
     <string name="help_text12">\@spaqin for X-S10 packet dumps</string>

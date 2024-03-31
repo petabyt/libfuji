@@ -15,7 +15,7 @@ public class Scripts extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setTitle("Scripts");
+        actionBar.setTitle(R.string.scripts);
         LibUI.start(this);
         Backend.cFujiScriptsScreen(this);
     }

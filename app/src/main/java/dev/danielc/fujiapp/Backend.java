@@ -100,7 +100,7 @@ public class Backend extends CamlibBackend {
     }
 
     // Constants
-    public static final String FUJI_EMU_IP = "192.168.1.33"; // IP addr of my laptop
+    public static final String FUJI_EMU_IP = "192.168.1.12"; // IP addr of my laptop
     public static final String FUJI_IP = "192.168.0.1";
     public static final int FUJI_CMD_PORT = 55740;
 
