@@ -195,12 +195,21 @@ int fuji_get_events(struct PtpRuntime *r) {
 
 	struct PtpFujiEvents *ev = (struct PtpFujiEvents *)(ptp_get_payload(r));
 
+	uint16_t length, code;
+	uint32_t value;
+
+	ptp_read_u16(&ev->length, &length);
+
 	ptp_verbose_log("Found %d events\n", ev->length);
 	for (int i = 0; i < ev->length; i++) {
-		ptp_verbose_log("%X changed to %d\n", ev->events[i].code, ev->events[i].value);
+		ptp_read_u16(&ev->events[i].code, &code);
+		ptp_read_u32(&ev->events[i].value, &value);
+		ptp_verbose_log("%X changed to %d\n", code, value);
 	}
 
 	for (int i = 0; i < ev->length; i++) {
+		ptp_read_u16(&ev->events[i].code, &code);
+		ptp_read_u32(&ev->events[i].value, &value);
 		switch (ev->events[i].code) {
 		case PTP_PC_FUJI_SelectedImgsMode:
 			fuji_known.selected_imgs_mode = ev->events[i].value;

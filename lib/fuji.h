@@ -1,6 +1,8 @@
 #ifndef FUJIAPP_FUJI_H
 #define FUJIAPP_FUJI_H
 
+#include "fujiptp.h"
+
 #define DEVICE_NAME "Fudge"
 
 // (Not a part of camlib)
@@ -64,5 +66,11 @@ extern struct FujiDeviceKnowledge fuji_known;
 
 // Fuji USB
 int fujiusb_setup(struct PtpRuntime *r);
+
+int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data);
+
+// Fuji (PTP/IP)
+int ptp_fuji_get_init_info(struct PtpRuntime *r, struct PtpFujiInitResp *resp);
+int ptp_fuji_parse_object_info(struct PtpRuntime *r, struct PtpFujiObjectInfo *oi);
 
 #endif

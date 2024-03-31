@@ -14,4 +14,6 @@ void app_print(char *fmt, ...);
 void tester_log(char *fmt, ...);
 void tester_fail(char *fmt, ...);
 
+struct PtpRuntime *ptp_get();
+
 #endif

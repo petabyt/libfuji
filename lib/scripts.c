@@ -56,7 +56,6 @@ uiScroll *fudge_scripts_screen() {
 	return scroll;
 }
 
-#ifdef ANDROID
 #include "backend.h"
 JNI_FUNC(jint, cFujiScriptsScreen)(JNIEnv *env, jobject thiz, jobject ctx) {
 	uiAndroidInit(env, ctx);
@@ -65,4 +64,3 @@ JNI_FUNC(jint, cFujiScriptsScreen)(JNIEnv *env, jobject thiz, jobject ctx) {
 
 	return 0;
 }
-#endif
