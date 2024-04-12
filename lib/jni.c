@@ -53,7 +53,7 @@ JNI_FUNC(jint, cFujiDownloadFile)(JNIEnv *env, jobject thiz, jint handle, jstrin
 	FILE *f = fopen(c_path, "wb");
 	if (f == NULL) return PTP_RUNTIME_ERR;
 
-	int rc = ptp_download_object(&backend.r, handle, f, 0x1000000);
+	int rc = ptp_download_object(&backend.r, handle, f, 0x100000);
 	fclose(f);
 	if (rc) {
 		app_print("Failed to save %s: %s", c_path, ptp_perror(rc));
@@ -70,15 +70,13 @@ JNI_FUNC(jint, cFujiDownloadFile)(JNIEnv *env, jobject thiz, jint handle, jstrin
 JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray array, jint file_size) {
 	set_jni_env(env);
 
-	// This can be any number really, but best to keep under 20mb or so
-	// We try and get it as huge as possible to speed things up
-	int max = backend.r.data_length;
-
 	// Makes sure to set the compression prop back to 0 after finished
 	// (extra data won't go through for some reason)
 	int read = 0;
 	while (1) {
 		ptp_mutex_keep_locked(&backend.r);
+		// For a long time transfers over 1mb worked but for one image
+		// X-A2 decided to freak out and stall. So, we have to do it the Fuji way :)
 		int cur = file_size - read; if (cur > 0x100000) cur = 0x100000;
 		int rc = ptp_get_partial_object(&backend.r, handle, read, cur);
 		if (rc == PTP_CHECK_CODE) {
@@ -94,7 +92,6 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 		size_t payload_size = ptp_get_payload_length(&backend.r);
 
 		if (payload_size == 0) {
-			//fuji_disable_compression(&backend.r);
 			ptp_mutex_unlock(&backend.r);
 			return rc;
 		}
@@ -109,10 +106,7 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 		if ((*env)->ExceptionCheck(env)) {
 			plat_dbg("SetByteArrayRegion exception");
 			(*env)->ExceptionClear(env);
-
-			//fuji_disable_compression(&backend.r);
-
-			return rc;
+			return PTP_OUT_OF_MEM;
 		}
 
 		read += ptp_get_payload_length(&backend.r);
