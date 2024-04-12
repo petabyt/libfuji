@@ -77,7 +77,7 @@ public class Gallery extends AppCompatActivity {
 
     @Override
     protected void onResume() {
-        LibUI.start(this);
+        //LibUI.start(this);
         super.onResume();
     }
 
@@ -107,6 +107,7 @@ public class Gallery extends AppCompatActivity {
         recyclerView.setNestedScrollingEnabled(false);
 
         handler = new Handler(Looper.getMainLooper());
+        if (Backend.cGetKillSwitch()) return;
 
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -177,9 +178,8 @@ public class Gallery extends AppCompatActivity {
     // When back pressed in gallery, do nothing
     @Override
     public void onBackPressed() {
-        if (LibUI.handleBack(true)) {
-            Backend.reportError(0, "Quitting");
-        }
+        Backend.reportError(0, "Quitting");
+        super.onBackPressed();
     }
 
     @Override

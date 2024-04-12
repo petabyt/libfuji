@@ -328,6 +328,8 @@ int fuji_config_version(struct PtpRuntime *r) {
 	} else {
 		ptp_verbose_log("RemoteVersion was %X\n", fuji_known.remote_version);
 
+		// Fuji sets 2000a to 2000b
+		// Sets 20006 to 2000c (?)
 		uint32_t new_remote_version = FUJI_CAM_CONNECT_REMOTE_VER;
 
 		int rc = ptp_set_prop_value_data(r, PTP_PC_FUJI_RemoteVersion,
@@ -401,7 +403,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		if (rc) return rc;
 
 		// Set the prop higher - X-S10 and X-H1 want 4
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, 4);
+		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, 3);
 		if (rc) return rc;
 
 		// The props we set should show up here

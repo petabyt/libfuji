@@ -3,7 +3,6 @@
 
 package dev.danielc.fujiapp;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -16,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -52,11 +52,12 @@ public class Viewer extends AppCompatActivity {
     public byte[] fileByteData = null;
     public boolean notEnoughMemoryToPreview = false;
     public boolean fileIsDownloaded = false;
-    public boolean fileIsInMemory = false;
+    public boolean threadIsDone = false;
 
     void fail(int code, String reason) {
         if (Backend.cGetKillSwitch()) return;
         Backend.reportError(code, reason);
+        if (handler == null) return;
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -80,6 +81,7 @@ public class Viewer extends AppCompatActivity {
 
     // Notify gallery app that there is a new image
     public void scanImage(String path) {
+        Log.d(TAG, "Notifying media scanner of " + path);
         MediaScannerConnection.scanFile(this, new String[] {path}, null, null);
     }
 
@@ -166,8 +168,6 @@ public class Viewer extends AppCompatActivity {
         Intent intent = getIntent();
         int handle = intent.getIntExtra("handle", 0);
 
-        handler = new Handler(Looper.getMainLooper());
-
         ViewTreeObserver viewTreeObserver = getWindow().getDecorView().getViewTreeObserver();
         viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -198,6 +198,10 @@ public class Viewer extends AppCompatActivity {
                 return;
             }
 
+            handler = new Handler(Looper.getMainLooper());
+
+            //Log.d(TAG, "handler: " + handler);
+            if (handler == null) return;
             handler.post(new Runnable() {
                 //@SuppressLint({"SetTextI18n", "DefaultLocale"})
                 @Override
@@ -228,8 +232,6 @@ public class Viewer extends AppCompatActivity {
                 return;
             }
 
-            fileIsInMemory = true;
-
             Backend.cSetProgressBarObj(null, 0);
 
             // Scale image to acceptable texture size
@@ -246,19 +248,20 @@ public class Viewer extends AppCompatActivity {
                 bitmap.recycle();
                 bitmap = newBitmap;
             }
-
+            if (handler == null) return;
             handler.post(new Runnable() {
                 @Override
                 public void run() {
                     Viewer.popupWindow.dismiss();
-
                     ZoomageView zoomageView = findViewById(R.id.zoom_view);
                     zoomageView.setImageBitmap(bitmap);
+
+                    threadIsDone = true;
                 }
             });
         } catch (Exception e) {
-            fail(0, e.toString());
             e.printStackTrace();
+            fail(0, e.toString());
         }
     }
 
@@ -280,7 +283,7 @@ public class Viewer extends AppCompatActivity {
                 if (notEnoughMemoryToPreview) {
                     toast(getString(R.string.alreadydownloaded));
                 } else {
-                    if (!fileIsInMemory) return true;
+                    if (!threadIsDone) return true;
                     writeFile();
                 }
                 return true;
@@ -292,7 +295,7 @@ public class Viewer extends AppCompatActivity {
                 }
                 return true;
             case android.R.id.home:
-                if (!fileIsInMemory) return true; // TODO: cancel download?
+                if (!threadIsDone) return true; // TODO: cancel download?
                 finish();
                 return true;
         }
@@ -302,7 +305,7 @@ public class Viewer extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (fileIsInMemory) {
+        if (threadIsDone) {
             super.onBackPressed();
         }
     }

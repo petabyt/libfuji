@@ -79,8 +79,8 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 	int read = 0;
 	while (1) {
 		ptp_mutex_keep_locked(&backend.r);
-
-		int rc = ptp_get_partial_object(&backend.r, handle, read, max);
+		int cur = file_size - read; if (cur > 0x100000) cur = 0x100000;
+		int rc = ptp_get_partial_object(&backend.r, handle, read, cur);
 		if (rc == PTP_CHECK_CODE) {
 			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
 			ptp_mutex_unlock(&backend.r);
@@ -99,17 +99,11 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 			return rc;
 		}
 
-		if (read + payload_size > file_size) {
-			plat_dbg("ptp_get_object_info has lied about it's compressed size out of shame");
-		}
-
 		(*env)->SetByteArrayRegion(
 			env, array,
 			read, payload_size,
 			(const jbyte *)(ptp_get_payload(&backend.r))
 		);
-
-		ptp_mutex_unlock(&backend.r);
 
 		// Check for possible buffer overflow
 		if ((*env)->ExceptionCheck(env)) {
@@ -123,9 +117,11 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 
 		read += ptp_get_payload_length(&backend.r);
 
+		ptp_mutex_unlock(&backend.r);
+
 		if (read >= file_size) {
-			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
 			plat_dbg("Downloaded %d bytes", read);
+			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
 			return 0;
 		}
 	}

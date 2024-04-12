@@ -254,6 +254,7 @@ int ptpip_close(struct PtpRuntime *r) {
 	struct PtpIpBackend *b = init_comm(r);
 	if (b->fd) close(b->fd);
 	if (b->evfd) close(b->evfd);
+	if (b->vidfd) close(b->vidfd);
 	return 0;
 }
 

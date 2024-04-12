@@ -183,8 +183,8 @@ int fuji_test_setup(struct PtpRuntime *r) {
 	}
 
 	// This has already been tested extensively, no need
-	// rc = fuji_test_get_props(r);
-	// if (rc) return rc;
+	rc = fuji_test_get_props(r);
+	if (rc) return rc;
 
 	rc = fuji_test_init_access(r);
 	if (rc) return rc;

@@ -70,7 +70,7 @@ void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
 }
 
 void ptp_verbose_log(char *fmt, ...) {
-	if (backend.log_buf == NULL) return;
+	//if (backend.log_buf == NULL) return;
 
 	char buffer[512];
 	va_list args;
@@ -79,7 +79,7 @@ void ptp_verbose_log(char *fmt, ...) {
 	va_end(args);
 
 	__android_log_write(ANDROID_LOG_ERROR, "ptp_verbose_log", buffer);
-	//if (backend.log_buf == NULL) return;
+	if (backend.log_buf == NULL) return;
 	if (strlen(buffer) + backend.log_pos + 1 > backend.log_size) {
 		backend.log_buf = realloc(backend.log_buf, strlen(buffer) + backend.log_pos + 1);
 	}

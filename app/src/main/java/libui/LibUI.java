@@ -4,44 +4,32 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Typeface;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.LayoutInflater;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.PopupWindow;
-import android.widget.ScrollView;
+import android.widget.TabHost;
+import android.widget.TabWidget;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.lifecycle.Lifecycle;
-import androidx.viewpager2.adapter.FragmentStateAdapter;
-import androidx.viewpager2.widget.ViewPager2;
-import com.google.android.material.tabs.TabLayout;
+import android.app.ActionBar;
 
-import java.util.ArrayList;
+import androidx.core.app.ActivityCompat;
 
 public class LibUI {
     public static Context ctx = null;
-    static Menu menu = null;
 
     // uiWindow (popup) background drawable style resource
     public static int popupDrawableResource = 0;
@@ -69,40 +57,6 @@ public class LibUI {
         });
     }
 
-    public static class MyFragment extends Fragment {
-        ViewGroup view;
-        MyFragment(ViewGroup v) {
-            view = v;
-        }
-        @Nullable
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-            return view;
-        }
-    }
-
-    public static class MyFragmentStateAdapter extends FragmentStateAdapter {
-        private ArrayList<ViewGroup> arrayList = new ArrayList<>();
-        public MyFragmentStateAdapter(@NonNull FragmentManager fragmentManager, @NonNull Lifecycle lifecycle) {
-            super(fragmentManager, lifecycle);
-        }
-
-        public void addViewGroup(ViewGroup vg) {
-            arrayList.add(vg);
-        }
-
-        @NonNull
-        @Override
-        public Fragment createFragment(int position) {
-            return new MyFragment(arrayList.get(position));
-        }
-
-        @Override
-        public int getItemCount() {
-            return arrayList.size();
-        }
-    }
-
     private static class MySelectListener implements AdapterView.OnItemSelectedListener {
         byte[] struct;
         public MySelectListener(byte[] struct) {
@@ -123,6 +77,7 @@ public class LibUI {
         public MyOnClickListener(byte[] struct) {
             this.struct = struct;
         }
+
         @Override
         public void onClick(View v) {
             LibUI.callFunction(struct);
@@ -130,21 +85,17 @@ public class LibUI {
     }
 
     public class CustomAdapter extends BaseAdapter {
-        Context context;
-        String countryList[];
-        int flags[];
-        LayoutInflater inflter;
+        byte get_view[];
+        byte get_count[];
 
-        public CustomAdapter(Context applicationContext, String[] countryList, int[] flags) {
-            this.context = context;
-            this.countryList = countryList;
-            this.flags = flags;
-            inflter = (LayoutInflater.from(applicationContext));
+        CustomAdapter(byte m1[], byte mb[]) {
+            get_view = m1;
+            get_count = mb;
         }
 
         @Override
         public int getCount() {
-            return countryList.length;
+            return (int)callObjectFunction(get_count);
         }
 
         @Override
@@ -159,7 +110,7 @@ public class LibUI {
 
         @Override
         public View getView(int i, View view, ViewGroup viewGroup) {
-            return new Button(ctx);
+            return (View)callObjectFunction(get_view);
         }
     }
 
@@ -205,70 +156,41 @@ public class LibUI {
         ((LinearLayout)form).addView(entry);
     }
 
+    @SuppressWarnings("deprecation")
     public static View tabLayout() {
-        LinearLayout layout = new LinearLayout(ctx);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setLayoutParams(new LinearLayout.LayoutParams(
-                LayoutParams.MATCH_PARENT,
-                LayoutParams.MATCH_PARENT,
-                1.0f
-        ));
+        TabHost tabHost = new TabHost(ctx, null);
+        tabHost.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
-        TabLayout tl = new TabLayout(ctx);
-        tl.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout linearLayout = new LinearLayout(ctx);
+        linearLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
 
-        ViewPager2 pager = new ViewPager2(ctx);
-        pager.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
+        TabWidget tabWidget = new TabWidget(ctx);
+        tabWidget.setId(android.R.id.tabs);
 
-        MyFragmentStateAdapter frag = new MyFragmentStateAdapter(
-                ((AppCompatActivity)ctx).getSupportFragmentManager(),
-                ((AppCompatActivity)ctx).getLifecycle()
-        );
-        pager.setAdapter(frag);
+        FrameLayout frameLayout = new FrameLayout(ctx);
+        frameLayout.setId(android.R.id.tabcontent);
 
-        tl.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                pager.setCurrentItem(tab.getPosition());
-            }
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {}
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {}
-        });
+        linearLayout.addView(tabWidget);
+        linearLayout.addView(frameLayout);
+        tabHost.addView(linearLayout);
 
-        pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                tl.selectTab(tl.getTabAt(position));
-            }
-        });
+        tabHost.setup();
 
-        layout.addView(tl);
-        layout.addView(pager);
-
-        return layout;
+        return tabHost;
     }
 
-    private static void addTab(View parent, String name, View child) {
-        // TabLayout is child 0, add a new tab
-        TabLayout tl = (TabLayout)(((ViewGroup)parent).getChildAt(0));
-        TabLayout.Tab tab = tl.newTab();
-        tab.setText(name);
-        tl.addTab(tab);
-
-        // ViewPager2 is the second child, we can get the custom fragment adapter from it
-        ViewPager2 vp = (ViewPager2)(((ViewGroup)parent).getChildAt(1));
-        MyFragmentStateAdapter frag = (MyFragmentStateAdapter)vp.getAdapter();
-
-        ScrollView sv = new ScrollView(ctx);
-        sv.addView(child);
-
-        frag.addViewGroup(sv);
+    @SuppressWarnings("deprecation")
+    public static void addTab(View parent, String name, View child) {
+        TabHost tabHost = (TabHost)parent;
+        TabHost.TabSpec tab1Spec = tabHost.newTabSpec(name);
+        tab1Spec.setIndicator(name);
+        tab1Spec.setContent(new TabHost.TabContentFactory() {
+            public View createTabContent(String tag) {
+                return child;
+            }
+        });
+        tabHost.addTab(tab1Spec);
     }
 
     public static boolean handleBack(boolean allowBack) {
@@ -289,12 +211,7 @@ public class LibUI {
         return ((Activity)ctx).onOptionsItemSelected(item);
     }
 
-    public static boolean handleMenu(Menu m) {
-        menu = m;
-        return true;
-    }
-
-    // TODO: Use Handler.postDelayed?
+    // Being too fast doesn't feel right, brain need delay
     public static void userSleep() {
         try {
             Thread.sleep(100);
@@ -313,7 +230,7 @@ public class LibUI {
             LinearLayout rel = new LinearLayout(ctx);
 
             LinearLayout bar = new LinearLayout(ctx);
-            rel.setPadding(30, 10, 10, 10);
+            rel.setPadding(10, 10, 10, 10);
             rel.setOrientation(LinearLayout.HORIZONTAL);
             rel.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -324,7 +241,9 @@ public class LibUI {
             tv.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
+            tv.setPadding(20, 0, 0, 0);
             tv.setTextSize(20f);
+            tv.setGravity(Gravity.CENTER);
             bar.addView(tv);
 
             rel.setOrientation(LinearLayout.VERTICAL);
@@ -335,7 +254,7 @@ public class LibUI {
             rel.addView(bar);
 
             LinearLayout layout = new LinearLayout(ctx);
-            layout.setPadding(0, 20, 20, 20);
+            layout.setPadding(20, 20, 20, 20);
             layout.setOrientation(LinearLayout.VERTICAL);
             layout.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -361,16 +280,15 @@ public class LibUI {
                     (int)(height / 1.9)
             );
 
-            popupWindow.setElevation(10); // adds shadow
             if (popupDrawableResource != 0) {
-                this.popupWindow.setBackgroundDrawable(ContextCompat.getDrawable(ctx, popupDrawableResource));
+                this.popupWindow.setBackgroundDrawable(ctx.getResources().getDrawable(popupDrawableResource));
             }
 
-            this.popupWindow.setOutsideTouchable(true);
+            this.popupWindow.setOutsideTouchable(false);
         }
     }
 
-    private static LibUI.Popup openWindow(String title, int options) {
+    public static LibUI.Popup openWindow(String title, int options) {
         LibUI.Popup popup = new LibUI.Popup(title, options);
         return popup;
     }
@@ -386,5 +304,6 @@ public class LibUI {
     }
 
     public static native void callFunction(byte[] struct);
+    public static native Object callObjectFunction(byte[] struct, Object ... args);
     public static native void initThiz(Context ctx);
 }

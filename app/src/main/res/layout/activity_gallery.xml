@@ -6,21 +6,15 @@
     android:layout_height="match_parent"
     tools:context=".Gallery">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/constraintLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/cardview_dark_background"
-        app:layout_constraintTop_toTopOf="parent"/>
-
     <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/constraintLayout">
+        app:layout_constraintTop_toTopOf="parent">
 
         <TextView
             android:id="@+id/gallery_logs"
@@ -30,17 +24,17 @@
             tools:visibility="visible" />
 
         <androidx.recyclerview.widget.RecyclerView
-            app:fastScrollEnabled="true"
-            app:fastScrollVerticalThumbDrawable="@drawable/scroll_thumb"
-            app:fastScrollVerticalTrackDrawable="@drawable/scroll_track"
-            app:fastScrollHorizontalThumbDrawable="@drawable/scroll_thumb"
-            app:fastScrollHorizontalTrackDrawable="@drawable/scroll_track"
             android:id="@+id/galleryView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
-            android:focusable="true">
+            android:focusable="true"
+            app:fastScrollEnabled="true"
+            app:fastScrollHorizontalThumbDrawable="@drawable/scroll_thumb"
+            app:fastScrollHorizontalTrackDrawable="@drawable/scroll_track"
+            app:fastScrollVerticalThumbDrawable="@drawable/scroll_thumb"
+            app:fastScrollVerticalTrackDrawable="@drawable/scroll_track">
 
         </androidx.recyclerview.widget.RecyclerView>
     </LinearLayout>
