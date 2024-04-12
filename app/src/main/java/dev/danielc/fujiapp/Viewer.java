@@ -43,12 +43,12 @@ import javax.microedition.khronos.opengles.GL10;
 
 public class Viewer extends AppCompatActivity {
     public static final String TAG = "viewer";
-    public static Handler handler = null;
-    public static PopupWindow popupWindow = null;
-    public static ProgressBar progressBar = null;
+    public Handler handler = null;
+    public PopupWindow popupWindow = null;
+    public ProgressBar progressBar = null;
 
     public Bitmap bitmap = null;
-    public static String filename = null;
+    public String filename = null;
     public byte[] fileByteData = null;
     public boolean notEnoughMemoryToPreview = false;
     public boolean fileIsDownloaded = false;
@@ -137,7 +137,7 @@ public class Viewer extends AppCompatActivity {
     void downloadFileManually(int handle, int size) {
         String saveDir = Backend.getDownloads();
 
-        Backend.cSetProgressBarObj(Viewer.progressBar, size);
+        Backend.cSetProgressBarObj(progressBar, size);
 
         int rc = Backend.cFujiDownloadFile(handle, saveDir + File.separator + filename);
         if (rc != 0) {
@@ -173,7 +173,8 @@ public class Viewer extends AppCompatActivity {
             @Override
             public void onGlobalLayout() {
                 getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                Viewer.progressBar = downloadPopup(Viewer.this);
+                progressBar = downloadPopup(Viewer.this);
+                Log.d(TAG, "pgCreated");
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -222,7 +223,7 @@ public class Viewer extends AppCompatActivity {
                 return;
             }
 
-            Backend.cSetProgressBarObj(Viewer.progressBar, size);
+            Backend.cSetProgressBarObj(progressBar, size);
             int rc = Backend.cFujiGetFile(handle, fileByteData, size);
             if (rc == Backend.PTP_CHECK_CODE) {
                 toast("Can't download this file");
@@ -252,7 +253,8 @@ public class Viewer extends AppCompatActivity {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Viewer.popupWindow.dismiss();
+                    Log.d(TAG, "Dismissing");
+                    popupWindow.dismiss();
                     ZoomageView zoomageView = findViewById(R.id.zoom_view);
                     zoomageView.setImageBitmap(bitmap);
 
@@ -272,6 +274,7 @@ public class Viewer extends AppCompatActivity {
         handler = null;
         progressBar = null;
         popupWindow.dismiss();
+        Log.d(TAG, "Deleting");
         popupWindow = null;
         super.onDestroy();
     }

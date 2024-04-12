@@ -164,10 +164,10 @@ public class MainActivity extends AppCompatActivity {
             mime = "image/*";
         }
 
-        if (Viewer.filename!= null) {
-            path = Viewer.filename;
-            mime = "image/*";
-        }
+//        if (Viewer.filename != null) {
+//            path = Viewer.filename;
+//            mime = "image/*";
+//        }
 
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_VIEW);

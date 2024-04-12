@@ -185,10 +185,8 @@ public class Gallery extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            if (LibUI.handleOptions(item, true)) {
-                Backend.reportError(0, "Quitting");
-                return true;
-            }
+            Backend.reportError(0, "Quitting");
+            return true;
         } else if (item.getTitle() == "scripts") {
             Intent intent = new Intent(Gallery.this, Scripts.class);
             startActivity(intent);
