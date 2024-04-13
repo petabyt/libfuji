@@ -57,32 +57,52 @@
 #define PTP_PC_FUJI_Unknown17		0xD621
 
 // Function Modes
-#define FUJI_VIEW_MULTIPLE	1
-#define FUJI_VIEW_ALL_IMGS	2
-#define FUJI_MODE_UNKNOWN2	3
-#define FUJI_MODE_UNKNOWN1	4
-#define FUJI_REMOTE_MODE	5
-#define FUJI_MODE_UNKNOWN3	6
-#define FUJI_CAMERA_ERR		7
-#define FUJI_SELECTED_FRAME	8
-#define FUJI_MODE_IMG_VIEW_IN_CAM	9
-#define FUJI_GPS_ASSIST_V2	10
-#define FUJI_MODE_REMOTE_IMG_VIEW	11
-#define FUJI_MODE_SET_GPS	17
-#define FUJI_LIMITED_IMG_TRANSMISSION	18
-#define FUJI_MODE_TRANSFER_FIRMARE	19
-#define FUJI_MODE_REMOTE_IMG_VIEW_BLE	20 // ????
+enum FunctionModes {
+	// Set if camera state is FUJI_MULTIPLE_TRANSFER,
+	FUJI_VIEW_MULTIPLE = 1,
+	// Set to view all images and have normal PTP functionality
+	FUJI_VIEW_ALL_IMGS = 2,
+	// Old remote - maybe from 2015-2017
+	FUJI_OLD_REMOTE = 3,
+	FUJI_MODE_UNKNOWN1 = 4,
+	// Set to enter full remote mode
+	FUJI_REMOTE_MODE = 5,
+	FUJI_MODE_UNKNOWN3 = 6,
+	// Set to tell camera that client has an error
+	FUJI_CAMERA_ERR = 7,
+	// Set to a similar (but completely different) version of FUJI_MULTIPLE_TRANSFER.
+	// Client requests this, and user selects images on camera.
+	FUJI_MULTIPLE_TRANSFER_REQ = 8,
+	FUJI_MODE_IMG_VIEW_IN_CAM = 9,
+	FUJI_GPS_ASSIST_V2 = 10,
+	// Set to quiet down the liveview/remote functionality (still running I think) and start the image gallery
+	// This is only for remote cameras. Better name would be IMG_VIEW_EXTENDED (?)
+	FUJI_MODE_REMOTE_IMG_VIEW = 11,
+	// Set GPS on cam, haven't tested
+	FUJI_MODE_SET_GPS = 17,
+	// All seem to be new or bluetooth only functionality
+	FUJI_LIMITED_IMG_TRANSMISSION = 18,
+	FUJI_MODE_TRANSFER_FIRMWARE = 19,
+	FUJI_MODE_REMOTE_IMG_VIEW_BLE = 20
+};
 
 // Modes for SelectedImgsMode
 #define FUJI_SELECT_MULTIPLE_MODE_1 1
 
 // Camera states
-#define FUJI_WAIT_FOR_ACCESS	0
-#define FUJI_MULTIPLE_TRANSFER	1
-#define FUJI_FULL_ACCESS	2
-#define FUJI_REMOTE_ACCESS	6
+enum FujiStates {
+	// We need to wait and poll camera for access
+	FUJI_WAIT_FOR_ACCESS = 0,
+	// Camera has indicated it has single or multiple photos to transfer. Go into loop to accept them.
+	FUJI_MULTIPLE_TRANSFER = 1,
+	// We have full access to the camera (non-remote), we can run the photo gallery, download photos,
+	// and do normal PTP stuff.
+	FUJI_FULL_ACCESS = 2,
+	// We have all features of FUJI_FULL_ACCESS and remote mode.
+	FUJI_REMOTE_ACCESS = 6,
+};
 
-// ECs and PCs stuff from libgphoto2 ptp.h - most are innacurate
+// ECs and PCs stuff from libgphoto2 ptp.h - most are inaccurate
 #define PTP_EC_FUJI_PreviewAvailable		0xC001
 #define PTP_EC_FUJI_ObjectAdded			0xC004
 
