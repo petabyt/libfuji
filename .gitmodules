@@ -2,9 +2,9 @@
 	path = lib/libuifw
 	url = https://github.com/petabyt/libuifw.git
 [submodule "lib/camlib"]
-	path = lib/camlib
+	path = camlib
 	url = https://github.com/petabyt/camlib
 [submodule "lib/lua"]
-	path = lib/lua
+	path = lua
 	url = https://github.com/lua/lua/
 	branch = v5.3
