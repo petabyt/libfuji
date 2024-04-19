@@ -84,38 +84,39 @@ int ptpip_new_timeout_socket(char *addr, int port, long timeout_sec) {
 	}
 
 	int yes = 1;
-	setsockopt(
-			sockfd,
-			IPPROTO_TCP,
-			TCP_NODELAY,
-			(char *)&yes,
-			sizeof(int)
-	);
-	setsockopt(
+//	rc = setsockopt(
+//			sockfd,
+//			IPPROTO_TCP,
+//			TCP_NODELAY,
+//			(char *)&yes,
+//			sizeof(int)
+//	);
+//	if (rc < 0) {
+//		ptp_verbose_log("Failed to disable nagle's algorithm");
+//		return -1;
+//	}
+	rc = setsockopt(
 			sockfd,
 			IPPROTO_TCP,
 			SO_KEEPALIVE,
 			(char *)&yes,
 			sizeof(int)
 	);
-	setsockopt(
-			sockfd,
-			IPPROTO_TCP,
-			SO_REUSEADDR,
-			(char *)&yes,
-			sizeof(int)
-	);
+	if (rc < 0) {
+		ptp_verbose_log("Failed to set keep alive");
+		return -1;
+	}
 
 	if (sockfd < 0) {
 		ptp_verbose_log("Failed to create socket\n");
 		return -1;
 	}
 
-	if (set_nonblocking_io(sockfd, 1) < 0) {
-		close(sockfd);
-		ptp_verbose_log("Failed to set non-blocking IO\n");
-		return -1;
-	}
+//	if (set_nonblocking_io(sockfd, 1) < 0) {
+//		close(sockfd);
+//		ptp_verbose_log("Failed to set non-blocking IO\n");
+//		return -1;
+//	}
 
 	plat_dbg("Connecting to %s:%d", addr, port);
 
@@ -129,7 +130,6 @@ int ptpip_new_timeout_socket(char *addr, int port, long timeout_sec) {
 		return -1;
 	}
 
-	errno = 0;
 	if (connect(sockfd, (struct sockaddr*)&sa, sizeof(sa)) < 0) {
 		if (errno != EINPROGRESS) {
 			close(sockfd);
@@ -138,9 +138,18 @@ int ptpip_new_timeout_socket(char *addr, int port, long timeout_sec) {
 		}
 	}
 
-	plat_dbg("Errno: %d", errno);
+	rc = setsockopt(
+			sockfd,
+			SOL_SOCKET,
+			SO_REUSEADDR,
+			(char *)&yes,
+			sizeof(int)
+	);
+	if (rc < 0) {
+		ptp_verbose_log("Failed to set reuseaddr: %d", errno);
+		return -1;
+	}
 
-	// timeout handling
 	fd_set fdset;
 	FD_ZERO(&fdset);
 	FD_SET(sockfd, &fdset);
@@ -148,26 +157,31 @@ int ptpip_new_timeout_socket(char *addr, int port, long timeout_sec) {
 	tv.tv_sec = timeout_sec;
 	tv.tv_usec = 0;
 
-	plat_dbg("Waiting for select");
-	rc = select(sockfd + 1, NULL, &fdset, NULL, &tv);
-	plat_dbg("Select over");
-	if (rc == 1) {
-		int so_error = 0;
-		socklen_t len = sizeof(so_error);
-		if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &so_error, &len) < 0) {
-			close(sockfd);
-			ptp_verbose_log("Failed to get socket options\n");
-			return -1;
-		}
+	// Receive timeout
+	//setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-		if (so_error == 0) {
-			ptp_verbose_log("Connection established %s:%d (%d)\n", addr, port, sockfd);
-			set_nonblocking_io(sockfd, 0); // ????
-			return sockfd;
+	// If operation is in progress, wait for it to become ready
+	if (errno == EINPROGRESS) {
+		rc = select(sockfd + 1, NULL, &fdset, NULL, &tv);
+		if (rc != 1) {
+			ptp_verbose_log("select() returned 0 fds\n");
+			return -1;
 		}
 	}
 
-	//if (errno == 115) return sockfd;
+	int so_error = 0;
+	socklen_t len = sizeof(so_error);
+	if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &so_error, &len) < 0) {
+		close(sockfd);
+		ptp_verbose_log("Failed to get socket options\n");
+		return -1;
+	}
+
+	if (so_error == 0) {
+		ptp_verbose_log("Connection established %s:%d (%d)\n", addr, port, sockfd);
+		//set_nonblocking_io(sockfd, 0); // ????
+		return sockfd;
+	}
 
 	close(sockfd);
 	ptp_verbose_log("Failed to connect: %d, %d\n", rc, errno);
@@ -253,8 +267,11 @@ JNI_FUNC(jint, cConnectVideoSocket)(JNIEnv *env, jobject thiz, jstring ip, jint 
 int ptpip_close(struct PtpRuntime *r) {
 	struct PtpIpBackend *b = init_comm(r);
 	if (b->fd) close(b->fd);
+	b->fd = 0;
 	if (b->evfd) close(b->evfd);
+	b->evfd = 0;
 	if (b->vidfd) close(b->vidfd);
+	b->vidfd = 0;
 	return 0;
 }
 
