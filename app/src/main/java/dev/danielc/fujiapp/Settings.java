@@ -7,21 +7,24 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import libui.LibUI;
-
-public class Scripts extends AppCompatActivity {
+public class Settings extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_settings);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setTitle(R.string.scripts);
-        LibUI.start(this);
-        setContentView(Backend.cFujiScriptsScreen(this));
+        actionBar.setTitle("Settings");
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        return LibUI.handleOptions(item, true);
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 }

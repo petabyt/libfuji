@@ -6,12 +6,11 @@ package dev.danielc.fujiapp;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
-import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -19,6 +18,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.ViewGroup;
 import android.widget.TextView;
 
 import libui.LibUI;
@@ -44,40 +44,13 @@ public class Gallery extends AppCompatActivity {
         });
     }
 
-    void showWarning(String text) {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                TextView warn_msg = findViewById(R.id.bottomDialogText);
-                warn_msg.setText(text);
-
-                View b = findViewById(R.id.bottomDialog);
-                b.setVisibility(View.VISIBLE);
-            }
-        });
-
-        // Give time for the warning to show and warn the user (in case it breaks)
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            return;
-        }
-    }
-
     void fail(int code, String reason) {
-        if (Backend.cGetKillSwitch()) return;
         Backend.reportError(code, reason);
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                Gallery.this.finish();
-            }
-        });
+        finish();
     }
 
     @Override
     protected void onResume() {
-        //LibUI.start(this);
         super.onResume();
     }
 
@@ -86,7 +59,7 @@ public class Gallery extends AppCompatActivity {
             @Override
             public void run() {
                 ActionBar actionBar = getSupportActionBar();
-                actionBar.setTitle(getString(R.string.gallery) + ": " + name);
+                actionBar.setTitle(name);
             }
         });
     }
@@ -94,7 +67,18 @@ public class Gallery extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_gallery);
+
+        LibUI.init(this);
+
+        LayoutInflater inf = getLayoutInflater();
+
+        View tab = LibUI.tabLayout();
+        LibUI.addTab(tab, "Gallery", inf.inflate(R.layout.gallery, (ViewGroup)tab, false));
+        LibUI.addTab(tab, "Remote", inf.inflate(R.layout.remote, (ViewGroup)tab, false));
+        LibUI.addTab(tab, "Scripts", Backend.cFujiScriptsScreen(this));
+
+        setContentView(tab);
+
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle(getString(R.string.gallery));
@@ -117,6 +101,9 @@ public class Gallery extends AppCompatActivity {
                     fail(rc, "Setup error");
                     return;
                 }
+
+                // SINGLE/MULTIPLE downloader fuji will gracefully kill connection (done in cFujiSetup)
+                if (Backend.cGetKillSwitch()) return;
 
                 Backend.print("Entering image gallery..");
                 rc = Backend.cFujiConfigImageGallery();
@@ -170,6 +157,7 @@ public class Gallery extends AppCompatActivity {
 
     @Override
     public void onDestroy() {
+        instance = null;
         imageAdapter = null;
         recyclerView = null;
         super.onDestroy();
@@ -185,7 +173,7 @@ public class Gallery extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            Backend.reportError(0, "Quitting");
+            fail(0, "Quitting");
             return true;
         } else if (item.getTitle() == "scripts") {
             Intent intent = new Intent(Gallery.this, Scripts.class);
@@ -197,10 +185,9 @@ public class Gallery extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        MenuItem menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "scripts");
-        menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-        menuItem.setIcon(R.drawable.baseline_terminal_24);
-
+        //MenuItem menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "scripts");
+        //menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        //menuItem.setIcon(R.drawable.baseline_terminal_24);
         return true;
     }
 }

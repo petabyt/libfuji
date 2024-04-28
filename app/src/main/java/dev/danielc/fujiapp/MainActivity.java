@@ -179,19 +179,12 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getTitle() == "open") {
             openFiles();
-        } else if (item.getTitle() == "tester") {
-            Intent intent = new Intent(MainActivity.this, Tester.class);
+        } else if (item.getTitle() == "settings") {
+            Intent intent = new Intent(MainActivity.this, Settings.class);
             startActivity(intent);
-        } else {
-            return LibUI.handleOptions(item, false);
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onBackPressed() {
-        LibUI.handleBack(true);
     }
 
     @Override
@@ -200,9 +193,9 @@ public class MainActivity extends AppCompatActivity {
         menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         menuItem.setIcon(R.drawable.baseline_folder_open_24);
 
-//        menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "tester");
-//        menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-//        menuItem.setIcon(R.drawable.baseline_fact_check_24);
+        menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "settings");
+        menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        menuItem.setIcon(R.drawable.baseline_settings_24);
 
         return true;
     }

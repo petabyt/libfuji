@@ -105,7 +105,6 @@ public class Tester extends AppCompatActivity {
     private String verboseLog = null;
     private String currentLogs = "";
     public void log(String str) {
-        Log.d("fudge-tester", str);
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -124,7 +123,6 @@ public class Tester extends AppCompatActivity {
         int rc = Backend.cFujiTestSuite(Backend.chosenIP);
         log("Return code: " + rc);
         if (rc != 0) return;
-
         log("Test completed.");
     }
 

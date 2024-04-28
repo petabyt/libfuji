@@ -31,4 +31,5 @@
     <string name="gallery">Gallery</string>
     <string name="getImages2">Maybe you only have RAW files? Fuji doesn\'t let us view RAW over WiFi :(</string>
     <string name="noImages1">No images available on camera.</string>
+    <string name="title_activity_settings">Settings</string>
 </resources>

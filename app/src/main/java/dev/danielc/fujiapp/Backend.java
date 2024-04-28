@@ -8,6 +8,8 @@ import android.content.Intent;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
 import android.os.Environment;
+import android.view.View;
+
 import java.io.File;
 import org.json.JSONObject;
 import java.util.Arrays;
@@ -132,7 +134,7 @@ public class Backend extends CamlibBackend {
 
     public native static int cSetProgressBarObj(Object progressBar, int size);
 
-    public native static void cFujiScriptsScreen(Context ctx);
+    public native static View cFujiScriptsScreen(Context ctx);
 
     public static JSONObject fujiGetUncompressedObjectInfo(int handle) throws Exception {
         String resp = cFujiGetUncompressedObjectInfo(handle);
@@ -141,7 +143,7 @@ public class Backend extends CamlibBackend {
     }
 
     // C/Java -> async UI logging
-    final static int MAX_LOG_LINES = 5;
+    final static int MAX_LOG_LINES = 3;
 
     public static void clearPrint() {
         basicLog = "";
@@ -165,10 +167,10 @@ public class Backend extends CamlibBackend {
 
     public static void updateLog() {
         if (MainActivity.instance != null) {
-            MainActivity.instance.setLogText(basicLog);
+            MainActivity.instance.setLogText(basicLog.strip());
         }
         if (Gallery.instance != null) {
-            Gallery.instance.setLogText(basicLog);
+            Gallery.instance.setLogText(basicLog.strip());
         }
     }
 

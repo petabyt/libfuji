@@ -2,6 +2,7 @@
 // Copyright Daniel Cook - Apache License
 package camlib;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -39,14 +40,20 @@ public class WiFiComm {
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
         requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
         ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+            Intent settings = null;
             @Override
             public void onAvailable(Network network) {
                 Log.d(TAG, "Wifi network is available");
+                if (settings != null) {
+                    ((Activity)ctx).finish();
+                }
                 wifiDevice = network;
             }
             @Override
             public void onLost(Network network) {
                 Log.e(TAG, "Lost network\n");
+                settings = new Intent(Settings.ACTION_WIFI_SETTINGS);
+                ctx.startActivity(settings);
                 wifiDevice = null;
             }
             @Override

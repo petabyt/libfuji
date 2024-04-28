@@ -55,15 +55,8 @@ public class Viewer extends AppCompatActivity {
     public boolean threadIsDone = false;
 
     void fail(int code, String reason) {
-        if (Backend.cGetKillSwitch()) return;
         Backend.reportError(code, reason);
-        if (handler == null) return;
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                Viewer.this.finish();
-            }
-        });
+        finish();
     }
 
     // Create a popup - will set popupWindow, will be closed when finished
@@ -88,8 +81,8 @@ public class Viewer extends AppCompatActivity {
     // Must be ran on UI thread
     public void writeFile() {
         String saveDir = Backend.getDownloads();
-
-        File file = new File(saveDir + File.separator + filename);
+        String path = saveDir + File.separator + filename;
+        File file = new File(path);
         FileOutputStream fos = null;
 
         try {
@@ -101,7 +94,7 @@ public class Viewer extends AppCompatActivity {
             if (fos != null) {
                 try {
                     fos.close();
-                    this.scanImage(filename);
+                    this.scanImage(path);
                     Toast.makeText(Viewer.this, "Saved to " + filename, Toast.LENGTH_SHORT).show();
                     fileIsDownloaded = true;
                 } catch (IOException e) {
@@ -139,16 +132,18 @@ public class Viewer extends AppCompatActivity {
 
         Backend.cSetProgressBarObj(progressBar, size);
 
-        int rc = Backend.cFujiDownloadFile(handle, saveDir + File.separator + filename);
+        String path = saveDir + File.separator + filename;
+        int rc = Backend.cFujiDownloadFile(handle, path);
         if (rc != 0) {
-            toast("Download Error");
-            Backend.reportError(Backend.PTP_IO_ERR, "Download error");
-            return; // TODO: exit Viewer?
+            fail(rc, "Failed to download file to storage.");
         }
 
         Backend.cSetProgressBarObj(null, 0);
 
         fileIsDownloaded = true;
+        scanImage(path);
+
+        toast("Saved to " + path);
     }
 
     ActionBar actionBar;
@@ -174,7 +169,6 @@ public class Viewer extends AppCompatActivity {
             public void onGlobalLayout() {
                 getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 progressBar = downloadPopup(Viewer.this);
-                Log.d(TAG, "pgCreated");
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -201,8 +195,6 @@ public class Viewer extends AppCompatActivity {
 
             handler = new Handler(Looper.getMainLooper());
 
-            //Log.d(TAG, "handler: " + handler);
-            if (handler == null) return;
             handler.post(new Runnable() {
                 //@SuppressLint({"SetTextI18n", "DefaultLocale"})
                 @Override
@@ -220,6 +212,14 @@ public class Viewer extends AppCompatActivity {
                 toast("Not enough memory to preview file");
                 notEnoughMemoryToPreview = true;
                 downloadFileManually(handle, size);
+                if (handler == null) return;
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        popupWindow.dismiss();
+                        threadIsDone = true;
+                    }
+                });
                 return;
             }
 
@@ -227,6 +227,7 @@ public class Viewer extends AppCompatActivity {
             int rc = Backend.cFujiGetFile(handle, fileByteData, size);
             if (rc == Backend.PTP_CHECK_CODE) {
                 toast("Can't download this file");
+                finish();
                 return;
             } else if (rc != 0) {
                 fail(Backend.PTP_IO_ERR, "Failed to download image");
@@ -253,7 +254,6 @@ public class Viewer extends AppCompatActivity {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Log.d(TAG, "Dismissing");
                     popupWindow.dismiss();
                     ZoomageView zoomageView = findViewById(R.id.zoom_view);
                     zoomageView.setImageBitmap(bitmap);
@@ -263,7 +263,7 @@ public class Viewer extends AppCompatActivity {
             });
         } catch (Exception e) {
             e.printStackTrace();
-            fail(0, e.toString());
+            fail(Backend.PTP_IO_ERR, e.getMessage());
         }
     }
 
