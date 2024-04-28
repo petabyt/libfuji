@@ -30,7 +30,7 @@ uiScroll *fudge_scripts_screen() {
 	uiBox *box = uiNewVerticalBox();
 	uiBoxSetPadded(box, 1);
 
-	char *file = ui_get_txt_file(uiAndroidGetEnv(), uiAndroidGetCtx(), "script.lua");
+	char *file = jni_get_txt_file(uiAndroidGetEnv(), uiAndroidGetCtx(), "script.lua");
 
 	script_box = uiNewMultilineEntry();
 	uiMultilineEntrySetText(script_box, file);
@@ -57,10 +57,7 @@ uiScroll *fudge_scripts_screen() {
 }
 
 #include "backend.h"
-JNI_FUNC(jint, cFujiScriptsScreen)(JNIEnv *env, jobject thiz, jobject ctx) {
+JNI_FUNC(jobject, cFujiScriptsScreen)(JNIEnv *env, jobject thiz, jobject ctx) {
 	uiAndroidInit(env, ctx);
-
-	uiAndroidSetContent(uiControl(fudge_scripts_screen()));
-
-	return 0;
+	return uiViewFromControl(fudge_scripts_screen());
 }

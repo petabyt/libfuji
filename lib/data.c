@@ -31,11 +31,11 @@ int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data) {
 		plat_dbg("Code, %X", code);
 		plat_dbg("length, %d", this_length);
 
-		struct PtpPropDesc pd;
-		int rc = ptp_get_prop_desc(r, code, &pd);
-		if (rc) return rc;
+		//struct PtpPropDesc pd;
+		//int rc = ptp_get_prop_desc(r, code, &pd);
+		//if (rc) return rc;
 
-		plat_dbg("data type: %X\n", pd.data_type);
+		//plat_dbg("data type: %X\n", pd.data_type);
 
 		int payload_len = this_length - 2 - 4;
 		for (int x = 0; x < payload_len; x++) {

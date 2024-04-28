@@ -46,7 +46,9 @@ int fuji_test_get_props(struct PtpRuntime *r) {
 		PTP_PC_FUJI_RemoteVersion,
 		PTP_PC_FUJI_RemoteGetObjectVersion,
 		PTP_PC_FUJI_ImageGetLimitedVersion,
-		PTP_PC_FUJI_CompressionCutOff,
+		PTP_PC_FUJI_Unknown_D400,
+		PTP_PC_FUJI_Unknown_D52F,
+		PTP_PC_FUJI_Unknown_DF28,
 	};
 
 	for (int i = 0; i < (int)(sizeof(test_props) / sizeof(uint16_t)); i++) {
@@ -232,7 +234,7 @@ int fuji_test_usb(struct PtpRuntime *r) {
 	ptp_device_close(r);
 }
 
-int fuji_test_suite(struct PtpRuntime *r, char *ip) {
+int fuji_test_suite(struct PtpRuntime *r, const char *ip) {
 	if (r->connection_type == PTP_USB) {
 		return fuji_test_usb(r);
 	}

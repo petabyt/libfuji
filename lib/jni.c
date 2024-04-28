@@ -1,5 +1,5 @@
 // JNI PTP/IP interface for camlib and fuji.c
-// Copyright 2023 (c) Unofficial fujiapp
+// Copyright 2023 (C) Fudge
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -16,7 +16,7 @@ JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reaso
 
 	const char *c_reason = (*env)->GetStringUTFChars(env, reason, 0);
 
-	ptp_report_error(&backend.r, (char *)c_reason, (int)code);
+	ptp_report_error(&backend.r, c_reason, (int)code);
 
 	if (backend.r.connection_type == PTP_USB) {
 		ptp_device_close(&backend.r);
@@ -28,6 +28,7 @@ JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reaso
 	(*env)->DeleteLocalRef(env, reason);
 }
 
+// TODO: remove
 JNI_FUNC(void, cClearKillSwitch)(JNIEnv *env, jobject thiz) {
 	backend.r.io_kill_switch = 0;
 }
@@ -39,10 +40,11 @@ JNI_FUNC(jboolean, cGetKillSwitch)(JNIEnv *env, jobject thiz) {
 JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
 	if (backend.r.connection_type == PTP_USB) {
+		// TODO: Poll int endpoint?
 		return 0;
 	}
-	int rc = fuji_get_events(&backend.r);
-	return rc;
+
+	return fuji_get_events(&backend.r);
 }
 
 JNI_FUNC(jint, cFujiDownloadFile)(JNIEnv *env, jobject thiz, jint handle, jstring path) {
@@ -50,10 +52,11 @@ JNI_FUNC(jint, cFujiDownloadFile)(JNIEnv *env, jobject thiz, jint handle, jstrin
 
 	const char *c_path = (*env)->GetStringUTFChars(env, path, 0);
 
+	plat_dbg("Downloading to %s", c_path);
 	FILE *f = fopen(c_path, "wb");
 	if (f == NULL) return PTP_RUNTIME_ERR;
 
-	int rc = ptp_download_object(&backend.r, handle, f, 0x100000);
+	int rc = ptp_download_object(&backend.r, handle, f, FUJI_MAX_PARTIAL_OBJECT);
 	fclose(f);
 	if (rc) {
 		app_print("Failed to save %s: %s", c_path, ptp_perror(rc));
@@ -66,7 +69,7 @@ JNI_FUNC(jint, cFujiDownloadFile)(JNIEnv *env, jobject thiz, jint handle, jstrin
 	return 0;
 }
 
-// Must be called after cFujiGetUncompressedObjectInfo
+// PTP_IP_USB: Must be called after cFujiGetUncompressedObjectInfo
 JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray array, jint file_size) {
 	set_jni_env(env);
 
@@ -75,9 +78,7 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 	int read = 0;
 	while (1) {
 		ptp_mutex_keep_locked(&backend.r);
-		// For a long time transfers over 1mb worked but for one image
-		// X-A2 decided to freak out and stall. So, we have to do it the Fuji way :)
-		int cur = file_size - read; if (cur > 0x100000) cur = 0x100000;
+		int cur = file_size - read; if (cur > FUJI_MAX_PARTIAL_OBJECT) cur = FUJI_MAX_PARTIAL_OBJECT;
 		int rc = ptp_get_partial_object(&backend.r, handle, read, cur);
 		if (rc == PTP_CHECK_CODE) {
 			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
@@ -121,7 +122,7 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 	}
 }
 
-// Must be called *before* a call to cFujiGetFile
+// PTP_IP_USB: Must be called *before* a call to cFujiGetFile
 JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
 
@@ -139,8 +140,6 @@ JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jin
 		return NULL;
 	}
 
-	// Compression must be disabled in cFujiGetFile or somewhere else
-
 	char buffer[1024];
 	ptp_object_info_json(&oi, buffer, sizeof(buffer));
 
@@ -151,29 +150,23 @@ JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jin
 JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz, jstring ip) {
 	set_jni_env(env);
 
-	if (backend.r.connection_type == PTP_USB) {
-		return fujiusb_setup(&backend.r);
-	} else {
-		const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
+	if (backend.r.connection_type == PTP_USB) return fujiusb_setup(&backend.r);
 
-		int rc = fuji_setup(&backend.r, (char *)c_ip);
+	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
 
-		(*env)->ReleaseStringUTFChars(env, ip, c_ip);
-		(*env)->DeleteLocalRef(env, ip);
+	int rc = fuji_setup(&backend.r, c_ip);
 
-		return rc;
-	}
+	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
+	(*env)->DeleteLocalRef(env, ip);
+
+	return rc;
 }
 
 JNI_FUNC(jint, cFujiConfigImageGallery)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
-
 	if (backend.r.connection_type == PTP_USB) return 0;
-
 	int rc = fuji_config_image_viewer(&backend.r);
-	if (rc) return rc;
-
-	return 0;
+	return rc;
 }
 
 jintArray ptpusb_get_object_handles(JNIEnv *env, struct PtpRuntime *r) {
@@ -234,7 +227,7 @@ JNI_FUNC(jint, cFujiTestSuite)(JNIEnv *env, jobject thiz, jstring ip) {
 	} else {
 		const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
 
-		int rc = fuji_test_suite(&backend.r, (char *)c_ip);
+		int rc = fuji_test_suite(&backend.r, c_ip);
 
 		(*env)->ReleaseStringUTFChars(env, ip, c_ip);
 		(*env)->DeleteLocalRef(env, ip);

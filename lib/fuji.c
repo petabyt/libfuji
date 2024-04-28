@@ -21,7 +21,7 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 }
 
 // Call after cmd socket is opened
-int fuji_setup(struct PtpRuntime *r, char *ip) {
+int fuji_setup(struct PtpRuntime *r, const char *ip) {
 	memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
 
 	struct PtpFujiInitResp resp;
@@ -82,8 +82,8 @@ int fuji_setup(struct PtpRuntime *r, char *ip) {
 		return rc;
 	}
 
-//	rc = fuji_config_device_info_routine(r);
-//	if (rc) return rc;
+	rc = fuji_config_device_info_routine(r);
+	if (rc) return rc;
 
 	// Setup remote mode
 	if (fuji_known.remote_version != -1) {
@@ -94,7 +94,7 @@ int fuji_setup(struct PtpRuntime *r, char *ip) {
 	return 0;
 }
 
-int fuji_setup_remote_mode(struct PtpRuntime *r, char *ip) {
+int fuji_setup_remote_mode(struct PtpRuntime *r, const char *ip) {
 	int rc = fuji_remote_mode_open_sockets(r);
 	if (rc) {
 		app_print("Failed to start remote mode");
@@ -264,26 +264,24 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_GetObjectVersion);
 	if (rc) return rc;
 	fuji_known.get_object_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("GetObjectVersion: 0x%X", fuji_known.get_object_version);
+	ptp_verbose_log("GetObjectVersion: 0x%X\n", fuji_known.get_object_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion);
 	if (rc) return rc;
 	fuji_known.remote_image_view_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("RemoteGetObjectVersion: 0x%X", fuji_known.remote_image_view_version);
-
-	// TODO: set PTP_PC_FUJI_RemoteGetObjectVersion
+	ptp_verbose_log("RemoteGetObjectVersion: 0x%X\n", fuji_known.remote_image_view_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageGetVersion);
 	if (rc) return rc;
 	fuji_known.image_get_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("ImageGetVersion: 0x%X", fuji_known.image_get_version);
+	ptp_verbose_log("ImageGetVersion: 0x%X\n", fuji_known.image_get_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteVersion);
 	if (rc) return rc;
 	fuji_known.remote_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("RemoteVersion: 0x%X", fuji_known.remote_version);
+	ptp_verbose_log("RemoteVersion: 0x%X\n", fuji_known.remote_version);
 
-	ptp_verbose_log("CameraState is %d", fuji_known.camera_state);
+	ptp_verbose_log("CameraState is %d\n", fuji_known.camera_state);
 
 	// Determine preferred mode from state and version info
 	int mode = 0;
@@ -299,7 +297,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 		}
 	}
 
-	ptp_verbose_log("Setting mode to %d", mode);
+	ptp_verbose_log("Setting mode to %d\n", mode);
 
 	// On newer cams, setting function mode causes cam to have a dialog (Yes/No accept connection)
 	// We have to wait for a response in this case
@@ -344,6 +342,8 @@ int fuji_config_device_info_routine(struct PtpRuntime *r) {
 	if (fuji_known.remote_version != -1) {
 		int rc = fuji_get_device_info(r);
 		if (rc) return rc;
+
+		fuji_register_device_info(r, ptp_get_payload(r));
 
 		// TODO: Parse device info
 		// I don't think we actually need it (?)
@@ -394,9 +394,9 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		if (rc) return rc;
 
 		// Check SD card slot, not really useful for now
-		rc = ptp_get_prop_value(r, PTP_PC_FUJI_StorageID);
-		if (rc) return rc;
-		ptp_verbose_log("Storage ID: %d\n", ptp_parse_prop_value(r));
+		//rc = ptp_get_prop_value(r, PTP_PC_FUJI_StorageID);
+		//if (rc) return rc;
+		//ptp_verbose_log("Storage ID: %d\n", ptp_parse_prop_value(r));
 
 		// Now we finally enter the remote image viewer
 		rc = ptp_set_prop_value16(r, PTP_PC_FUJI_FunctionMode, FUJI_MODE_REMOTE_IMG_VIEW);

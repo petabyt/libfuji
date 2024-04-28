@@ -10,6 +10,7 @@
 void set_jni_env(JNIEnv *env);
 struct PtpRuntime *ptp_get();
 
+#if 0
 PTP_FUNC(jstring, cPtpRun)(JNIEnv *env, jobject thiz, jstring string) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
@@ -31,6 +32,7 @@ PTP_FUNC(jstring, cPtpRun)(JNIEnv *env, jobject thiz, jstring string) {
 	free(buffer);
 	return ret;
 }
+#endif
 
 PTP_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
@@ -38,11 +40,11 @@ PTP_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 
 	ptp_mutex_keep_locked(r);
     int rc = ptp_get_thumbnail(r, (int)handle);
-    if (rc == PTP_CHECK_CODE) {
+    if (rc == PTP_CHECK_CODE || ptp_get_payload_length(r) < 100) {
         __android_log_write(ANDROID_LOG_ERROR, "camlib", "Thumbnail get failed");
-        // If an error code is returned - allow it to fall
-        // through and return a zero-length array
+		return (*env)->NewByteArray(env, 0);
     } else if (rc) {
+		ptp_mutex_unlock(r);
         return NULL;
     }
 

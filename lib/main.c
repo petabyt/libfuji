@@ -38,7 +38,7 @@ struct PtpRuntime *luaptp_get_runtime() {
 	return ptp_get();
 }
 
-void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
+void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	plat_dbg("Kill switch: %d tid: %d\n", r->io_kill_switch, gettid());
 	if (r->io_kill_switch) return;
 
@@ -67,25 +67,35 @@ void ptp_report_error(struct PtpRuntime *r, char *reason, int code) {
 	} else {
 		app_print("Disconnected: %s", reason);
 	}
-}
+} 
+
+#define VERBOSE
 
 void ptp_verbose_log(char *fmt, ...) {
-	//if (backend.log_buf == NULL) return;
+#ifndef VERBOSE
+	if (backend.log_buf == NULL) return;
+#endif
 
-	char buffer[512];
+	char buffer[512] = {0};
 	va_list args;
 	va_start(args, fmt);
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
 
 	__android_log_write(ANDROID_LOG_ERROR, "ptp_verbose_log", buffer);
+#ifdef VERBOSE
 	if (backend.log_buf == NULL) return;
-	if (strlen(buffer) + backend.log_pos + 1 > backend.log_size) {
-		backend.log_buf = realloc(backend.log_buf, strlen(buffer) + backend.log_pos + 1);
+#endif
+
+	char buffer2[512];
+	snprintf(buffer2, sizeof(buffer2), "%d\t%s", (int)clock() * 1000 / CLOCKS_PER_SEC, buffer);
+
+	if (strlen(buffer2) + backend.log_pos + 1 > backend.log_size) {
+		backend.log_buf = realloc(backend.log_buf, strlen(buffer2) + backend.log_pos + 1);
 	}
 
-	strcpy(((char *)backend.log_buf) + backend.log_pos, buffer);
-	backend.log_pos += strlen(buffer);
+	strcpy(((char *)backend.log_buf) + backend.log_pos, buffer2);
+	backend.log_pos += strlen(buffer2);
 }
 
 void ptp_panic(char *fmt, ...) {

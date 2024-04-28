@@ -5,17 +5,21 @@
 
 #define DEVICE_NAME "Fudge"
 
+// For a long time transfers over 1mb worked but for one image
+// X-A2 decided to freak out and stall. So, we have to do it the Fuji way :)
+#define FUJI_MAX_PARTIAL_OBJECT 0x100000
+
 // (Not a part of camlib)
-void ptp_report_error(struct PtpRuntime *r, char *reason, int code);
+void ptp_report_error(struct PtpRuntime *r, const char *reason, int code);
 
 int fuji_reset_ptp(struct PtpRuntime *r);
 
-int fuji_setup_remote_mode(struct PtpRuntime *r, char *ip);
+int fuji_setup_remote_mode(struct PtpRuntime *r, const char *ip);
 
-int fuji_setup(struct PtpRuntime *r, char *ip);
+int fuji_setup(struct PtpRuntime *r, const char *ip);
 
 // Test suite stuff
-int fuji_test_suite(struct PtpRuntime *r, char *ip);
+int fuji_test_suite(struct PtpRuntime *r, const char *ip);
 int fuji_test_setup(struct PtpRuntime *r);
 int fuji_test_filesystem(struct PtpRuntime *r);
 
@@ -43,7 +47,7 @@ int fuji_enable_compression(struct PtpRuntime *r);
 int fuji_download_multiple(struct PtpRuntime *r);
 
 // Another socket on top of the 2 that camlib connects to
-int ptpip_connect_video(struct PtpRuntime *r, char *addr, int port);
+int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port);
 
 // Holds runtime info about the camera
 struct FujiDeviceKnowledge {

@@ -24,7 +24,7 @@
 
 // Fuji Camera Connect has this version - 2.11 if parsed as bytes. Or 11.2
 // XS10 on reported 0x02000A, camera connect set to 2000B
-#define FUJI_CAM_CONNECT_REMOTE_VER 0x2000B
+#define FUJI_CAM_CONNECT_REMOTE_VER 0x2000C
 
 // Downloader opcodes, mostly unknown
 #define PTP_OC_FUJI_Unknown1	0x9054

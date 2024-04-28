@@ -52,16 +52,11 @@ int fuji_download_classic(struct PtpRuntime *r) {
 }
 
 int fuji_download_multiple(struct PtpRuntime *r) {
-	if (fuji_known.remote_version == -1) {
-		if (fuji_download_classic(r)) {
-			app_print("Error importing images");
-			return PTP_IO_ERR;
-		} else {
-			app_print("Done downloading images.");
-		}
-	} else {
-		app_print("Unsupported remote mode download");
+	if (fuji_download_classic(r)) {
+		app_print("Error importing images");
 		return PTP_IO_ERR;
+	} else {
+		app_print("Done downloading images.");
 	}
 	return 0;
 }

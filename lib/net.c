@@ -19,8 +19,6 @@
 #include "fuji.h"
 #include "backend.h"
 
-#define CMD_BUFFER_SIZE 512
-
 struct PtpIpBackend {
 	int fd;
 	int evfd;
@@ -75,7 +73,7 @@ static int set_nonblocking_io(int sockfd, int enable) {
 
 #define ptp_verbose_log plat_dbg
 
-int ptpip_new_timeout_socket(char *addr, int port, long timeout_sec) {
+int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
 	int rc = ndk_set_socket_wifi(sockfd);
@@ -112,11 +110,11 @@ int ptpip_new_timeout_socket(char *addr, int port, long timeout_sec) {
 		return -1;
 	}
 
-//	if (set_nonblocking_io(sockfd, 1) < 0) {
-//		close(sockfd);
-//		ptp_verbose_log("Failed to set non-blocking IO\n");
-//		return -1;
-//	}
+	if (set_nonblocking_io(sockfd, 1) < 0) {
+		close(sockfd);
+		ptp_verbose_log("Failed to set non-blocking IO\n");
+		return -1;
+	}
 
 	plat_dbg("Connecting to %s:%d", addr, port);
 
@@ -158,7 +156,7 @@ int ptpip_new_timeout_socket(char *addr, int port, long timeout_sec) {
 	tv.tv_usec = 0;
 
 	// Receive timeout
-	//setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+	//setsockopt(sockfd, SOL_SOCKET,  , &tv, sizeof(tv));
 
 	// If operation is in progress, wait for it to become ready
 	if (errno == EINPROGRESS) {
@@ -179,7 +177,7 @@ int ptpip_new_timeout_socket(char *addr, int port, long timeout_sec) {
 
 	if (so_error == 0) {
 		ptp_verbose_log("Connection established %s:%d (%d)\n", addr, port, sockfd);
-		//set_nonblocking_io(sockfd, 0); // ????
+		set_nonblocking_io(sockfd, 0); // ????
 		return sockfd;
 	}
 
@@ -196,7 +194,7 @@ static struct PtpIpBackend *init_comm(struct PtpRuntime *r) {
 	return (struct PtpIpBackend *)r->comm_backend;
 }
 
-int ptpip_connect(struct PtpRuntime *r, char *addr, int port) {
+int ptpip_connect(struct PtpRuntime *r, const char *addr, int port) {
 	int fd = ptpip_new_timeout_socket(addr, port, 1);
 
 	struct PtpIpBackend *b = init_comm(r);
@@ -214,7 +212,7 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 	set_jni_env(env);
 	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
 
-	int rc = ptpip_connect(&backend.r, (char *)c_ip, (int)port);
+	int rc = ptpip_connect(&backend.r, c_ip, (int)port);
 
 	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
 	(*env)->DeleteLocalRef(env, ip);
@@ -224,20 +222,23 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 	return rc;
 }
 
-int ptpip_connect_events(struct PtpRuntime *r, char *addr, int port) {
+int ptpip_connect_events(struct PtpRuntime *r, const char *addr, int port) {
 	int fd = ptpip_new_timeout_socket(addr, port, 1);
 	struct PtpIpBackend *b = init_comm(r);
-	b->evfd = fd;
-	// No error checking.
-	// this can fail on blocking network (?) will return EINPROGRESS but socket is technically still valid and waiting to be connected
-	return 0;
+	if (fd > 0) {
+		b->evfd = fd;
+		return 0;
+	} else {
+		b->evfd = 0;
+		return fd;
+	}
 }
 
 JNI_FUNC(jint, cConnectNativeEvents)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
 	set_jni_env(env);
 	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
 
-	int rc = ptpip_connect_events(&backend.r, (char *)c_ip, (int)port);
+	int rc = ptpip_connect_events(&backend.r, c_ip, (int)port);
 
 	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
 	(*env)->DeleteLocalRef(env, ip);
@@ -245,18 +246,23 @@ JNI_FUNC(jint, cConnectNativeEvents)(JNIEnv *env, jobject thiz, jstring ip, jint
 	return rc;
 }
 
-int ptpip_connect_video(struct PtpRuntime *r, char *addr, int port) {
+int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port) {
 	int fd = ptpip_new_timeout_socket(addr, port, 1);
 	struct PtpIpBackend *b = init_comm(r);
-	b->vidfd = fd;
-	return 0;
+	if (fd > 0) {
+		b->vidfd = fd;
+		return 0;
+	} else {
+		b->vidfd = 0;
+		return fd;
+	}
 }
 
 JNI_FUNC(jint, cConnectVideoSocket)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
 	set_jni_env(env);
 	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
 
-	int rc = ptpip_connect_video(&backend.r, (char *)c_ip, (int)port);
+	int rc = ptpip_connect_video(&backend.r, c_ip, (int)port);
 
 	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
 	(*env)->DeleteLocalRef(env, ip);
