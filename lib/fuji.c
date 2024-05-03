@@ -24,6 +24,9 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 int fuji_setup(struct PtpRuntime *r, const char *ip) {
 	memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
 
+	app_print("Waiting on the camera...");
+	app_print("Make sure you pressed OK.");
+
 	struct PtpFujiInitResp resp;
 	int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
 	if (rc) {

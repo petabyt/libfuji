@@ -39,7 +39,7 @@
             android:screenOrientation="portrait"
             android:exported="false" />
         <activity
-            android:name=".Settings"
+            android:name=".SettingsA"
             android:screenOrientation="portrait"
             android:exported="false" />
         <activity

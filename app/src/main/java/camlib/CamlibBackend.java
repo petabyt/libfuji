@@ -49,39 +49,8 @@ public class CamlibBackend {
     public static final int PTP_LV_CANON = 2;
     public static final int PTP_LV_ML = 3;
 
-    public native static String cPtpRun(String req);
     public native static byte[] cPtpGetThumb(int handle);
     public native static int cPtpGetPropValue(int code);
     public native static int cPtpOpenSession();
     public native static int cPtpCloseSession();
-
-    // Runs a request with integer parameters
-    public static JSONObject run(String req, int[] arr) throws Exception {
-        // Build camlib request string (see docs/)
-        req += ";";
-        for (int i = 0; i < arr.length; i++) {
-            req += String.valueOf(arr[i]);
-            if (i != arr.length - 1) {
-                req += ",";
-            }
-        }
-        req += ";";
-
-        String resp = cPtpRun(req);
-        try {
-            JSONObject jsonObject = new JSONObject(resp);
-            if (jsonObject.getInt("error") != 0) {
-                Backend.print("Non zero error: " + Integer.toString(jsonObject.getInt("error")));
-                throw new Exception("Error code");
-            }
-
-            return jsonObject;
-        } catch (Exception e) {
-            throw e;
-        }
-    }
-
-    public static JSONObject run(String req) throws Exception {
-        return run(req, new int[]{});
-    }
 };

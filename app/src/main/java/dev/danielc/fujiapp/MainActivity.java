@@ -14,6 +14,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+import android.provider.Settings;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -82,6 +84,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        findViewById(R.id.wifi_settings).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent in = new Intent(Settings.ACTION_WIFI_SETTINGS);
+                in.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(in);
+            }
+        });
+
         TextView bottomText = ((TextView)findViewById(R.id.bottomText));
         bottomText.append(getString(R.string.url) + "\n");
         bottomText.append("Download location: " + Backend.getDownloads() + "\n");
@@ -112,10 +123,22 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 try {
                     Backend.fujiConnectToCmd();
-                    Backend.print("Connected to the camera");
+                    Backend.print("Connection established");
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            findViewById(R.id.wifi_settings).setVisibility(View.GONE);
+                        }
+                    });
                     Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);
                 } catch (Exception e) {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
+                        }
+                    });
                     Backend.print(e.getMessage());
                 }
             }
@@ -128,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 try {
                     Backend.connectUSB(MainActivity.this);
-                    Backend.print("Connected to the camera");
+                    Backend.print("Connection established");
                     Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);
                 } catch (Exception e) {
@@ -176,11 +199,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onBackPressed() {
+        Backend.print("Back");
+        super.onBackPressed();
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getTitle() == "open") {
             openFiles();
         } else if (item.getTitle() == "settings") {
-            Intent intent = new Intent(MainActivity.this, Settings.class);
+            Intent intent = new Intent(MainActivity.this, SettingsA.class);
             startActivity(intent);
         }
 

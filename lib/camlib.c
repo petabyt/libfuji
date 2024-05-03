@@ -10,30 +10,6 @@
 void set_jni_env(JNIEnv *env);
 struct PtpRuntime *ptp_get();
 
-#if 0
-PTP_FUNC(jstring, cPtpRun)(JNIEnv *env, jobject thiz, jstring string) {
-	set_jni_env(env);
-	struct PtpRuntime *r = ptp_get();
-
-	const char *req = (*env)->GetStringUTFChars(env, string, 0);
-
-	char *buffer = malloc(PTP_BIND_DEFAULT_SIZE);
-
-	int rc = bind_run(r, (char *)req, buffer, PTP_BIND_DEFAULT_SIZE);
-
-	(*env)->ReleaseStringUTFChars(env, string, req);
-	(*env)->DeleteLocalRef(env, string);
-
-	if (rc == -1) {
-		return (*env)->NewStringUTF(env, "{\"error\": -1}");
-	}
-
-	jstring ret = (*env)->NewStringUTF(env, buffer);
-	free(buffer);
-	return ret;
-}
-#endif
-
 PTP_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();

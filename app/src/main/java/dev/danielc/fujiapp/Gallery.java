@@ -5,6 +5,7 @@ package dev.danielc.fujiapp;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -73,11 +74,15 @@ public class Gallery extends AppCompatActivity {
         LayoutInflater inf = getLayoutInflater();
 
         View tab = LibUI.tabLayout();
-        LibUI.addTab(tab, "Gallery", inf.inflate(R.layout.gallery, (ViewGroup)tab, false));
+        View gallery = inf.inflate(R.layout.gallery, (ViewGroup)tab, false);
+        LibUI.addTab(tab, "Gallery", gallery);
         LibUI.addTab(tab, "Remote", inf.inflate(R.layout.remote, (ViewGroup)tab, false));
         LibUI.addTab(tab, "Scripts", Backend.cFujiScriptsScreen(this));
 
-        setContentView(tab);
+        ConstraintLayout cl = new ConstraintLayout(this);
+        cl.addView(tab);
+
+        setContentView(cl);
 
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
@@ -86,7 +91,7 @@ public class Gallery extends AppCompatActivity {
 
         ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
 
-        recyclerView = findViewById(R.id.galleryView);
+        recyclerView = gallery.findViewById(R.id.galleryView);
         recyclerView.setLayoutManager(new GridLayoutManager(this, GRID_SIZE));
         recyclerView.setNestedScrollingEnabled(false);
 

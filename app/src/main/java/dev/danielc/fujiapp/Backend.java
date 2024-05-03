@@ -78,6 +78,8 @@ public class Backend extends CamlibBackend {
 
         if (rc == 0) {
             cClearKillSwitch();
+        } else if (rc == PTP_NO_DEVICE) {
+            throw new Exception("No device found. Are you connected to your camera?");
         } else {
             throw new Exception(parseErr(rc));
         }

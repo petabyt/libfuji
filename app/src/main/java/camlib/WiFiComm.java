@@ -52,8 +52,6 @@ public class WiFiComm {
             @Override
             public void onLost(Network network) {
                 Log.e(TAG, "Lost network\n");
-                settings = new Intent(Settings.ACTION_WIFI_SETTINGS);
-                ctx.startActivity(settings);
                 wifiDevice = null;
             }
             @Override

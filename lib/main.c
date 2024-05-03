@@ -69,7 +69,7 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	}
 } 
 
-#define VERBOSE
+//#define VERBOSE
 
 void ptp_verbose_log(char *fmt, ...) {
 #ifndef VERBOSE

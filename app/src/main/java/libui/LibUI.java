@@ -14,7 +14,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -26,16 +25,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.app.ActionBar;
 
-import androidx.core.app.ActivityCompat;
-
 public class LibUI {
     public static Context ctx = null;
+    public static ActionBar actionBar = null;
 
     // uiWindow (popup) background drawable style resource
     public static int popupDrawableResource = 0;
 
     // Background drawable resource for buttons
     public static int buttonBackgroundResource = 0;
+
+    public static Boolean useActionBar = true;
 
     public static void init(Activity act) {
         ctx = (Context)act;
@@ -47,14 +47,22 @@ public class LibUI {
     }
 
     // Common way of telling when activity is done loading
-    public static void waitUntilActivityLoaded(Activity activity) {
+    private static void waitUntilActivityLoaded(Activity activity) {
         ViewTreeObserver viewTreeObserver = activity.getWindow().getDecorView().getViewTreeObserver();
         viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
                 activity.getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                init();
             }
         });
+    }
+
+    private static void init() {
+        if (useActionBar) {
+            actionBar = ((Activity)ctx).getActionBar();
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
     }
 
     private static class MySelectListener implements AdapterView.OnItemSelectedListener {
@@ -81,36 +89,6 @@ public class LibUI {
         @Override
         public void onClick(View v) {
             LibUI.callFunction(struct);
-        }
-    }
-
-    public class CustomAdapter extends BaseAdapter {
-        byte get_view[];
-        byte get_count[];
-
-        CustomAdapter(byte m1[], byte mb[]) {
-            get_view = m1;
-            get_count = mb;
-        }
-
-        @Override
-        public int getCount() {
-            return (int)callObjectFunction(get_count);
-        }
-
-        @Override
-        public Object getItem(int i) {
-            return null;
-        }
-
-        @Override
-        public long getItemId(int i) {
-            return 0;
-        }
-
-        @Override
-        public View getView(int i, View view, ViewGroup viewGroup) {
-            return (View)callObjectFunction(get_view);
         }
     }
 
@@ -284,7 +262,7 @@ public class LibUI {
                 this.popupWindow.setBackgroundDrawable(ctx.getResources().getDrawable(popupDrawableResource));
             }
 
-            this.popupWindow.setOutsideTouchable(false);
+            this.popupWindow.setOutsideTouchable(true);
         }
     }
 
@@ -304,6 +282,5 @@ public class LibUI {
     }
 
     public static native void callFunction(byte[] struct);
-    public static native Object callObjectFunction(byte[] struct, Object ... args);
     public static native void initThiz(Context ctx);
 }

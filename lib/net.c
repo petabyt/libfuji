@@ -162,7 +162,7 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	if (errno == EINPROGRESS) {
 		rc = select(sockfd + 1, NULL, &fdset, NULL, &tv);
 		if (rc != 1) {
-			ptp_verbose_log("select() returned 0 fds\n");
+			ptp_verbose_log("select() returned 0 fds: %d\n", errno);
 			return -1;
 		}
 	}
@@ -177,7 +177,7 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 
 	if (so_error == 0) {
 		ptp_verbose_log("Connection established %s:%d (%d)\n", addr, port, sockfd);
-		set_nonblocking_io(sockfd, 0); // ????
+		set_nonblocking_io(sockfd, 0);
 		return sockfd;
 	}
 
@@ -223,7 +223,7 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 }
 
 int ptpip_connect_events(struct PtpRuntime *r, const char *addr, int port) {
-	int fd = ptpip_new_timeout_socket(addr, port, 1);
+	int fd = ptpip_new_timeout_socket(addr, port, 3);
 	struct PtpIpBackend *b = init_comm(r);
 	if (fd > 0) {
 		b->evfd = fd;
@@ -247,7 +247,7 @@ JNI_FUNC(jint, cConnectNativeEvents)(JNIEnv *env, jobject thiz, jstring ip, jint
 }
 
 int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port) {
-	int fd = ptpip_new_timeout_socket(addr, port, 1);
+	int fd = ptpip_new_timeout_socket(addr, port, 3);
 	struct PtpIpBackend *b = init_comm(r);
 	if (fd > 0) {
 		b->vidfd = fd;
