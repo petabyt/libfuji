@@ -94,8 +94,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         TextView bottomText = ((TextView)findViewById(R.id.bottomText));
-        bottomText.append(getString(R.string.url) + "\n");
-        bottomText.append("Download location: " + Backend.getDownloads() + "\n");
+        //bottomText.append(getString(R.string.url) + "\n");
+        //bottomText.append("Download location: " + Backend.getDownloads() + "\n");
         bottomText.append(getString(R.string.motd_thing) + " " + BuildConfig.VERSION_NAME);
 
         findViewById(R.id.plugins).setOnClickListener(new View.OnClickListener() {
@@ -115,6 +115,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Idea: Show WiFi status on screen?
         WiFiComm.startNetworkListeners(this);
+
+        Decoder d = new Decoder();
     }
 
     public void connectClick() {

@@ -106,6 +106,9 @@ int fuji_setup_remote_mode(struct PtpRuntime *r, const char *ip) {
 		app_print("Started remote mode.");
 	}
 
+	rc = fuji_get_events(r);
+	if (rc) return rc;
+
 	rc = ptpip_connect_events(r, ip, FUJI_EVENT_IP_PORT);
 	if (rc) return rc;
 

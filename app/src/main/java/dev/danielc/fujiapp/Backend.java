@@ -68,6 +68,7 @@ public class Backend extends CamlibBackend {
         Backend.print(getString(R.string.connecting));
 
         int rc = cConnectNative(Backend.FUJI_IP, Backend.FUJI_CMD_PORT);
+        chosenIP = Backend.FUJI_IP;
         if (rc != 0) {
             if (BuildConfig.DEBUG) {
                 Backend.print("Trying emulator IP..");
