@@ -68,21 +68,11 @@ public class Gallery extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        LibUI.init(this);
-
         LayoutInflater inf = getLayoutInflater();
 
-        View tab = LibUI.tabLayout();
-        View gallery = inf.inflate(R.layout.gallery, (ViewGroup)tab, false);
-        LibUI.addTab(tab, "Gallery", gallery);
-        LibUI.addTab(tab, "Remote", inf.inflate(R.layout.remote, (ViewGroup)tab, false));
-        LibUI.addTab(tab, "Scripts", Backend.cFujiScriptsScreen(this));
+        View gallery = inf.inflate(R.layout.gallery, null);
 
-        ConstraintLayout cl = new ConstraintLayout(this);
-        cl.addView(tab);
-
-        setContentView(cl);
+        setContentView(gallery);
 
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
@@ -190,9 +180,9 @@ public class Gallery extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        //MenuItem menuItem = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "scripts");
-        //menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-        //menuItem.setIcon(R.drawable.baseline_terminal_24);
+        MenuItem scripts = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "scripts");
+        scripts.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        scripts.setIcon(R.drawable.baseline_terminal_24);
         return true;
     }
 }

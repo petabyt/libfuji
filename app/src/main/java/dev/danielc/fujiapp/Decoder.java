@@ -7,6 +7,8 @@ import android.media.MediaFormat;
 
 import java.nio.ByteBuffer;
 
+// https://developer.android.com/reference/android/media/MediaCodec
+
 public class Decoder {
     MediaCodecInfo getCodecInfo(String mime) {
         MediaCodecList list = new MediaCodecList(MediaCodecList.ALL_CODECS);

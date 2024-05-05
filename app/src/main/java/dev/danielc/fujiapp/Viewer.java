@@ -236,20 +236,30 @@ public class Viewer extends AppCompatActivity {
 
             Backend.cSetProgressBarObj(null, 0);
 
-            // Scale image to acceptable texture size
-            bitmap = BitmapFactory.decodeByteArray(fileByteData, 0, fileByteData.length);
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            if (imgX > GL10.GL_MAX_TEXTURE_SIZE) {
+                options.inSampleSize = 2;
+                options.inDensity = 2;
+                options.inTargetDensity = 2;
+                options.inScaled = true;
+            }
+            if (size > 15000000) {
+                options.inSampleSize = 8;
+                options.inDensity = 8;
+                options.inTargetDensity = 4;
+                options.inScaled = true;
+            }
+            
+            bitmap = BitmapFactory.decodeByteArray(fileByteData, 0, fileByteData.length, options);
+
+            // Resizing didn't go as expected, we need to scale the bitmap again
             if (bitmap.getWidth() > GL10.GL_MAX_TEXTURE_SIZE) {
                 float ratio = ((float) bitmap.getHeight()) / ((float) bitmap.getWidth());
-                // Will result in ~11mb tex, can do 4096, but uses 40ish megs, sometimes Android complains about OOM
-                // Might be able to increase for newer Androids
-                Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap,
-                        (int)(2048),
-                        (int)(2048 * ratio),
-                        false
-                );
+                Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, (int)(2048), (int)(2048 * ratio), false);
                 bitmap.recycle();
                 bitmap = newBitmap;
             }
+
             if (handler == null) return;
             handler.post(new Runnable() {
                 @Override
@@ -257,7 +267,6 @@ public class Viewer extends AppCompatActivity {
                     popupWindow.dismiss();
                     ZoomageView zoomageView = findViewById(R.id.zoom_view);
                     zoomageView.setImageBitmap(bitmap);
-
                     threadIsDone = true;
                 }
             });
@@ -269,6 +278,7 @@ public class Viewer extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        bitmap.recycle();
         bitmap = null;
         Runtime.getRuntime().gc();
         handler = null;
