@@ -2,11 +2,7 @@
 // Copyright Daniel Cook - Apache License
 package camlib;
 
-import org.json.JSONObject;
-
-import dev.danielc.fujiapp.Backend;
-
-public class CamlibBackend {
+public class Camlib {
     // Integer error exception - see camlib PTP_ error codes
     public static class PtpErr extends Exception {
         public int rc;
@@ -30,6 +26,7 @@ public class CamlibBackend {
     public static final int PTP_RUNTIME_ERR = -6;
     public static final int PTP_UNSUPPORTED = -7;
     public static final int PTP_CHECK_CODE = -8;
+    public static final int PTP_CANCELED = -9;
 
     public static String parseErr(int rc) {
         switch (rc) {

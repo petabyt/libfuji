@@ -5,11 +5,22 @@
 #include <errno.h>
 #include <string.h>
 #include <camlib.h>
+#include <semaphore.h>
 #include <ui.h>
 #include "app.h"
 #include "backend.h"
 #include "fuji.h"
 #include "fujiptp.h"
+
+volatile int download_cancel = 1;
+
+JNI_FUNC(int, cCancelDownload)(JNIEnv *env, jobject thiz) {
+	if (!download_cancel) {
+		download_cancel = 1;
+		return 1;
+	}
+	return 0;
+}
 
 JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reason) {
 	set_jni_env(env);
@@ -73,10 +84,17 @@ JNI_FUNC(jint, cFujiDownloadFile)(JNIEnv *env, jobject thiz, jint handle, jstrin
 JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray array, jint file_size) {
 	set_jni_env(env);
 
+	download_cancel = 0;
+
 	// Makes sure to set the compression prop back to 0 after finished
 	// (extra data won't go through for some reason)
 	int read = 0;
 	while (1) {
+		if (download_cancel) {
+			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
+			return PTP_CANCELED;
+		}
+
 		ptp_mutex_keep_locked(&backend.r);
 		int cur = file_size - read; if (cur > FUJI_MAX_PARTIAL_OBJECT) cur = FUJI_MAX_PARTIAL_OBJECT;
 		int rc = ptp_get_partial_object(&backend.r, handle, read, cur);

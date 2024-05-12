@@ -79,6 +79,7 @@ int fuji_setup(struct PtpRuntime *r, const char *ip) {
 	}
 
 	// Misnomer, should be config_image_viewer
+	app_print("Setting up image viewer");
 	rc = fuji_config_version(r);
 	if (rc) {
 		app_print("Failed to check versions.");
@@ -336,8 +337,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 		// Sets 20006 to 2000c (?)
 		uint32_t new_remote_version = FUJI_CAM_CONNECT_REMOTE_VER;
 
-		int rc = ptp_set_prop_value_data(r, PTP_PC_FUJI_RemoteVersion,
-			(void *)(&new_remote_version), 4);
+		int rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteVersion, new_remote_version);
 		if (rc) return rc;
 	}
 

@@ -105,7 +105,7 @@ public class Viewer extends AppCompatActivity {
     }
 
     public void toast(String msg) {
-        handler.post(new Runnable() {
+        handler.post(new Runnable() { // null exception here
             @Override
             public void run() {
                 Toast.makeText(Viewer.this, msg, Toast.LENGTH_SHORT).show();
@@ -228,9 +228,16 @@ public class Viewer extends AppCompatActivity {
             if (rc == Backend.PTP_CHECK_CODE) {
                 toast("Can't download this file");
                 finish();
+                threadIsDone = true;
+                return;
+            } else if (rc == Backend.PTP_CANCELED) {
+                toast("Canceled");
+                finish();
+                threadIsDone = true;
                 return;
             } else if (rc != 0) {
                 fail(Backend.PTP_IO_ERR, "Failed to download image");
+                threadIsDone = true;
                 return;
             }
 
@@ -249,7 +256,7 @@ public class Viewer extends AppCompatActivity {
                 options.inTargetDensity = 4;
                 options.inScaled = true;
             }
-            
+
             bitmap = BitmapFactory.decodeByteArray(fileByteData, 0, fileByteData.length, options);
 
             // Resizing didn't go as expected, we need to scale the bitmap again
@@ -278,14 +285,17 @@ public class Viewer extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        bitmap.recycle();
-        bitmap = null;
+        if (bitmap != null) {
+            bitmap.recycle();
+            bitmap = null;
+        }
+        if (popupWindow != null) {
+            popupWindow.dismiss();
+            popupWindow = null;
+        }
         Runtime.getRuntime().gc();
         handler = null;
         progressBar = null;
-        popupWindow.dismiss();
-        Log.d(TAG, "Deleting");
-        popupWindow = null;
         super.onDestroy();
     }
 
@@ -308,7 +318,8 @@ public class Viewer extends AppCompatActivity {
                 }
                 return true;
             case android.R.id.home:
-                if (!threadIsDone) return true; // TODO: cancel download?
+                if (Backend.cCancelDownload() != 0) return true;
+                if (!threadIsDone) return true;
                 finish();
                 return true;
         }
@@ -318,7 +329,7 @@ public class Viewer extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (threadIsDone) {
+        if (threadIsDone && Backend.cCancelDownload() == 0) {
             super.onBackPressed();
         }
     }

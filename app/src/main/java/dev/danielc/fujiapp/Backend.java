@@ -2,9 +2,7 @@
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 
 package dev.danielc.fujiapp;
-import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
 import android.os.Environment;
@@ -16,7 +14,7 @@ import java.util.Arrays;
 
 import camlib.*;
 
-public class Backend extends CamlibBackend {
+public class Backend extends Camlib {
     static {
         System.loadLibrary("fujiapp");
     }
@@ -129,13 +127,13 @@ public class Backend extends CamlibBackend {
     public native static String cFujiGetUncompressedObjectInfo(int handle);
     public native static int cFujiGetFile(int handle, byte[] array, int fileSize);
     public native static int cFujiDownloadFile(int handle, String path);
+    public native static int cCancelDownload();
+    public native static int cSetProgressBarObj(Object progressBar, int size);
 
     // For test suite only
     public native static void cTesterInit(Tester t);
     public native static int cRouteLogs();
     public native static String cEndLogs();
-
-    public native static int cSetProgressBarObj(Object progressBar, int size);
 
     public native static View cFujiScriptsScreen(Context ctx);
 

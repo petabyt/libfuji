@@ -82,17 +82,13 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	}
 
 	int yes = 1;
-//	rc = setsockopt(
-//			sockfd,
-//			IPPROTO_TCP,
-//			TCP_NODELAY,
-//			(char *)&yes,
-//			sizeof(int)
-//	);
-//	if (rc < 0) {
-//		ptp_verbose_log("Failed to disable nagle's algorithm");
-//		return -1;
-//	}
+	setsockopt(
+			sockfd,
+			IPPROTO_TCP,
+			TCP_NODELAY,
+			(char *)&yes,
+			sizeof(int)
+	);
 	rc = setsockopt(
 			sockfd,
 			IPPROTO_TCP,
@@ -156,7 +152,10 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	tv.tv_usec = 0;
 
 	// Receive timeout
-	//setsockopt(sockfd, SOL_SOCKET,  , &tv, sizeof(tv));
+	struct timeval tv_rcv;
+	tv_rcv.tv_sec = 5;
+	tv_rcv.tv_usec = 0;
+	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv_rcv, sizeof(tv_rcv));
 
 	// If operation is in progress, wait for it to become ready
 	if (errno == EINPROGRESS) {
@@ -284,6 +283,18 @@ int ptpip_close(struct PtpRuntime *r) {
 int ptpip_cmd_write(struct PtpRuntime *r, void *data, int size) {
 	if (r->io_kill_switch) return -1;
 	struct PtpIpBackend *b = init_comm(r);
+
+	// This is here because of the most bizarre timing issue I've ever seen. With TCP_NODELAY on, on my X-H1,
+	// the connection will hang in a very specific place (after setting RemoteVersion). This only happens on my
+	// LG VS501 with Android 7. It works perfectly fine on my Google Pixel 6. A bug report was made with the same issue on a sony xperia 5 IV.
+	// Once I removed TCP_NODELAY, it works fine again. (And also note the whole time it has worked fine
+	// on my X-A2 with all of my devices, regardless of TCP_NODELAY.)
+	// It seems that Nagle's algorithm caused a slight delay that made either the camera or Android happy, most likely the former.
+	// So... we're just gonna have to put a 5ms delay here. It doesn't hurt anything, it just adds a tiny delay
+	// when sending packets. Download speeds are unaffected.
+	// I don't know what Fuji does internally with their app, but I truly hope they have a better solution than me.
+	usleep(5000);
+
 	int result = write(b->fd, data, size);
 	if (result < 0) {
 		return -1;

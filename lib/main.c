@@ -69,7 +69,7 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	}
 } 
 
-//#define VERBOSE
+#define VERBOSE
 
 void ptp_verbose_log(char *fmt, ...) {
 #ifndef VERBOSE
@@ -129,7 +129,7 @@ void plat_dbg(char *fmt, ...) {
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
 
-	__android_log_write(ANDROID_LOG_ERROR, "fudge", buffer);
+	__android_log_write(ANDROID_LOG_DEBUG, "fudge", buffer);
 }
 
 void tester_log(char *fmt, ...) {
