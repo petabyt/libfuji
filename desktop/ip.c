@@ -1,3 +1,4 @@
+// desktop app ip stubs
 #include <camlib.h>
 
 int ptpip_connect_video(struct PtpRuntime *r, char *addr, int port) {

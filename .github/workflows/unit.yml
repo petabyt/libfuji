@@ -1,0 +1,28 @@
+name: Unit Testing
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: Compile vcam
+      run: |
+        cd ../
+        git clone https://github.com/petabyt/vcam
+        cd vcam
+        make vcam
+        ./vcam fuji_x_h1 --local &
+    - name: Compile desktop
+      run: cd desktop && make TARGET=l fudge.out
+    - name: Run desktop unit test
+      run: cd desktop && ./fudge.out -tw
