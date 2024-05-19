@@ -1,6 +1,6 @@
 #ifndef FUJIAPP_FUJI_H
 #define FUJIAPP_FUJI_H
-
+#include <camlib.h>
 #include "fujiptp.h"
 
 #define DEVICE_NAME "Fudge"

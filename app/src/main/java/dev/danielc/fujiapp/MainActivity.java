@@ -15,7 +15,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 import android.provider.Settings;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -116,7 +115,10 @@ public class MainActivity extends AppCompatActivity {
         // Idea: Show WiFi status on screen?
         WiFiComm.startNetworkListeners(this);
 
-        Decoder d = new Decoder();
+        //Decoder d = new Decoder();
+
+        //Intent intent = new Intent(MainActivity.this, Liveview.class);
+        //startActivity(intent);
     }
 
     public void connectClick() {
@@ -211,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
         if (item.getTitle() == "open") {
             openFiles();
         } else if (item.getTitle() == "settings") {
-            Intent intent = new Intent(MainActivity.this, SettingsA.class);
+            Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
             startActivity(intent);
         }
 

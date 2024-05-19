@@ -24,6 +24,9 @@
             android:name=".Help"
             android:exported="false" />
         <activity
+            android:name=".Liveview"
+            android:exported="false" />
+        <activity
             android:name=".Scripts"
             android:exported="false" />
         <activity
@@ -39,7 +42,7 @@
             android:screenOrientation="portrait"
             android:exported="false" />
         <activity
-            android:name=".SettingsA"
+            android:name=".SettingsActivity"
             android:screenOrientation="portrait"
             android:exported="false" />
         <activity

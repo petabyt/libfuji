@@ -17,7 +17,7 @@ LOCAL_MODULE := fujiapp
 LOCAL_CFLAGS := -D ANDROID -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations
 LOCAL_SRC_FILES := $(FUDGE_CORE) $(CAMLIB_CORE) $(LUA_CORE)
 LOCAL_C_INCLUDES += $(LOCAL_PATH) $(LOCAL_PATH)/$(CAMLIB)/src $(LOCAL_PATH)/$(CAMLIB)/lua $(LOCAL_PATH)/$(LUA)
-LOCAL_LDLIBS += -llog
+LOCAL_LDLIBS += -llog -landroid -lEGL -lGLESv2 -lGLESv1_CM
 
 LIBUIFW := libuifw
 

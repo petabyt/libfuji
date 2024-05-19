@@ -318,9 +318,9 @@ public class Viewer extends AppCompatActivity {
                 }
                 return true;
             case android.R.id.home:
-                if (Backend.cCancelDownload() != 0) return true;
-                if (!threadIsDone) return true;
-                finish();
+                if (threadIsDone || (Backend.cCancelDownload() == 0)) {
+                    finish();
+                }
                 return true;
         }
 
@@ -329,7 +329,7 @@ public class Viewer extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (threadIsDone && Backend.cCancelDownload() == 0) {
+        if (threadIsDone || (Backend.cCancelDownload() == 0)) {
             super.onBackPressed();
         }
     }

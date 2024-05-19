@@ -72,22 +72,4 @@ void jni_verbose_log(char *str);
 
 int jni_setup_usb(JNIEnv *env, jobject obj);
 
-static inline void app_increment_progress_bar(int read) {
-	// Measures progress on all threads
-	static int last_p = 0;
-
-	backend.download_progress += read;
-
-	int n = (((double)backend.download_progress) / (double)backend.download_size * 100.0);
-	if (last_p != n) {
-		if (n > 100) return;
-
-		JNIEnv *env = get_jni_env();
-
-		jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, backend.progress_bar), "setProgress", "(I)V");
-		(*env)->CallVoidMethod(env, backend.progress_bar, method, n);
-	}
-	last_p = n;
-}
-
 #endif

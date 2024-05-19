@@ -116,17 +116,21 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 		return 1;
 	}
 
-	if (fuji_known.selected_imgs_mode == FUJI_FULL_ACCESS) {
-		if (fuji_known.num_objects == -1) {
-			tester_fail("The camera return didn't want to give access to num_objects property!");
-			return 1;
-		}
+	if (fuji_known.remote_version == -1) {
+		if (fuji_known.selected_imgs_mode == FUJI_FULL_ACCESS) {
+			if (fuji_known.num_objects == -1) {
+				tester_fail(
+						"The camera return didn't want to give access to num_objects property!");
+				return 1;
+			}
 
-		tester_log("There are %d images on the SD card.", fuji_known.num_objects);
-	} else if (fuji_known.selected_imgs_mode == FUJI_MULTIPLE_TRANSFER) {
-		tester_log("Camera is in multiple transfer mode. Doesn't tell us how many images there are.");
-	} else if (fuji_known.selected_imgs_mode == -1) {
-		tester_log("Camera is not in multiple transfer mode.");
+			tester_log("There are %d images on the SD card.", fuji_known.num_objects);
+		} else if (fuji_known.selected_imgs_mode == FUJI_MULTIPLE_TRANSFER) {
+			tester_log(
+					"Camera is in multiple transfer mode. Doesn't tell us how many images there are.");
+		} else if (fuji_known.selected_imgs_mode == -1) {
+			tester_log("Camera is not in multiple transfer mode.");
+		}
 	}
 
 	{ // test filesystem

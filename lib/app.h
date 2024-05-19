@@ -14,6 +14,10 @@ void app_print(char *fmt, ...);
 void tester_log(char *fmt, ...);
 void tester_fail(char *fmt, ...);
 
+int app_bind_socket_wifi(int sockfd);
+
 struct PtpRuntime *ptp_get();
+
+void app_increment_progress_bar(int read);
 
 #endif

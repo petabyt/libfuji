@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <string.h>
 #include <camlib.h>
-#include <semaphore.h>
+#include <dlfcn.h>
 #include <ui.h>
 #include "app.h"
 #include "backend.h"
@@ -251,5 +251,119 @@ JNI_FUNC(jint, cFujiTestSuite)(JNIEnv *env, jobject thiz, jstring ip) {
 		(*env)->DeleteLocalRef(env, ip);
 
 		return rc;
+	}
+}
+
+JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
+	set_jni_env(env);
+	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
+
+	int rc = ptpip_connect(&backend.r, c_ip, (int)port);
+
+	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
+	(*env)->DeleteLocalRef(env, ip);
+
+	fuji_reset_ptp(&backend.r);
+
+	return rc;
+}
+
+#if 0
+JNI_FUNC(jint, cConnectNativeEvents)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
+	set_jni_env(env);
+	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
+
+	int rc = ptpip_connect_events(&backend.r, c_ip, (int)port);
+
+	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
+	(*env)->DeleteLocalRef(env, ip);
+
+	return rc;
+}
+
+JNI_FUNC(jint, cConnectVideoSocket)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
+	set_jni_env(env);
+	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
+
+	int rc = ptpip_connect_video(&backend.r, c_ip, (int)port);
+
+	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
+	(*env)->DeleteLocalRef(env, ip);
+
+	return rc;
+}
+#endif
+
+static jlong get_handle() {
+	JNIEnv *env = get_jni_env();
+	jclass class = (*env)->FindClass(env, "camlib/WiFiComm");
+	jmethodID get_handle_m = (*env)->GetStaticMethodID(env, class, "getNetworkHandle", "()J");
+	jlong handle = (*env)->CallStaticLongMethod(env, class, get_handle_m);
+	return handle;
+}
+
+int app_bind_socket_wifi(int fd) {
+	typedef int (*_android_setsocknetwork_td)(jlong handle, int fd);
+
+	// https://developer.android.com/ndk/reference/group/networking#android_setsocknetwork
+	void *lib = dlopen("libandroid.so", RTLD_NOW);
+	_android_setsocknetwork_td _android_setsocknetwork = (_android_setsocknetwork_td)dlsym(lib, "android_setsocknetwork");
+
+	if (_android_setsocknetwork == NULL) {
+		return -1;
+	}
+
+	jlong handle = get_handle();
+	if (handle < 0) {
+		return handle;
+	}
+
+	int rc = _android_setsocknetwork(handle, fd);
+
+	dlclose(lib);
+
+	return rc;
+}
+
+// Native rendering tests
+
+#ifndef JNI_LV
+#define JNI_LV(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_fujiapp_Liveview_##name
+#endif
+
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
+#include <inttypes.h>
+static ANativeWindow *window = 0;
+
+JNI_LV(void, cUpdateSurface)(JNIEnv *env, jobject thiz, jobject surface) {
+	if (surface == 0) abort();
+	window = ANativeWindow_fromSurface(env, surface);
+	ANativeWindow_acquire(window);
+
+	ANativeWindow_setBuffersGeometry(window, 0, 0,  AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM);
+
+	ANativeWindow_Buffer winbuf;
+	ARect x;
+	if (ANativeWindow_lock(window, &winbuf, &x)) {
+		abort();
+	}
+
+	plat_dbg("Dimension: %dx%dx%d", winbuf.width, winbuf.height, winbuf.stride);
+	plat_dbg("Prop: %X", winbuf.format);
+
+#define RGBA888(x) ((x & 0xFF) << 16) | (x & 0xFF00) | ((x & 0xFF0000) >> 8)
+
+	uint32_t col = 0;
+	for (int x = 0; x < 400; x++) {
+		for (int y = 0; y < 400; y++) {
+			((uint32_t *)winbuf.bits)[(x + 100) + ((y + 500) * winbuf.width)] = RGBA888(0x0eb4c9);
+			col++;
+			if (col == 0xffffff) col = 0;
+		}
+	}
+
+	if (ANativeWindow_unlockAndPost(window)) {
+		abort();
 	}
 }

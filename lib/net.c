@@ -1,4 +1,4 @@
-// Rewrite of SimpleSocket backend - 40% faster!
+// Generic portable 
 // Copyright 2023 by Daniel C (https://github.com/petabyt/camlib)
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,50 +12,16 @@
 #include <netinet/tcp.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <camlib.h>
 #include <time.h>
-#include <dlfcn.h>
+#include <camlib.h>
 #include "app.h"
 #include "fuji.h"
-#include "backend.h"
 
 struct PtpIpBackend {
 	int fd;
 	int evfd;
 	int vidfd;
 };
-
-static jlong get_handle() {
-	JNIEnv *env = get_jni_env();
-
-	jclass class = (*env)->FindClass(env, "camlib/WiFiComm");
-	jmethodID get_handle_m = (*env)->GetStaticMethodID(env, class, "getNetworkHandle", "()J");
-	jlong handle = (*env)->CallStaticLongMethod(env, class, get_handle_m);
-	return handle;
-}
-
-int ndk_set_socket_wifi(int fd) {
-	typedef int (*_android_setsocknetwork_td)(jlong handle, int fd);
-
-	// https://developer.android.com/ndk/reference/group/networking#android_setsocknetwork
-	void *lib = dlopen("libandroid.so", RTLD_NOW);
-	_android_setsocknetwork_td _android_setsocknetwork = (_android_setsocknetwork_td)dlsym(lib, "android_setsocknetwork");
-
-	if (_android_setsocknetwork == NULL) {
-		return -1;
-	}
-
-	jlong handle = get_handle();
-	if (handle < 0) {
-		return handle;
-	}
-
-	int rc = _android_setsocknetwork(handle, fd);
-
-	dlclose(lib);
-
-	return rc;
-}
 
 static int set_nonblocking_io(int sockfd, int enable) {
 	int flags = fcntl(sockfd, F_GETFL, 0);
@@ -71,30 +37,28 @@ static int set_nonblocking_io(int sockfd, int enable) {
 	return fcntl(sockfd, F_SETFL, flags);
 }
 
-#define ptp_verbose_log plat_dbg
-
 int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-	int rc = ndk_set_socket_wifi(sockfd);
+	int rc = app_bind_socket_wifi(sockfd);
 	if (rc) {
 		return rc;
 	}
 
 	int yes = 1;
-	setsockopt(
-			sockfd,
-			IPPROTO_TCP,
-			TCP_NODELAY,
-			(char *)&yes,
-			sizeof(int)
-	);
+	// setsockopt(
+	// 	sockfd,
+	// 	IPPROTO_TCP,
+	// 	TCP_NODELAY,
+	// 	(char *)&yes,
+	// 	sizeof(int)
+	// );
 	rc = setsockopt(
-			sockfd,
-			IPPROTO_TCP,
-			SO_KEEPALIVE,
-			(char *)&yes,
-			sizeof(int)
+		sockfd,
+		IPPROTO_TCP,
+		SO_KEEPALIVE,
+		(char *)&yes,
+		sizeof(int)
 	);
 	if (rc < 0) {
 		ptp_verbose_log("Failed to set keep alive");
@@ -133,11 +97,11 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	}
 
 	rc = setsockopt(
-			sockfd,
-			SOL_SOCKET,
-			SO_REUSEADDR,
-			(char *)&yes,
-			sizeof(int)
+		sockfd,
+		SOL_SOCKET,
+		SO_REUSEADDR,
+		(char *)&yes,
+		sizeof(int)
 	);
 	if (rc < 0) {
 		ptp_verbose_log("Failed to set reuseaddr: %d", errno);
@@ -207,20 +171,6 @@ int ptpip_connect(struct PtpRuntime *r, const char *addr, int port) {
 	}
 }
 
-JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
-	set_jni_env(env);
-	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
-
-	int rc = ptpip_connect(&backend.r, c_ip, (int)port);
-
-	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
-	(*env)->DeleteLocalRef(env, ip);
-
-	fuji_reset_ptp(&backend.r);
-
-	return rc;
-}
-
 int ptpip_connect_events(struct PtpRuntime *r, const char *addr, int port) {
 	int fd = ptpip_new_timeout_socket(addr, port, 3);
 	struct PtpIpBackend *b = init_comm(r);
@@ -233,18 +183,6 @@ int ptpip_connect_events(struct PtpRuntime *r, const char *addr, int port) {
 	}
 }
 
-JNI_FUNC(jint, cConnectNativeEvents)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
-	set_jni_env(env);
-	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
-
-	int rc = ptpip_connect_events(&backend.r, c_ip, (int)port);
-
-	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
-	(*env)->DeleteLocalRef(env, ip);
-
-	return rc;
-}
-
 int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port) {
 	int fd = ptpip_new_timeout_socket(addr, port, 3);
 	struct PtpIpBackend *b = init_comm(r);
@@ -255,18 +193,6 @@ int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port) {
 		b->vidfd = 0;
 		return fd;
 	}
-}
-
-JNI_FUNC(jint, cConnectVideoSocket)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
-	set_jni_env(env);
-	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
-
-	int rc = ptpip_connect_video(&backend.r, c_ip, (int)port);
-
-	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
-	(*env)->DeleteLocalRef(env, ip);
-
-	return rc;
 }
 
 int ptpip_close(struct PtpRuntime *r) {
@@ -310,9 +236,9 @@ int ptpip_cmd_read(struct PtpRuntime *r, void *data, int size) {
 	if (result < 0) {
 		return -1;
 	} else {
-		if (backend.progress_bar != NULL) {
+//		if (backend.progress_bar != NULL) {
 			app_increment_progress_bar(result);
-		}
+//		}
 		return result;
 	}
 }
