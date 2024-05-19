@@ -15,6 +15,11 @@ jobs:
         submodules: recursive
     - name: Install deps
       run: sudo apt install liblua5.3-dev libusb-1.0-0-dev
+    - name: Quick install libui-ng
+      run: |
+        sudo mkdir /usr/local/lib/x86_64-linux-gnu
+        sudo wget https://github.com/petabyt/libui-cross/releases/download/2/libui.so -O /usr/local/lib/x86_64-linux-gnu/libui.so
+        sudo wget https://raw.githubusercontent.com/libui-ng/libui-ng/master/ui.h -O /usr/local/include/ui.h  
     - name: Checkout submodules
       run: git submodule update --init --recursive
     - name: Compile vcam
