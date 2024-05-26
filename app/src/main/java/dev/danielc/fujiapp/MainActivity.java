@@ -117,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
 
         //Decoder d = new Decoder();
 
-        //Intent intent = new Intent(MainActivity.this, Liveview.class);
+        //Intent intent = new Intent(MainActivity.this, Help.class);
         //startActivity(intent);
     }
 

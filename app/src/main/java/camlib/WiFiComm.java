@@ -14,16 +14,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
 import android.util.Log;
-import java.net.InetSocketAddress;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-
-import dev.danielc.fujiapp.Backend;
-import libui.LibUI;
 
 public class WiFiComm {
     public static final String TAG = "camlib";
