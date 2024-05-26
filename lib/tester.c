@@ -112,7 +112,7 @@ int fuji_init_setup(struct PtpRuntime *r) {
 
 int fuji_test_filesystem(struct PtpRuntime *r) {
 	if (fuji_known.num_objects == 0) {
-		tester_fail("There are no images on the SD card!");
+		tester_log("There are no images on the SD card!");
 		return 0;
 	}
 

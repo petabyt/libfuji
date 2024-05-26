@@ -81,7 +81,7 @@ public class SimpleUSB {
             }
         }
 
-        throw new Exception("Could not find a USB device.");
+        throw new Exception("USB device is not connected.");
     }
 
     // Loop till we hit the first PTP device

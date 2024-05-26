@@ -7,7 +7,7 @@ CAMLIB_CORE := $(addprefix $(CAMLIB)/src/,transport.c data.c enum_dump.c enums.c
 CAMLIB_CORE += $(CAMLIB)/lua/lua-cjson/strbuf.c $(CAMLIB)/lua/lua-cjson/lua_cjson.c $(CAMLIB)/lua/lua.c $(CAMLIB)/lua/runtime.c
 
 FUDGE_CORE := main.c jni.c fuji.c fuji_usb.c tester.c net.c viewer.c
-FUDGE_CORE += scripts.c camlib.c usb.c progress.c data.c
+FUDGE_CORE += scripts.c camlib.c usb.c progress.c data.c liveview.c
 
 LUA := ../lua/
 

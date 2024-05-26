@@ -10,8 +10,8 @@ android {
         applicationId "dev.danielc.fujiapp"
         minSdk 23
         targetSdk 33
-        versionCode 7
-        versionName "0.1.5"
+        versionCode 8
+        versionName "0.1.6"
     }
 
     buildTypes {

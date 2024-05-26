@@ -163,6 +163,8 @@ public class Viewer extends AppCompatActivity {
         Intent intent = getIntent();
         int handle = intent.getIntExtra("handle", 0);
 
+        handler = new Handler(Looper.getMainLooper());
+
         ViewTreeObserver viewTreeObserver = getWindow().getDecorView().getViewTreeObserver();
         viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -190,10 +192,9 @@ public class Viewer extends AppCompatActivity {
 
             if (filename.endsWith(".MOV")) {
                 toast("MOV playback not supported yet");
+                threadIsDone = true;
                 return;
             }
-
-            handler = new Handler(Looper.getMainLooper());
 
             handler.post(new Runnable() {
                 //@SuppressLint({"SetTextI18n", "DefaultLocale"})
@@ -212,7 +213,6 @@ public class Viewer extends AppCompatActivity {
                 toast("Not enough memory to preview file");
                 notEnoughMemoryToPreview = true;
                 downloadFileManually(handle, size);
-                if (handler == null) return;
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
