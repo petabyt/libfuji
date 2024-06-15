@@ -41,6 +41,8 @@ int fuji_download_classic(struct PtpRuntime *r) {
 			return rc;
 		}
 
+		// TODO: Notify gallery
+
 		// Fuji's fujisystem will swap out object ID 1 with the next image. If there
 		// are no more images, the camera shuts down the connection and turns off.
 

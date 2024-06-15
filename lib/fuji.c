@@ -170,6 +170,57 @@ int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
 	return ptp_generic_send_data(r, &cmd, dat, sizeof(dat));
 }
 
+int ptp_dirty_rotten_thumb_hack(struct PtpRuntime *r, int handle, int *offset, int *length) {
+	ptp_mutex_keep_locked(r);
+
+//	char buffer[64];
+//	int s = 0;
+//	s += ptp_write_u8(buffer + s, 6);
+//	s += ptp_write_u32(buffer + s, 0x0020);
+//	s += ptp_write_u32(buffer + s, 0x0030);
+//	s += ptp_write_u32(buffer + s, 0x002f);
+//	s += ptp_write_u32(buffer + s, 0x0036);
+//	s += ptp_write_u32(buffer + s, 0x0030);
+//	s += ptp_write_u32(buffer + s, 0x0000);
+//
+//	ptp_set_prop_value_data(r, 0xd228, buffer, s);
+
+	int max_size = 512 * 100;
+	int rc = ptp_get_partial_object(r, handle, 0, max_size);
+	if (rc) {
+		ptp_mutex_unlock(r);
+		return rc;
+	}
+
+	if (ptp_get_payload_length(r) != max_size) {
+		ptp_mutex_unlock(r);
+		return PTP_RUNTIME_ERR;
+	}
+
+	int size = ptp_get_payload_length(r);
+	uint8_t *find = ptp_get_payload(r);
+	int of = 3; // We skip the actual JPEG payload, we want the EXIF thumb
+	find += 3;
+	while (1) {
+		if (find[0] == 0xff && find[1] == 0xd8 && find[2] == 0xff) {
+			*offset = of;
+			*length = size - of;
+			plat_dbg("Found EXIF thumb %d", of);
+
+			ptp_get_partial_object(r, handle, 0xffffffff, 0x1);
+
+			return 0;
+		}
+		of += 1;
+		find++;
+		if (of + 3 >= size) break;
+	}
+
+	ptp_mutex_unlock(r);
+
+	return PTP_RUNTIME_ERR;
+}
+
 // Set the compression prop (allows full images to go through, otherwise puts
 // extra data in ObjectInfo and cuts off image downloads)
 // This appears to take a while, so r->wait_for_response is used here
@@ -299,6 +350,8 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 			mode = FUJI_VIEW_MULTIPLE;
 		} else if (fuji_known.camera_state == FUJI_FULL_ACCESS) {
 			mode = FUJI_VIEW_ALL_IMGS;
+		} else if (fuji_known.camera_state == FUJI_PC_AUTO_SAVE) {
+			mode = FUJI_OLD_REMOTE;
 		} else {
 			mode = FUJI_VIEW_ALL_IMGS;
 		}
@@ -306,11 +359,11 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 
 	ptp_verbose_log("Setting mode to %d\n", mode);
 
-	// On newer cams, setting function mode causes cam to have a dialog (Yes/No accept connection)
+	// On newer cams, setting client state causes cam to have a dialog (Yes/No accept connection)
 	// We have to wait for a response in this case
 	r->wait_for_response = 255;
 
-	rc = ptp_set_prop_value16(r, PTP_PC_FUJI_FunctionMode, mode);
+	rc = ptp_set_prop_value16(r, PTP_PC_FUJI_ClientState, mode);
 	if (rc) return rc;
 
 	return 0;
@@ -331,7 +384,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_GetObjectVersion, version);
 		if (rc) return rc;
 	} else {
-		ptp_verbose_log("RemoteVersion was %X\n", fuji_known.remote_version);
+		ptp_verbose_log(" %X\n", fuji_known.remote_version);
 
 		// Fuji sets 2000a to 2000b
 		// Sets 20006 to 2000c (?)
@@ -405,7 +458,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		//ptp_verbose_log("Storage ID: %d\n", ptp_parse_prop_value(r));
 
 		// Now we finally enter the remote image viewer
-		rc = ptp_set_prop_value16(r, PTP_PC_FUJI_FunctionMode, FUJI_MODE_REMOTE_IMG_VIEW);
+		rc = ptp_set_prop_value16(r, PTP_PC_FUJI_ClientState, FUJI_MODE_REMOTE_IMG_VIEW);
 		if (rc) return rc;
 
 		// Set the prop higher - X-S10 and X-H1 want 4

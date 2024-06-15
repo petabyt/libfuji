@@ -268,31 +268,12 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 	return rc;
 }
 
-#if 0
-JNI_FUNC(jint, cConnectNativeEvents)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
+JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
-	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
-
-	int rc = ptpip_connect_events(&backend.r, c_ip, (int)port);
-
-	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
-	(*env)->DeleteLocalRef(env, ip);
-
+	struct DiscoverInfo info;
+	int rc = fuji_discover_thread(&info);
 	return rc;
 }
-
-JNI_FUNC(jint, cConnectVideoSocket)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
-	set_jni_env(env);
-	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
-
-	int rc = ptpip_connect_video(&backend.r, c_ip, (int)port);
-
-	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
-	(*env)->DeleteLocalRef(env, ip);
-
-	return rc;
-}
-#endif
 
 static jlong get_handle() {
 	JNIEnv *env = get_jni_env();

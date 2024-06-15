@@ -115,10 +115,43 @@ public class MainActivity extends AppCompatActivity {
         // Idea: Show WiFi status on screen?
         WiFiComm.startNetworkListeners(this);
 
-        //Decoder d = new Decoder();
-
-        //Intent intent = new Intent(MainActivity.this, Help.class);
+        //Intent intent = new Intent(MainActivity.this, Liveview.class);
         //startActivity(intent);
+
+        discoveryThread();
+    }
+
+    public void discoveryThread() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int rc = Backend.cStartDiscovery();
+                if (rc == 0) {
+                    try {
+                        Thread.sleep(1000);
+                        Backend.chosenIP = "192.168.1.31";
+                        Backend.cConnectNative(Backend.chosenIP, Backend.FUJI_CMD_PORT);
+                        Backend.cClearKillSwitch();
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                findViewById(R.id.wifi_settings).setVisibility(View.GONE);
+                            }
+                        });
+                        Intent intent = new Intent(MainActivity.this, Gallery.class);
+                        startActivity(intent);
+                    } catch (Exception e) {
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
+                            }
+                        });
+                        Backend.print(e.getMessage());
+                    }
+                }
+            }
+        }).start();
     }
 
     public void connectClick() {

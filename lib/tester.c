@@ -52,6 +52,7 @@ int fuji_test_get_props(struct PtpRuntime *r) {
 	};
 
 	for (int i = 0; i < (int)(sizeof(test_props) / sizeof(uint16_t)); i++) {
+		ptp_verbose_log("Trying prop %x\n", test_props[i]);
 		int rc = ptp_get_prop_value(r, test_props[i]);
 		if (rc) {
 			tester_fail("Err getting prop 0x%X - rc: %d", test_props[i], rc);
@@ -154,9 +155,17 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 		rc = ptp_get_thumbnail(r, 1);
 		if (rc) {
 			tester_fail("Failed to get thumbnail: %d", rc);
+		} else {
+			tester_log("Got thumbnail: %u bytes", ptp_get_payload_length(r));
 		}
-		tester_log("Got thumbnail: %u bytes", ptp_get_payload_length(r));
-		
+
+		int offset, length;
+		rc = ptp_dirty_rotten_thumb_hack(r, 1, &offset, &length);
+		if (rc) {
+			tester_fail("Failed to get dirty rotten thumb");
+		} else {
+			tester_log("Found EXIF thumb at %d %d", offset, length);
+		}
 	}
 
 	return 0;
@@ -236,6 +245,7 @@ int fuji_test_usb(struct PtpRuntime *r) {
 	if (rc) return rc;
 
 	ptp_device_close(r);
+	return 0;
 }
 
 int fuji_test_suite(struct PtpRuntime *r, const char *ip) {

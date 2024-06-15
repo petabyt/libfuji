@@ -6,8 +6,7 @@ CAMLIB := ../camlib
 CAMLIB_CORE := $(addprefix $(CAMLIB)/src/,transport.c data.c enum_dump.c enums.c canon.c operations.c packet.c lib.c conv.c generic.c)
 CAMLIB_CORE += $(CAMLIB)/lua/lua-cjson/strbuf.c $(CAMLIB)/lua/lua-cjson/lua_cjson.c $(CAMLIB)/lua/lua.c $(CAMLIB)/lua/runtime.c
 
-FUDGE_CORE := main.c jni.c fuji.c fuji_usb.c tester.c net.c viewer.c
-FUDGE_CORE += scripts.c camlib.c usb.c progress.c data.c liveview.c
+FUDGE_CORE := main.c jni.c fuji.c fuji_usb.c tester.c net.c viewer.c scripts.c camlib.c usb.c progress.c data.c liveview.c discovery.c
 
 LUA := ../lua/
 
@@ -24,4 +23,13 @@ LIBUIFW := libuifw
 LOCAL_SRC_FILES += $(LIBUIFW)/libui.c $(LIBUIFW)/lib.c $(LIBUIFW)/lua.c
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(LIBUIFW)
 
+LIBJPEG := $(LOCAL_PATH)/../libjpeg-turbo
+LOCAL_CFLAGS += -DMEM_SRCDST_SUPPORTED
+
+LOCAL_C_INCLUDES += $(LIBJPEG)/libjpeg-turbo-2.0.1 $(LIBJPEG)/include
+
+LOCAL_STATIC_LIBRARIES += libjpeg-turbo
+
 include $(BUILD_SHARED_LIBRARY)
+
+include $(LIBJPEG)/Android.mk

@@ -69,8 +69,12 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	}
 } 
 
+#define VERBOSE
+
 void ptp_verbose_log(char *fmt, ...) {
+#ifndef VERBOSE
 	if (backend.log_buf == NULL) return;
+#endif
 
 	char buffer[512] = {0};
 	va_list args;
@@ -79,6 +83,10 @@ void ptp_verbose_log(char *fmt, ...) {
 	va_end(args);
 
 	__android_log_write(ANDROID_LOG_ERROR, "ptp_verbose_log", buffer);
+
+#ifdef VERBOSE
+	if (backend.log_buf == NULL) return;
+#endif
 
 	char buffer2[512];
 	snprintf(buffer2, sizeof(buffer2), "%d\t%s", (int)clock() * 1000 / CLOCKS_PER_SEC, buffer);
@@ -122,7 +130,7 @@ void plat_dbg(char *fmt, ...) {
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
 
-	__android_log_write(ANDROID_LOG_DEBUG, "fudge", buffer);
+	__android_log_write(ANDROID_LOG_ERROR, "fudge", buffer);
 }
 
 void tester_log(char *fmt, ...) {

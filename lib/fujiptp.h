@@ -18,7 +18,7 @@
 #define PTP_PC_FUJI_SelectedImgsMode	0xd220
 #define PTP_PC_FUJI_ObjectCount		0xd222
 #define PTP_PC_FUJI_CameraState		0xdf00 
-#define PTP_PC_FUJI_FunctionMode	0xdf01 // should be (CameraReportedState??)
+#define PTP_PC_FUJI_ClientState		0xdf01
 #define PTP_PC_FUJI_CompressSmall	0xD226 // compress into 400-800kb
 #define PTP_PC_FUJI_NoCompression	0xD227 // Enable full image download
 
@@ -31,7 +31,7 @@
 #define PTP_OC_FUJI_Unknown2	0x9055
 
 // Device property codes, IP only
-#define PTP_PC_FUJI_Unknown4		0xD228
+#define PTP_PC_FUJI_Unknown_D228	0xD228
 #define PTP_PC_FUJI_Unknown15		0xD22B
 #define PTP_PC_FUJI_CompressionCutOff	0xD235
 #define PTP_PC_FUJI_StorageID		0xd244
@@ -52,12 +52,11 @@
 #define PTP_PC_FUJI_ImageGetLimitedVersion	0xdf26 // supports less features
 #define PTP_PC_FUJI_Unknown13		0xdf27
 #define PTP_PC_FUJI_Unknown_DF28	0xdf28
-#define PTP_PC_FUJI_LocationGetterVersion	0xdf31
+#define PTP_PC_FUJI_GeoTagVersion	0xdf31
 #define PTP_PC_FUJI_Unknown11		0xdf44
 #define PTP_PC_FUJI_Unknown17		0xD621
 
-// Function Modes
-enum FunctionModes {
+enum ClientStates {
 	// Set if camera state is FUJI_MULTIPLE_TRANSFER,
 	FUJI_VIEW_MULTIPLE = 1,
 	// Set to view all images and have normal PTP functionality
@@ -98,6 +97,8 @@ enum FujiStates {
 	// We have full access to the camera (non-remote), we can run the photo gallery, download photos,
 	// and do normal PTP stuff.
 	FUJI_FULL_ACCESS = 2,
+	// PC save software (over WiFi -> UPnP)
+	FUJI_PC_AUTO_SAVE = 3,
 	// We have all features of FUJI_FULL_ACCESS and remote mode.
 	FUJI_REMOTE_ACCESS = 6,
 };

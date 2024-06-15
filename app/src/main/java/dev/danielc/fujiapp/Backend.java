@@ -105,7 +105,6 @@ public class Backend extends Camlib {
         cReportError(code, reason);
     }
 
-    // In order to give the backend access to the static methods, new objects must be made
     private static boolean haveInited = false;
     public static void init() {
         if (!haveInited) {
@@ -153,6 +152,19 @@ public class Backend extends Camlib {
         String resp = cFujiGetUncompressedObjectInfo(handle);
         if (resp == null) throw new Exception("Failed to get obj info");
         return new JSONObject(resp);
+    }
+
+    public native static int cStartDiscovery();
+    public static void discoveryThread() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int rc = cStartDiscovery();
+                if (rc == 0) {
+
+                }
+            }
+        }).start();
     }
 
     // C/Java -> async UI logging

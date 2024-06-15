@@ -9,6 +9,15 @@
 // X-A2 decided to freak out and stall. So, we have to do it the Fuji way :)
 #define FUJI_MAX_PARTIAL_OBJECT 0x100000
 
+struct DiscoverInfo {
+	char ip[64];
+	char client_name[64];
+};
+
+int ptp_dirty_rotten_thumb_hack(struct PtpRuntime *r, int handle, int *offset, int *length);
+
+int fuji_discover_thread(struct DiscoverInfo *info);
+
 // (Not a part of camlib)
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code);
 

@@ -7,11 +7,16 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/select.h>
-#include <netinet/tcp.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#ifdef WIN32
+	#include <winsock2.h>
+	#include <ws2tcpip.h>
+#else
+	#include <sys/socket.h>
+	#include <sys/select.h>
+	#include <netinet/tcp.h>
+	#include <netinet/in.h>
+	#include <arpa/inet.h>
+#endif
 #include <time.h>
 #include <camlib.h>
 #include "app.h"
@@ -23,8 +28,33 @@ struct PtpIpBackend {
 	int vidfd;
 };
 
-static int set_nonblocking_io(int sockfd, int enable) {
-	int flags = fcntl(sockfd, F_GETFL, 0);
+#ifdef WIN32
+static int set_nonblocking_io(int fd, int enable) {
+	//u_long mode = enable;
+	//ioctlsocket(fd, FIONBIO, &mode);
+	return 0;
+}
+
+static void set_receive_timeout(int fd, int sec) {
+	DWORD x = sec * 1000;
+	int rc = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &x, sizeof(x));
+	if (rc < 0) {
+		ptp_verbose_log("Failed to set rcvtimeo: %d", errno);
+	}
+}
+#else
+static void set_receive_timeout(int fd, int sec) {
+	struct timeval tv_rcv;
+	tv_rcv.tv_sec = 5;
+	tv_rcv.tv_usec = 0;
+	int rc = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv_rcv, sizeof(tv_rcv));
+	if (rc < 0) {
+		ptp_verbose_log("Failed to set rcvtimeo: %d", errno);
+	}
+}
+
+static int set_nonblocking_io(int fd, int enable) {
+	int flags = fcntl(fd, F_GETFL, 0);
 	if (flags == -1)
 		return -1;
 
@@ -34,11 +64,16 @@ static int set_nonblocking_io(int sockfd, int enable) {
 		flags &= ~O_NONBLOCK;
 	}
 
-	return fcntl(sockfd, F_SETFL, flags);
+	return fcntl(fd, F_SETFL, flags);
 }
+#endif
 
 int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd <= 0) {
+		ptp_verbose_log("Bad socket fd: %d %d\n", sockfd, errno);
+		return -1;
+	}
 
 	int rc = app_bind_socket_wifi(sockfd);
 	if (rc) {
@@ -46,23 +81,14 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	}
 
 	int yes = 1;
-	// setsockopt(
-	// 	sockfd,
-	// 	IPPROTO_TCP,
-	// 	TCP_NODELAY,
-	// 	(char *)&yes,
-	// 	sizeof(int)
-	// );
-	rc = setsockopt(
-		sockfd,
-		IPPROTO_TCP,
-		SO_KEEPALIVE,
-		(char *)&yes,
-		sizeof(int)
-	);
+	rc = setsockopt(sockfd, IPPROTO_TCP, SO_KEEPALIVE, (char *)&yes, sizeof(int));
 	if (rc < 0) {
-		ptp_verbose_log("Failed to set keep alive");
-		return -1;
+		ptp_verbose_log("Failed to set keepalive: %d\n", errno);
+	}
+
+	rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&yes, sizeof(int));
+	if (rc < 0) {
+		ptp_verbose_log("Failed to set reuseaddr: %d\n", errno);
 	}
 
 	if (sockfd < 0) {
@@ -96,30 +122,14 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 		}
 	}
 
-	rc = setsockopt(
-		sockfd,
-		SOL_SOCKET,
-		SO_REUSEADDR,
-		(char *)&yes,
-		sizeof(int)
-	);
-	if (rc < 0) {
-		ptp_verbose_log("Failed to set reuseaddr: %d", errno);
-		return -1;
-	}
-
 	fd_set fdset;
 	FD_ZERO(&fdset);
 	FD_SET(sockfd, &fdset);
 	struct timeval tv;
-	tv.tv_sec = timeout_sec;
+	tv.tv_sec = 5;
 	tv.tv_usec = 0;
 
-	// Receive timeout
-	struct timeval tv_rcv;
-	tv_rcv.tv_sec = 5;
-	tv_rcv.tv_usec = 0;
-	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv_rcv, sizeof(tv_rcv));
+	set_receive_timeout(sockfd, 5);
 
 	// If operation is in progress, wait for it to become ready
 	if (errno == EINPROGRESS) {
@@ -142,10 +152,11 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 		ptp_verbose_log("Connection established %s:%d (%d)\n", addr, port, sockfd);
 		set_nonblocking_io(sockfd, 0);
 		return sockfd;
+	} else {
+		ptp_verbose_log("Failed to connect: %d\n", so_error);
 	}
 
 	close(sockfd);
-	ptp_verbose_log("Failed to connect: %d, %d\n", rc, errno);
 	return -1;
 }
 
@@ -164,6 +175,7 @@ int ptpip_connect(struct PtpRuntime *r, const char *addr, int port) {
 
 	if (fd > 0) {
 		b->fd = fd;
+		r->io_kill_switch = 0;
 		return 0;
 	} else {
 		b->fd = 0;
@@ -207,7 +219,10 @@ int ptpip_close(struct PtpRuntime *r) {
 }
 
 int ptpip_cmd_write(struct PtpRuntime *r, void *data, int size) {
-	if (r->io_kill_switch) return -1;
+	if (r->io_kill_switch) {
+		ptp_verbose_log("WARN: kill switch on\n");
+		return -1;
+	}
 	struct PtpIpBackend *b = init_comm(r);
 
 	// This is here because of the most bizarre timing issue I've ever seen. With TCP_NODELAY on, on my X-H1,
@@ -217,11 +232,12 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *data, int size) {
 	// on my X-A2 with all of my devices, regardless of TCP_NODELAY.)
 	// It seems that Nagle's algorithm caused a slight delay that made either the camera or Android happy, most likely the former.
 	// So... we're just gonna have to put a 5ms delay here. It doesn't hurt anything, it just adds a tiny delay
-	// when sending packets. Download speeds are unaffected.
+	// when sending packets. Download speeds are mostly unaffected.
 	// I don't know what Fuji does internally with their app, but I truly hope they have a better solution than me.
 	usleep(5000);
 
-	int result = write(b->fd, data, size);
+	errno = 0;
+	int result = send(b->fd, data, size, 0);
 	if (result < 0) {
 		return -1;
 	} else {
@@ -230,15 +246,17 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *data, int size) {
 }
 
 int ptpip_cmd_read(struct PtpRuntime *r, void *data, int size) {
-	if (r->io_kill_switch) return -1;
+	if (r->io_kill_switch) {
+		ptp_verbose_log("WARN: kill switch on\n");
+		return -1;
+	}
 	struct PtpIpBackend *b = init_comm(r);
-	int result = read(b->fd, data, size);
+	int result = recv(b->fd, data, size, 0);
 	if (result < 0) {
 		return -1;
 	} else {
-//		if (backend.progress_bar != NULL) {
-			app_increment_progress_bar(result);
-//		}
+		// TODO: Slow
+		app_increment_progress_bar(result);
 		return result;
 	}
 }
