@@ -2,7 +2,10 @@
 package dev.danielc.fujiapp;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
@@ -35,6 +38,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         instance = this;
         handler = new Handler(Looper.getMainLooper());
+
+//        TextView bottomText = ((TextView)findViewById(R.id.bottomText));
+        //bottomText.append(getString(R.string.url) + "\n");
+        //bottomText.append("Download location: " + Backend.getDownloads() + "\n");
+//        bottomText.append(getString(R.string.motd_thing) + " " + BuildConfig.VERSION_NAME);
+
+        getSupportActionBar().setTitle("Fudge " + BuildConfig.VERSION_NAME);
 
         Backend.init();
         Backend.updateLog();
@@ -74,6 +84,15 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+        findViewById(R.id.plugins).setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Intent intent = new Intent(MainActivity.this, Liveview.class);
+                startActivity(intent);
+                return false;
+            }
+        });
+
 
         findViewById(R.id.help_button).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -92,11 +111,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        TextView bottomText = ((TextView)findViewById(R.id.bottomText));
-        //bottomText.append(getString(R.string.url) + "\n");
-        //bottomText.append("Download location: " + Backend.getDownloads() + "\n");
-        bottomText.append(getString(R.string.motd_thing) + " " + BuildConfig.VERSION_NAME);
-
         findViewById(R.id.plugins).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -114,40 +128,81 @@ public class MainActivity extends AppCompatActivity {
 
         // Idea: Show WiFi status on screen?
         WiFiComm.startNetworkListeners(this);
-
-        //Intent intent = new Intent(MainActivity.this, Liveview.class);
-        //startActivity(intent);
-
-        discoveryThread();
+        WiFiComm.onAvailable = new Runnable() {
+            @Override
+            public void run() {
+                discoveryThread();
+            }
+        };
     }
 
+    void onCameraRegistered(String model, String name, String ip) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setTitle("New Camera Registered: " + model);
+                builder.setMessage("Use the 'PC AUTO SAVE' feature in your camera to connect to this device.");
+                builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+                builder.setNeutralButton("Show me how", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                        Intent intent = new Intent(MainActivity.this, Help.class);
+                        intent.putExtra("section", "autosave");
+                        startActivity(intent);
+                    }
+                });
+                builder.show();
+            }
+        });
+    }
+
+    void onCameraWantsToConnect(String model, String name, String ip) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+                    Backend.chosenIP = ip;
+                    Backend.cConnectNative(ip, Backend.FUJI_CMD_PORT);
+                    Backend.cClearKillSwitch();
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            findViewById(R.id.wifi_settings).setVisibility(View.GONE);
+                        }
+                    });
+                    Intent intent = new Intent(MainActivity.this, Gallery.class);
+                    startActivity(intent);
+                } catch (Exception e) {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
+                        }
+                    });
+                    Backend.print(e.getMessage());
+                }
+            }
+        });
+    }
+
+
     public void discoveryThread() {
+        Context ctx = this;
         new Thread(new Runnable() {
             @Override
             public void run() {
-                int rc = Backend.cStartDiscovery();
-                if (rc == 0) {
-                    try {
-                        Thread.sleep(1000);
-                        Backend.chosenIP = "192.168.1.31";
-                        Backend.cConnectNative(Backend.chosenIP, Backend.FUJI_CMD_PORT);
-                        Backend.cClearKillSwitch();
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                findViewById(R.id.wifi_settings).setVisibility(View.GONE);
-                            }
-                        });
-                        Intent intent = new Intent(MainActivity.this, Gallery.class);
-                        startActivity(intent);
-                    } catch (Exception e) {
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
-                            }
-                        });
-                        Backend.print(e.getMessage());
+                while (true) {
+                    int rc = Backend.cStartDiscovery(ctx);
+                    if (rc < 0) {
+                        return;
                     }
                 }
             }

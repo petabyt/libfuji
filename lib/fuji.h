@@ -10,13 +10,21 @@
 #define FUJI_MAX_PARTIAL_OBJECT 0x100000
 
 struct DiscoverInfo {
-	char ip[64];
+	char camera_ip[64];
+	char camera_name[64];
+	char camera_model[64];
 	char client_name[64];
+};
+
+enum DiscoverRet {
+	FUJI_D_REGISTERED = 1,
+	FUJI_D_GO_PTP = 2,
+	FUJI_D_CANCELED = 3,
 };
 
 int ptp_dirty_rotten_thumb_hack(struct PtpRuntime *r, int handle, int *offset, int *length);
 
-int fuji_discover_thread(struct DiscoverInfo *info);
+int fuji_discover_thread(struct DiscoverInfo *info, char *client_name);
 
 // (Not a part of camlib)
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code);

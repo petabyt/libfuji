@@ -28,18 +28,6 @@ public class Camlib {
     public static final int PTP_CHECK_CODE = -8;
     public static final int PTP_CANCELED = -9;
 
-    public static String parseErr(int rc) {
-        switch (rc) {
-            case PTP_NO_DEVICE: return "No device found.";
-            case PTP_NO_PERM: return "Invalid permissions.";
-            case PTP_OPEN_FAIL: return "Couldn't connect to device.";
-            case WiFiComm.NOT_AVAILABLE: return "WiFi not ready yet.";
-            case WiFiComm.NOT_CONNECTED: return "WiFi is not connected. (yet)";
-            case WiFiComm.UNSUPPORTED_SDK: return "Unsupported SDK";
-            default: return "Unknown error";
-        }
-    }
-
     // camlib supported lv types
     public static final int PTP_LV_NONE = 0;
     public static final int PTP_LV_EOS = 1;

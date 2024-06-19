@@ -90,7 +90,7 @@ public class Backend extends Camlib {
         if (rc == 0) {
             cClearKillSwitch();
         } else if (rc == PTP_NO_DEVICE) {
-            throw new Exception("No device found. Are you connected to your camera?");
+            throw new Exception("No device found. Please make sure you are connected to your camera.");
         } else {
             throw new Exception(parseErr(rc));
         }
@@ -154,18 +154,7 @@ public class Backend extends Camlib {
         return new JSONObject(resp);
     }
 
-    public native static int cStartDiscovery();
-    public static void discoveryThread() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                int rc = cStartDiscovery();
-                if (rc == 0) {
-
-                }
-            }
-        }).start();
-    }
+    public native static int cStartDiscovery(Context ctx);
 
     // C/Java -> async UI logging
     final static int MAX_LOG_LINES = 3;
@@ -215,6 +204,8 @@ public class Backend extends Camlib {
             case "cam_name":
                 if (Gallery.instance == null) return;
                 Gallery.instance.setTitleCamName(value);
+                return;
+            case "registering":
                 return;
         }
         Log.d("fudge", "Unknown update key " + key);

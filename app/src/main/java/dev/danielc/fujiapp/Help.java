@@ -3,6 +3,7 @@ package dev.danielc.fujiapp;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Menu;
@@ -16,8 +17,11 @@ public class Help extends AppCompatActivity {
         //setContentView(R.layout.activity_help);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+        Intent intent = getIntent();
+        String section = intent.getStringExtra("section");
+        if (section == null) section = "";
         WebView wv = new WebView(this);
-        wv.loadUrl("file:///android_asset/help.html");
+        wv.loadUrl("file:///android_asset/help.html#" + section);
         wv.setBackgroundColor(Color.TRANSPARENT);
         setContentView(wv);
     }

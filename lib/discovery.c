@@ -25,7 +25,7 @@ static int connect_to_notify_server(char *ip, int port) {
 	if (rc) return -1;
 	if (server_fd < 0) {
 		plat_dbg("Failed to create TCP socket");
-		abort();
+		return -1;
 	}
 
 	struct sockaddr_in sa;
@@ -33,13 +33,14 @@ static int connect_to_notify_server(char *ip, int port) {
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons(port);
 	if (inet_pton(AF_INET, ip, &(sa.sin_addr)) <= 0) {
-		abort();
+		plat_dbg("inet_pton");
+		return -1;
 	}
 
 	if (connect(server_fd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 		if (errno != EINPROGRESS) {
 			plat_dbg("Connect fail");
-			abort();
+			return -1;
 		}
 	}
 
@@ -55,13 +56,15 @@ static int connect_to_notify_server(char *ip, int port) {
 		socklen_t len = sizeof(so_error);
 		if (getsockopt(server_fd, SOL_SOCKET, SO_ERROR, &so_error, &len) < 0) {
 			plat_dbg("Sockopt fail");
-			abort();
+			return -1;
 		}
 
 		if (so_error == 0) {
 			plat_dbg("notify server: Connection established");
 			return server_fd;
 		}
+	} else {
+		plat_dbg("select failed to connect");
 	}
 
 	close(server_fd);
@@ -78,7 +81,7 @@ static int start_invite_server(struct DiscoverInfo *info, int port) {
 	app_bind_socket_wifi(server_fd);
 	if (server_fd < 0) {
 		plat_dbg("Failed to create TCP socket");
-		abort();
+		return -1;
 	}
 
 	server_addr.sin_family = AF_INET;
@@ -88,18 +91,18 @@ static int start_invite_server(struct DiscoverInfo *info, int port) {
 	int yes = 1;
 	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
 		plat_dbg("Failed to set sockopt");
-		abort();
+		return -1;
 	}
 
 	if (bind(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
 		plat_dbg("upnp: Binding failed");
-		abort();
+		return -1;
 	}
 
 	// Listen for incoming connections
 	if (listen(server_fd, 5) < 0) {
 		plat_dbg("upnp: Listening failed");
-		abort();
+		return -1;
 	}
 
 	plat_dbg("invite server is listening...");
@@ -107,17 +110,34 @@ static int start_invite_server(struct DiscoverInfo *info, int port) {
 	client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
 	if (client_fd < 0) {
 		plat_dbg("invite server: Accepting connection failed");
-		abort();
+		return -1;
 	}
 
 	plat_dbg("invite server: Connection accepted from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
 	// We don't really care about this info
 	char buffer[1024];
-	int rc = recv(client_fd, buffer, sizeof(buffer), 0);
+	int rc = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 	if (rc < 0) {
 		perror("recv fail");
-		abort();
+		return -1;
+	}
+	buffer[rc] = '\0';
+
+	char *saveptr;
+	char *delim = " :\r\n";
+	char *cur = strtok_r(buffer, delim, &saveptr);
+	while (cur != NULL) {
+		if (!strcmp(cur, "DSCNAME")) {
+			cur = strtok_r(NULL, delim, &saveptr);
+			if (cur == NULL) return -1;
+			strncpy(info->camera_name, cur, sizeof(info->camera_name));
+		} else if (!strcmp(cur, "DSCMODEL")) {
+			cur = strtok_r(NULL, delim, &saveptr);
+			if (cur == NULL) return -1;
+			strncpy(info->camera_model, cur, sizeof(info->camera_model));
+		}
+		cur = strtok_r(NULL, delim, &saveptr);
 	}
 
 	char *resp;
@@ -129,16 +149,17 @@ static int start_invite_server(struct DiscoverInfo *info, int port) {
 	} else if (port == FUJI_AUTOSAVE_CONNECT) {
 		resp = "HTTP/1.1 200 OK\r\n";
 	} else {
-		abort();
+		return -1;
 	}
 
 	rc = send(client_fd, resp, strlen(resp), 0);
 	if (rc < 0) {
-		perror("send");
-		abort();
+		plat_dbg("Failed to send response");
+		return -1;
 	}
 
 	close(client_fd);
+	close(server_fd);
 
 	return 0;
 }
@@ -153,13 +174,13 @@ static int respond_to_datagram(char *greeting, struct DiscoverInfo *info) {
 	while (cur != NULL) {
 		if (!strcmp(cur, "DISCOVER")) {
 			cur = strtok_r(NULL, delim, &saveptr);
-			if (cur == NULL) abort();
+			if (cur == NULL) return -1;
 			strcpy(info->client_name, cur);
 		} else if (!strcmp(cur, "DSCADDR")) {
 			cur = strtok_r(NULL, delim, &saveptr);
-			if (cur == NULL) abort();
-			printf("Client IP: %s\n", cur);
-			strcpy(info->ip, cur);
+			if (cur == NULL) return -1;
+			plat_dbg("Client IP: %s\n", cur);
+			strcpy(info->camera_ip, cur);
 		}
 		cur = strtok_r(NULL, delim, &saveptr);
 	}
@@ -172,10 +193,11 @@ static int respond_to_datagram(char *greeting, struct DiscoverInfo *info) {
 		"IMPORTER: %s\r\n";
 
 	char notify[512];
-	sprintf(notify, response, info->ip, FUJI_AUTOSAVE_NOTIFY, client_name);
+	sprintf(notify, response, info->camera_ip, FUJI_AUTOSAVE_NOTIFY, client_name);
 
-	int fd = connect_to_notify_server(info->ip, FUJI_AUTOSAVE_NOTIFY);
+	int fd = connect_to_notify_server(info->camera_ip, FUJI_AUTOSAVE_NOTIFY);
 	if (fd <= 0) {
+		plat_dbg("Failed to connect to notify server: %d", fd);
 		return -1;
 	}
 
@@ -184,7 +206,6 @@ static int respond_to_datagram(char *greeting, struct DiscoverInfo *info) {
 	char repsonse[512];
 	int len = recv(fd, response, sizeof(response), 0);
 	response[len] = '\0';
-	puts(response);
 
 	close(fd);
 
@@ -215,50 +236,49 @@ static int accept_connect(struct DiscoverInfo *info, char *greeting) {
 	return 0;
 }
 
-int fuji_discover_thread(struct DiscoverInfo *info) {
-	int reg_fd, con_fd;
-	struct sockaddr_in reg_addr, con_addr;
+static int open_dgram_socket(int port) {
+	struct sockaddr_in addr;
 
-	reg_fd = socket(AF_INET, SOCK_DGRAM, 0);
-	app_bind_socket_wifi(reg_fd);
-	if (reg_fd == -1) {
+	int fd = socket(AF_INET, SOCK_DGRAM, 0);
+	int rc = app_bind_socket_wifi(fd);
+	if (rc) return -1;
+	if (fd < 0) {
 		plat_dbg("socket");
-		abort();
+		return -1;
 	}
 
-	memset(&reg_addr, 0, sizeof(reg_addr));
-	reg_addr.sin_family = AF_INET;
-	reg_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	reg_addr.sin_port = htons(FUJI_AUTOSAVE_REGISTER);
-	plat_dbg("Binding to %d", FUJI_AUTOSAVE_REGISTER);
-	if (bind(reg_fd, (struct sockaddr *)&reg_addr, sizeof(reg_addr)) == -1) {
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	addr.sin_port = htons(port);
+	plat_dbg("Binding to %d", port);
+	rc = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+	if (rc < 0) {
 		plat_dbg("bind");
-		close(reg_fd);
-		abort();
+		close(fd);
+		return -1;
 	}
 
-	con_fd = socket(AF_INET, SOCK_DGRAM, 0);
-	app_bind_socket_wifi(con_fd);
-	if (con_fd == -1) {
-		plat_dbg("socket");
-		abort();
-	}
+	return fd;
+}
 
-	memset(&con_addr, 0, sizeof(con_addr));
-	con_addr.sin_family = AF_INET;
-	con_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	con_addr.sin_port = htons(FUJI_AUTOSAVE_CONNECT);
-	plat_dbg("Binding to %d", FUJI_AUTOSAVE_CONNECT);
-	if (bind(con_fd, (struct sockaddr *)&con_addr, sizeof(con_addr)) == -1) {
-		plat_dbg("bind");
-		close(con_fd);
-		abort();
+int fuji_discover_thread(struct DiscoverInfo *info, char *client_name) {
+	memset(info, 0, sizeof(struct DiscoverInfo));
+	int reg_fd = open_dgram_socket(FUJI_AUTOSAVE_REGISTER);
+	if (reg_fd <= 0) {
+		plat_dbg("Error connect register");
+		return reg_fd;
+	}
+	int con_fd = open_dgram_socket(FUJI_AUTOSAVE_CONNECT);
+	if (con_fd <= 0) {
+		plat_dbg("Error connect svr");
+		return con_fd;
 	}
 
 	struct sockaddr_in clnt_addr;
 	socklen_t clnt_addr_size;
 
-	#define ERRNO errno
+	int rc = 0;
 
 	char greeting[1024];
 	while (1) {
@@ -272,29 +292,38 @@ int fuji_discover_thread(struct DiscoverInfo *info) {
 		FD_SET(con_fd, &fdset);
 
 		int n = select((reg_fd > con_fd ? reg_fd : con_fd) + 1, &fdset, NULL, NULL, &tv);
-		if (n == -1) {
-			plat_dbg("select: %d", ERRNO);
-			abort();	
+		if (n < 0) {
+			plat_dbg("select: %d", n);
+			rc = -1;
+			break;
+		}
+
+		if (n != 0) {
+			plat_dbg("Received something!");
 		}
 
 		if (FD_ISSET(reg_fd, &fdset)) {
 			int len = recvfrom(reg_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
 			if (len <= 0) {
-				plat_dbg("recvfrom: %d", ERRNO);
-				abort();
+				plat_dbg("recvfrom: %d", len);
+				rc = -1;
+				break;
 			}
 			greeting[len] = '\0';
-			accept_register(info, greeting);
+			rc = accept_register(info, greeting);
+			if (rc == 0) rc = FUJI_D_REGISTERED;
+			break;
 		}
 		if (FD_ISSET(con_fd, &fdset)) {
 			int len = recvfrom(con_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
 			if (len <= 0) {
-				plat_dbg("recvfrom");
-				abort();
+				plat_dbg("recvfrom: %d", len);
+				rc = -1;
+				break;
 			}
 			greeting[len] = '\0';
 			accept_connect(info, greeting);
-			printf("Ready for PTP/IP\n");
+			if (rc == 0) rc = FUJI_D_GO_PTP;
 			break;
 		}
 
@@ -303,5 +332,5 @@ int fuji_discover_thread(struct DiscoverInfo *info) {
 
 	close(con_fd);
 	close(reg_fd);
-	return 0;
+	return rc;
 }

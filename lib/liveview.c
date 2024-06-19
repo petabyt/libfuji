@@ -67,6 +67,8 @@ int render_liveview_jpeg(const unsigned char *input, size_t size, uint8_t *frame
 
 	// Release the JPEG decompression object
 	jpeg_destroy_decompress(&cinfo);
+
+	return 0;
 }
 
 #ifndef JNI_LV

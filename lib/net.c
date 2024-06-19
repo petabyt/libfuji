@@ -126,7 +126,7 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	FD_ZERO(&fdset);
 	FD_SET(sockfd, &fdset);
 	struct timeval tv;
-	tv.tv_sec = 5;
+	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 
 	set_receive_timeout(sockfd, 5);

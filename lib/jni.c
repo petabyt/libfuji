@@ -268,10 +268,37 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 	return rc;
 }
 
-JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz) {
+int fuji_discover_ask_connect(char *name) {
+	return 1;
+}
+
+volatile int already_discovering = 0;
+JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
+	if (already_discovering) return 0;
+	already_discovering = 1;
 	set_jni_env(env);
 	struct DiscoverInfo info;
-	int rc = fuji_discover_thread(&info);
+	int rc = fuji_discover_thread(&info, "Fudge");
+	if (rc == FUJI_D_REGISTERED) {
+		jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onCameraRegistered",
+			"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+		(*env)->CallVoidMethod(env, ctx, register_m,
+			(*env)->NewStringUTF(env, info.camera_model),
+			(*env)->NewStringUTF(env, info.camera_name),
+			(*env)->NewStringUTF(env, info.camera_ip)
+		);
+	} else if (rc == FUJI_D_GO_PTP) {
+		jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onCameraWantsToConnect",
+			"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+		(*env)->CallVoidMethod(env, ctx, register_m,
+			(*env)->NewStringUTF(env, info.camera_model),
+			(*env)->NewStringUTF(env, info.camera_name),
+			(*env)->NewStringUTF(env, info.camera_ip)
+		);
+	} else if (rc < 0) {
+		app_print("AutoSave Err: %d", rc);
+	}
+	already_discovering = 0;
 	return rc;
 }
 
@@ -293,6 +320,10 @@ int app_bind_socket_wifi(int fd) {
 	if (_android_setsocknetwork == NULL) {
 		return -1;
 	}
+
+	jobject jni_get_application_ctx(JNIEnv *env);
+	jobject jni_get_pref(JNIEnv *env, jobject ctx, char *key);
+	//plat_dbg("WiFi: %d\n", jni_get_pref(get_jni_env(), jni_get_application_ctx(get_jni_env()), "foo"));
 
 	jlong handle = get_handle();
 	if (handle < 0) {

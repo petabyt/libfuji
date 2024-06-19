@@ -25,6 +25,8 @@ public class WiFiComm {
 
     static Network wifiDevice = null;
 
+    public static Runnable onAvailable;
+
     public static void startNetworkListeners(Context ctx) {
         ConnectivityManager m = (ConnectivityManager)ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
@@ -38,6 +40,7 @@ public class WiFiComm {
                     ((Activity)ctx).finish();
                 }
                 wifiDevice = network;
+                onAvailable.run();
             }
             @Override
             public void onLost(Network network) {

@@ -9,6 +9,7 @@
 #include "app.h"
 #include "fuji.h"
 #include "fujiptp.h"
+#include "exif.h"
 
 struct FujiDeviceKnowledge fuji_known = {0};
 
@@ -90,7 +91,7 @@ int fuji_setup(struct PtpRuntime *r, const char *ip) {
 	if (rc) return rc;
 
 	// Setup remote mode
-	if (fuji_known.remote_version != -1) {
+	if (fuji_known.remote_version != -1 && fuji_known.camera_state == FUJI_REMOTE_MODE) {
 		rc = fuji_setup_remote_mode(r, ip);
 		if (rc) return rc;
 	}
@@ -170,55 +171,83 @@ int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
 	return ptp_generic_send_data(r, &cmd, dat, sizeof(dat));
 }
 
+int fuji_d228() {
+	//	char buffer[64];
+	//	int s = 0;
+	//	s += ptp_write_u8(buffer + s, 6);
+	//	s += ptp_write_u32(buffer + s, 0x0020);
+	//	s += ptp_write_u32(buffer + s, 0x0030);
+	//	s += ptp_write_u32(buffer + s, 0x002f);
+	//	s += ptp_write_u32(buffer + s, 0x0036);
+	//	s += ptp_write_u32(buffer + s, 0x0030);
+	//	s += ptp_write_u32(buffer + s, 0x0000);
+	//
+	//	ptp_set_prop_value_data(r, 0xd228, buffer, s);
+}
+
+struct MyAddInfo {
+	struct PtpRuntime *r;
+	int handle;
+	uint8_t *buffer;
+	int size;
+};
+
+static uint8_t *my_add(void *arg, uint8_t *buffer, int new_len, int old_len) {
+	// Needs to be a new buffer
+	plat_dbg("my_add %d %d", new_len, old_len);
+	struct MyAddInfo *i = (struct MyAddInfo *)arg;
+	i->buffer = realloc(i->buffer, new_len);
+	int rc = ptp_get_partial_object(i->r, i->handle, old_len, new_len - old_len);
+	if (rc) return NULL;
+	memcpy(i->buffer + old_len, ptp_get_payload(i->r), ptp_get_payload_length(i->r));
+	return i->buffer;
+}
+
 int ptp_dirty_rotten_thumb_hack(struct PtpRuntime *r, int handle, int *offset, int *length) {
 	ptp_mutex_keep_locked(r);
 
-//	char buffer[64];
-//	int s = 0;
-//	s += ptp_write_u8(buffer + s, 6);
-//	s += ptp_write_u32(buffer + s, 0x0020);
-//	s += ptp_write_u32(buffer + s, 0x0030);
-//	s += ptp_write_u32(buffer + s, 0x002f);
-//	s += ptp_write_u32(buffer + s, 0x0036);
-//	s += ptp_write_u32(buffer + s, 0x0030);
-//	s += ptp_write_u32(buffer + s, 0x0000);
-//
-//	ptp_set_prop_value_data(r, 0xd228, buffer, s);
-
-	int max_size = 512 * 100;
+	int max_size = 512 * 10;
 	int rc = ptp_get_partial_object(r, handle, 0, max_size);
 	if (rc) {
 		ptp_mutex_unlock(r);
 		return rc;
 	}
 
-	if (ptp_get_payload_length(r) != max_size) {
+	struct MyAddInfo temp = {
+		.r = r,
+		.handle = handle,
+		.buffer = malloc(max_size),
+		.size = max_size,
+	};
+
+	memcpy(temp.buffer, ptp_get_payload(r), ptp_get_payload_length(r));
+
+	struct ExifC c = {0};
+	c.length = ptp_get_payload_length(r);
+	c.buf = temp.buffer;
+	c.arg = &temp;
+	c.get_more = my_add;
+
+	plat_dbg("Exif reader: %d", exif_start_raw(&c));
+
+	if (c.thumb_of == 0 || c.thumb_size == 0) {
+		rc = ptp_get_partial_object(r, handle, 0xfffffff0, 0x1);
 		ptp_mutex_unlock(r);
+		if (rc == PTP_IO_ERR) {
+			return rc;
+		}
 		return PTP_RUNTIME_ERR;
 	}
 
-	int size = ptp_get_payload_length(r);
-	uint8_t *find = ptp_get_payload(r);
-	int of = 3; // We skip the actual JPEG payload, we want the EXIF thumb
-	find += 3;
-	while (1) {
-		if (find[0] == 0xff && find[1] == 0xd8 && find[2] == 0xff) {
-			*offset = of;
-			*length = size - of;
-			plat_dbg("Found EXIF thumb %d", of);
+	*offset = c.thumb_of;
+	*length = c.thumb_size;
+	plat_dbg("%X -> %X", c.thumb_of, c.thumb_size);
 
-			ptp_get_partial_object(r, handle, 0xffffffff, 0x1);
-
-			return 0;
-		}
-		of += 1;
-		find++;
-		if (of + 3 >= size) break;
-	}
+	rc = ptp_get_partial_object(r, handle, 0xfffffff0, 0x1);
 
 	ptp_mutex_unlock(r);
 
-	return PTP_RUNTIME_ERR;
+	return 0;
 }
 
 // Set the compression prop (allows full images to go through, otherwise puts
@@ -371,6 +400,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 
 // TODO: rename config image view version
 int fuji_config_version(struct PtpRuntime *r) {
+	if (fuji_known.camera_state == FUJI_PC_AUTO_SAVE) return 0;
 	if (fuji_known.remote_version == -1) {
 		int rc = ptp_get_prop_value(r, PTP_PC_FUJI_GetObjectVersion);
 		if (rc) return rc;
@@ -384,7 +414,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_GetObjectVersion, version);
 		if (rc) return rc;
 	} else {
-		ptp_verbose_log(" %X\n", fuji_known.remote_version);
+		//ptp_verbose_log(" %X\n", fuji_known.remote_version);
 
 		// Fuji sets 2000a to 2000b
 		// Sets 20006 to 2000c (?)
@@ -398,7 +428,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 }
 
 int fuji_config_device_info_routine(struct PtpRuntime *r) {
-	if (fuji_known.remote_version != -1) {
+	if (fuji_known.remote_version != -1 && fuji_known.camera_state != FUJI_PC_AUTO_SAVE) {
 		int rc = fuji_get_device_info(r);
 		if (rc) return rc;
 
