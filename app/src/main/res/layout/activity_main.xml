@@ -50,6 +50,16 @@
             android:text="@string/connect_to_wifi" />
 
         <Button
+            android:id="@+id/connect_autosave"
+            style="@style/GoButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/go_button2"
+            android:drawableRight="@drawable/baseline_usb_24"
+            android:padding="10dp"
+            android:text="Connect to PC AUTOSAVE" />
+
+        <Button
             android:id="@+id/connect_usb"
             style="@style/GoButton"
             android:layout_width="match_parent"

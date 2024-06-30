@@ -26,7 +26,7 @@ import androidx.core.content.ContextCompat;
 import java.io.File;
 
 import camlib.WiFiComm;
-import libui.LibUI;
+import dev.danielc.libui.*;
 
 public class MainActivity extends AppCompatActivity {
     public static MainActivity instance;

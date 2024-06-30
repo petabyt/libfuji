@@ -5,7 +5,6 @@ package dev.danielc.fujiapp;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -19,10 +18,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.ViewGroup;
 import android.widget.TextView;
-
-import libui.LibUI;
 
 public class Gallery extends AppCompatActivity {
     public static Gallery instance;

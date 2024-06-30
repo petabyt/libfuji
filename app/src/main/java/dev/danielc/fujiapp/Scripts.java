@@ -6,8 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-
-import libui.LibUI;
+import dev.danielc.libui.*;
 
 public class Scripts extends AppCompatActivity {
     @Override
