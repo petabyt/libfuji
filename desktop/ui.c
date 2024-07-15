@@ -9,20 +9,26 @@
 #include <app.h>
 #include "desktop.h"
 
+int luaopen_libuilua(lua_State *L);
+
 void uiToast() {}
 
 struct App {
+	int is_opened;
 	uiWindow *main_win;
 	uiLabel *main_log;
 	uiMultilineEntry *script_box;
 	uiMultilineEntry *connect_entry;
-}app;
+}app = {0};
 
 struct PtpRuntime *luaptp_get_runtime(lua_State *L) {
 	return ptp_get();
 }
 
 void ui_send_text(char *key, char *value, ...) {
+	if (!app.is_opened) {
+		return;
+	}
 	if (!strcmp(key, "cam_name")) {
 		char buffer[64];
 		sprintf(buffer, "Fudge - %s", value);
@@ -40,9 +46,13 @@ void app_print(char *fmt, ...) {
 	va_start(args, fmt);
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
-	uiMultilineEntryAppend(app.connect_entry, buffer);
-	//uiLabelSetText(app.main_log, buffer);
-	uiQueueMain(print_thread, (void *)strdup(buffer));
+	if (app.is_opened) {
+		uiMultilineEntryAppend(app.connect_entry, buffer);
+		//uiLabelSetText(app.main_log, buffer);
+		uiQueueMain(print_thread, (void *)strdup(buffer));
+	} else {
+		puts(buffer);
+	}
 }
 
 static char *read_file(char *filename) {
@@ -172,22 +182,40 @@ uiControl *connect_tab() {
 static uiControl *fudge_screen() {
 	uiBox *box = uiNewVerticalBox();
 	uiBoxSetPadded(box, 1);
-	uiBox *hbox = uiNewHorizontalBox();
-	uiBoxAppend(box, uiControl(hbox), 0);
-	//uiBoxSetPadded(hbox, 1);
-	
-	uiButton *btn = uiNewButton("Connect to USB");
-	uiBoxAppend(hbox, uiControl(btn), 0);
-	uiButtonOnClicked(btn, usb_connect, NULL);
-	//uiBoxAppend(hbox, uiControl(uiNewButton("Connect to WiFi")), 0);	
+
+	uiGroup *connectivity = uiNewGroup("Connect");
+	{
+		uiBox *hbox = uiNewVerticalBox();
+		uiButton *btn = uiNewButton("Connect to USB");
+		uiBoxAppend(hbox, uiControl(btn), 1);
+		uiButtonOnClicked(btn, usb_connect, NULL);
+		uiBoxAppend(hbox, uiControl(uiNewButton("Connect to WiFi")), 1);
+		uiGroupSetChild(connectivity, uiControl(hbox));
+	}
+	uiBoxAppend(box, uiControl(connectivity), 0);
+
+	uiGroup *discovery = uiNewGroup("Searching for a camera...");
+	{
+		uiBox *inner = uiNewVerticalBox();
+
+		uiBoxAppend(inner, uiControl(uiNewLabel("- PC AutoSave")), 0);
+		uiBoxAppend(inner, uiControl(uiNewLabel("- Wireless Tether")), 0);
+
+		uiProgressBar *bar = uiNewProgressBar();
+		uiProgressBarSetValue(bar, -1);
+		uiBoxAppend(inner, uiControl(bar), 0);
+
+		uiGroupSetChild(discovery, uiControl(inner));
+	}
+	uiBoxAppend(box, uiControl(discovery), 0);
 
     uiTab *tab = uiNewTab();
-    uiTabAppend(tab, "Connect", connect_tab());
     uiTabAppend(tab, "Files", files_tab());
     uiTabAppend(tab, "Lua Editor", editor_tab());
-    //uiTabAppend(tab, "Recipes", files_tab());
-    //uiTabAppend(tab, "Developer", files_tab());
+    uiTabAppend(tab, "Recipes", files_tab());
+    uiTabAppend(tab, "Developer", files_tab());
 	uiBoxAppend(box, uiControl(tab), 1);
+	uiControlHide(uiControl(tab));
 
 	app.main_log = uiNewLabel("Doing things...");
 	uiBoxAppend(box, uiControl(app.main_log), 0);
