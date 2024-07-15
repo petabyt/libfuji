@@ -16,22 +16,6 @@ PTP_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
 
-	{
-		ptp_mutex_keep_locked(r);
-		int length, offset;
-		int rc = ptp_dirty_rotten_thumb_hack(r, handle, &offset, &length);
-		if (rc) {
-			ptp_mutex_unlock(r);
-			return (*env)->NewByteArray(env, 0);
-		}
-
-		jbyteArray ret = (*env)->NewByteArray(env, length);
-		(*env)->SetByteArrayRegion(env, ret, 0, length, (const jbyte *) ptp_get_payload(r) + offset);
-		ptp_mutex_unlock(r);
-
-		return ret;
-	}
-
 	ptp_mutex_keep_locked(r);
     int rc = ptp_get_thumbnail(r, (int)handle);
     if (rc == PTP_CHECK_CODE || ptp_get_payload_length(r) < 100) {

@@ -25,6 +25,34 @@ int fujiusb_setup(struct PtpRuntime *r) {
 	return rc;
 }
 
+int fujitether_setup(struct PtpRuntime *r) {
+	//memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
+
+	app_print("Waiting on the camera...");
+	app_print("Make sure you pressed OK.");
+
+	struct PtpFujiInitResp resp;
+	int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+	if (rc == PTP_RUNTIME_ERR) {
+		rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+	}
+	if (rc) {
+		app_print("Failed to initialize connection");
+		return rc;
+	}
+	app_print("Initialized connection.");
+
+	ui_send_text("cam_name", resp.cam_name);
+
+	// Fuji cameras require delay after init
+	app_print("The camera is thinking...");
+	usleep(50000);
+
+	fujiusb_setup(r);
+
+	return 0;
+}
+
 /*
 
 struct PtpCommand cmd;

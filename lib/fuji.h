@@ -9,22 +9,49 @@
 // X-A2 decided to freak out and stall. So, we have to do it the Fuji way :)
 #define FUJI_MAX_PARTIAL_OBJECT 0x100000
 
+enum DiscoverRet {
+	FUJI_D_REGISTERED = 1,
+	FUJI_D_GO_PTP = 2,
+	FUJI_D_CANCELED = 3,
+	FUJI_D_IO_ERR = 4,
+	/// In the case that Fuji's software prevents us from listening to the camera, let the user know to kill it
+	FUJI_D_OPEN_DENIED = 5,
+	FUJI_D_INVALID_NETWORK = 6,
+};
+
 struct DiscoverInfo {
 	char camera_ip[64];
 	char camera_name[64];
 	char camera_model[64];
 	char client_name[64];
+	int camera_port;
+	enum FujiTransport transport;
 };
 
-enum DiscoverRet {
-	FUJI_D_REGISTERED = 1,
-	FUJI_D_GO_PTP = 2,
-	FUJI_D_CANCELED = 3,
+// Holds runtime info about the camera
+struct FujiDeviceKnowledge {
+	//struct FujiCameraInfo *info;
+	int camera_state;
+	enum FujiTransport transport;
+	int selected_imgs_mode;
+
+	int get_object_version;
+	int remote_image_view_version;
+	int image_view_version;
+	int image_get_version;
+	int remote_version;
+
+	int num_objects;
+
+	int open_capture_trans_id;
 };
+struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r);
 
 int ptp_dirty_rotten_thumb_hack(struct PtpRuntime *r, int handle, int *offset, int *length);
 
-int fuji_discover_thread(struct DiscoverInfo *info, char *client_name);
+int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg);
+int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info);
+int fuji_discovery_check_cancel(void *arg);
 
 // (Not a part of camlib)
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code);
@@ -66,27 +93,10 @@ int fuji_download_multiple(struct PtpRuntime *r);
 // Another socket on top of the 2 that camlib connects to
 int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port);
 
-// Holds runtime info about the camera
-struct FujiDeviceKnowledge {
-	struct FujiCameraInfo *info;
-	int camera_state;
-	int selected_imgs_mode;
-
-	int get_object_version;
-	int remote_image_view_version;
-	int image_view_version;
-	int image_get_version;
-	int remote_version;
-
-	int num_objects;
-
-	int open_capture_trans_id;
-};
-
 extern struct FujiDeviceKnowledge fuji_known;
 
-// Fuji USB
 int fujiusb_setup(struct PtpRuntime *r);
+int fujitether_setup(struct PtpRuntime *r);
 
 int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data);
 

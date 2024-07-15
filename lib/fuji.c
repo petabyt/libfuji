@@ -13,12 +13,27 @@
 
 struct FujiDeviceKnowledge fuji_known = {0};
 
+struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r) {
+	return (struct FujiDeviceKnowledge *)r->userdata;
+}
+
 int fuji_reset_ptp(struct PtpRuntime *r) {
 	ptp_reset(r);
+	r->userdata = calloc(1, sizeof(struct FujiDeviceKnowledge));
 	r->connection_type = PTP_IP_USB;
 	r->response_wait_default = 3; // Fuji cams are slow!
-
+	r->io_kill_switch = 0;
 	return 0;
+}
+
+int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info) {
+	fuji_reset_ptp(r);
+	fuji_get(r)->transport = info->transport;
+	int rc = ptpip_connect(r, info->camera_ip, info->camera_port);
+	if (rc) {
+		plat_dbg("Error connecting to %s:%d\n", info->camera_ip, info->camera_port);
+		return rc;
+	}
 }
 
 // Call after cmd socket is opened
@@ -30,6 +45,9 @@ int fuji_setup(struct PtpRuntime *r, const char *ip) {
 
 	struct PtpFujiInitResp resp;
 	int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+	if (rc == PTP_RUNTIME_ERR) {
+		rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+	}
 	if (rc) {
 		app_print("Failed to initialize connection");
 		return rc;
@@ -39,7 +57,7 @@ int fuji_setup(struct PtpRuntime *r, const char *ip) {
 	ui_send_text("cam_name", resp.cam_name);
 
 	// Fuji cameras require delay after init
-	app_print("Waiting on camera..");
+	app_print("The camera is thinking...");
 	usleep(50000);
 
 	rc = ptp_open_session(r);
@@ -57,7 +75,7 @@ int fuji_setup(struct PtpRuntime *r, const char *ip) {
 	// Remote cams don't need to wait for access, so waiting for the 'OK'
 	// is done somewhere else
 	if (fuji_known.camera_state != FUJI_REMOTE_ACCESS) {
-		app_print("Gained access to the camera.");
+		app_print("Your camera loves you.");
 	}
 
 	// NOTE: cFujiConfigInitMode *must* be called before fuji_config_version, or anything else.
@@ -133,7 +151,6 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 	memset(p, 0, sizeof(struct FujiInitPacket));
 	p->length = 0x52;
 	p->type = PTPIP_INIT_COMMAND_REQ;
-
 	p->version = FUJI_PROTOCOL_VERSION;
 
 	p->guid1 = 0x5d48a5ad;
@@ -151,7 +168,13 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 	x = ptpip_cmd_read(r, r->data + 4, p->length - 4);
 	if (x < 0) return PTP_IO_ERR;
 
+	if (p->type == PTPIP_INIT_FAIL) {
+		// resend the packet...
+		return PTP_RUNTIME_ERR;
+	}
+
 	ptp_fuji_get_init_info(r, resp);
+	ptp_verbose_log("Connected to %s\n", resp->cam_name);
 
 	if (ptp_get_return_code(r) == 0x0) {
 		return 0;

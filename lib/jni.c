@@ -165,6 +165,44 @@ JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jin
 	return ret;
 }
 
+JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
+	set_jni_env(env);
+	struct PtpRuntime *r = ptp_get();
+
+	{
+		ptp_mutex_keep_locked(r);
+		int length, offset;
+		int rc = ptp_dirty_rotten_thumb_hack(r, handle, &offset, &length);
+		if (rc) {
+		ptp_mutex_unlock(r);
+		return (*env)->NewByteArray(env, 0);
+		}
+
+		jbyteArray ret = (*env)->NewByteArray(env, length);
+		(*env)->SetByteArrayRegion(env, ret, 0, length, (const jbyte *) ptp_get_payload(r) + offset);
+		ptp_mutex_unlock(r);
+
+		return ret;
+	}
+
+	ptp_mutex_keep_locked(r);
+	int rc = ptp_get_thumbnail(r, (int)handle);
+	if (rc == PTP_CHECK_CODE || ptp_get_payload_length(r) < 100) {
+	__android_log_write(ANDROID_LOG_ERROR, "camlib", "Thumbnail get failed");
+	ptp_mutex_unlock(r);
+	return (*env)->NewByteArray(env, 0);
+	} else if (rc) {
+	ptp_mutex_unlock(r);
+	return NULL;
+	}
+
+	jbyteArray ret = (*env)->NewByteArray(env, ptp_get_payload_length(r));
+	(*env)->SetByteArrayRegion(env, ret, 0, ptp_get_payload_length(r), (const jbyte *)(ptp_get_payload(r)));
+	ptp_mutex_unlock(r);
+
+	return ret;
+}
+
 JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz, jstring ip) {
 	set_jni_env(env);
 
@@ -268,8 +306,29 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 	return rc;
 }
 
-int fuji_discover_ask_connect(char *name) {
+struct FujiDiscoverArg {
+	JNIEnv *env;
+	jobject ctx;
+};
+
+int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
+	struct FujiDiscoverArg *farg = (struct FujiDiscoverArg *)arg;
+	JNIEnv *env = farg->env;
+	jobject ctx = farg->ctx;
+	// Ask if we want to connect?
+	// onReceiveCameraInfo
+	jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onReceiveCameraInfo",
+											   "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+	(*env)->CallVoidMethod(env, ctx, register_m,
+						   (*env)->NewStringUTF(env, info->camera_model),
+						   (*env)->NewStringUTF(env, info->camera_name),
+						   (*env)->NewStringUTF(env, info->camera_ip)
+	);
 	return 1;
+}
+
+int fuji_discovery_check_cancel(void *arg) {
+	return 0;
 }
 
 volatile int already_discovering = 0;
@@ -278,7 +337,11 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 	already_discovering = 1;
 	set_jni_env(env);
 	struct DiscoverInfo info;
-	int rc = fuji_discover_thread(&info, "Fudge");
+	struct FujiDiscoverArg arg = {
+		.env = env,
+		.ctx = ctx,
+	};
+	int rc = fuji_discover_thread(&info, "Fudge", &arg);
 	if (rc == FUJI_D_REGISTERED) {
 		jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onCameraRegistered",
 			"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
