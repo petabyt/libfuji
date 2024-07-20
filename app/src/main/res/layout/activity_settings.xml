@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="10dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -19,18 +19,36 @@
             android:padding="10dp">
 
             <Switch
-                android:id="@+id/switch1"
+                android:id="@+id/connect_without_wifi"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Allow connections without WiFi" />
+                android:text="Connect using default network (not WiFi)" />
         </LinearLayout>
 
-        <Button
-            android:id="@+id/button2"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/grey_button"
-            android:text="start autosave server" />
+            android:orientation="horizontal"
+            android:padding="10dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:text="IP Address"
+                android:textColor="@color/white" />
+
+            <EditText
+                android:id="@+id/ip_address_text"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:ems="10"
+                android:inputType="text"
+                android:text="192.168.0.1" />
+
+        </LinearLayout>
 
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

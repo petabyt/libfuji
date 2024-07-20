@@ -10,13 +10,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="PC AutoSave"
-        android:textSize="20sp" />
+        android:textSize="34sp" />
 
     <TextView
         android:id="@+id/textView2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Fudge is looking for a camera in PC AutoSave mode!" />
+        android:text="Fudge is looking for a camera in PC AutoSave mode!"
+        android:textSize="15sp" />
 
     <TextView
         android:id="@+id/textView3"
@@ -25,10 +26,11 @@
         android:text="Learn More" />
 
     <ProgressBar
-        android:id="@+id/progressBar2"
-        style="?android:attr/progressBarStyle"
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:indeterminateOnly="true" />
 
     <TextView
         android:id="@+id/textView4"

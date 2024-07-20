@@ -66,9 +66,10 @@ public class Gallery extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         LayoutInflater inf = getLayoutInflater();
 
+        // TODO: redundant
         View gallery = inf.inflate(R.layout.gallery, null);
 
-        setContentView(gallery);
+        setContentView(R.layout.gallery);
 
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);

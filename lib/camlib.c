@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <jni.h>
 #include <android/log.h>
-
 #include <camlib.h>
 
 #define PTP_FUNC(ret, name) JNIEXPORT ret JNICALL Java_camlib_Camlib_##name
 
-void set_jni_env(JNIEnv *env);
+void set_jni_env_ctx(JNIEnv *env, jobject ctx);
+#define set_jni_env(x) set_jni_env_ctx(x, NULL)
 struct PtpRuntime *ptp_get();
 
 int ptp_dirty_rotten_thumb_hack(struct PtpRuntime *r, int handle, int *offset, int *length);

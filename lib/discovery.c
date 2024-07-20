@@ -450,7 +450,7 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 
 	char greeting[1024];
 	while (1) {
-		plat_dbg("Sending tether/pcss datagram");
+		//plat_dbg("Sending tether/pcss datagram");
 		if (send_pcss_datagram(local_ip)) {
 			plat_dbg("Failed to send datagram: %d", errno);
 			rc = -1;

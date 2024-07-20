@@ -64,8 +64,11 @@ struct AndroidBackend {
 extern struct AndroidBackend backend;
 
 // Thread safe JNIEnv storage
-void set_jni_env(JNIEnv *env);
-JNIEnv *get_jni_env();
+void invalidate_jni_env_ctx(void);
+void set_jni_env_ctx(JNIEnv *env, jobject ctx);
+JNIEnv *get_jni_env(void);
+jobject get_jni_ctx(void);
+#define set_jni_env(x) set_jni_env_ctx(x, NULL)
 
 // Verbose print to log file
 void jni_verbose_log(char *str);

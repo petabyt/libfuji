@@ -8,14 +8,24 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.provider.Settings;
 
@@ -24,6 +34,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import java.io.File;
+import java.io.InputStream;
 
 import camlib.WiFiComm;
 import dev.danielc.libui.*;
@@ -38,11 +49,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         instance = this;
         handler = new Handler(Looper.getMainLooper());
-
-//        TextView bottomText = ((TextView)findViewById(R.id.bottomText));
-        //bottomText.append(getString(R.string.url) + "\n");
-        //bottomText.append("Download location: " + Backend.getDownloads() + "\n");
-//        bottomText.append(getString(R.string.motd_thing) + " " + BuildConfig.VERSION_NAME);
 
         getSupportActionBar().setTitle("Fudge " + BuildConfig.VERSION_NAME);
 
@@ -77,14 +83,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.plugins).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, Scripts.class);
-                startActivity(intent);
-            }
-        });
-        findViewById(R.id.plugins).setOnLongClickListener(new View.OnLongClickListener() {
+//        findViewById(R.id.plugins).setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Intent intent = new Intent(MainActivity.this, Scripts.class);
+//                startActivity(intent);
+//            }
+//        });
+        findViewById(R.id.help_button).setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
                 Intent intent = new Intent(MainActivity.this, Liveview.class);
@@ -111,13 +117,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.plugins).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, Scripts.class);
-                startActivity(intent);
-            }
-        });
+//        findViewById(R.id.plugins).setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Intent intent = new Intent(MainActivity.this, Scripts.class);
+//                startActivity(intent);
+//            }
+//        });
 
         // Require legacy Android write permissions
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -127,14 +133,35 @@ public class MainActivity extends AppCompatActivity {
         WiFiComm.setConnectivityManager((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
 
         // Idea: Show WiFi status on screen?
+        // Show/hide discovery message
         WiFiComm.startNetworkListeners(this);
+        Context ctx = this;
         WiFiComm.onAvailable = new Runnable() {
             @Override
             public void run() {
-                discoveryThread();
+                Backend.discoveryThread(ctx);
             }
         };
+
+        discoveryPopup = new AlertDialog.Builder(MainActivity.this);
+
+        try {
+            // https://www.pexels.com/photo/photo-of-vehicle-on-asphalt-road-3066867/
+            InputStream is = getAssets().open("pexels-thevibrantmachine-3066867.jpg");
+            int size = is.available();
+            byte[] buffer = new byte[size];
+            is.read(buffer);
+            is.close();
+            Bitmap bitmap = BitmapFactory.decodeByteArray(buffer, 0, buffer.length, null);
+            Bitmap resizedBmp = Bitmap.createBitmap(bitmap, 0, 0, 1080*3, bitmap.getHeight());
+            ImageView fl = findViewById(R.id.imageView2);
+            fl.setImageBitmap(resizedBmp);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
+
+    AlertDialog.Builder discoveryPopup;
 
     void onCameraRegistered(String model, String name, String ip) {
         handler.post(new Runnable() {
@@ -163,75 +190,86 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    void onCameraWantsToConnect(String model, String name, String ip) {
+    void onReceiveCameraInfo(String model, String name, String ip) {
+        discoveryPopup.setTitle("Found a camera! (" + model + ")");
+        discoveryPopup.setMessage("Do you want to connect?");
+        discoveryPopup.show();
+//        return bool accept connection or not
+    }
+
+    void onCameraWantsToConnect(String model, String name, String ip, int port) {
+        try {
+            Thread.sleep(1000);
+            Backend.chosenIP = ip;
+            Backend.cConnectNative(ip, Backend.FUJI_CMD_PORT);
+            Backend.cClearKillSwitch();
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    findViewById(R.id.wifi_settings).setVisibility(View.GONE);
+                }
+            });
+            Intent intent = new Intent(MainActivity.this, Gallery.class);
+            startActivity(intent);
+        } catch (Exception e) {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
+                }
+            });
+            Backend.print(e.getMessage());
+        }
+    }
+
+    public int tryConnect() {
+        int rc = Backend.fujiConnectToCmd();
+        if (rc != 0) return rc;
+        Backend.print("Connection established");
+        Backend.cancelDiscoveryThread();
         handler.post(new Runnable() {
             @Override
             public void run() {
-                try {
-                    Thread.sleep(1000);
-                    Backend.chosenIP = ip;
-                    Backend.cConnectNative(ip, Backend.FUJI_CMD_PORT);
-                    Backend.cClearKillSwitch();
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            findViewById(R.id.wifi_settings).setVisibility(View.GONE);
-                        }
-                    });
-                    Intent intent = new Intent(MainActivity.this, Gallery.class);
-                    startActivity(intent);
-                } catch (Exception e) {
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
-                        }
-                    });
-                    Backend.print(e.getMessage());
-                }
+                findViewById(R.id.wifi_settings).setVisibility(View.GONE);
             }
         });
-    }
-
-
-    public void discoveryThread() {
-        Context ctx = this;
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    int rc = Backend.cStartDiscovery(ctx);
-                    if (rc < 0) {
-                        return;
-                    }
-                }
-            }
-        }).start();
+        Intent intent = new Intent(MainActivity.this, Gallery.class);
+        startActivity(intent);
+        return 0;
     }
 
     public void connectClick() {
-        new Thread(new Runnable() {
+        WiFiComm.onWiFiSelectCancel = new Runnable() {
+            @Override
+            public void run() {
+                Backend.print("Selection canceled");
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
+                    }
+                });
+            }
+        };
+        WiFiComm.onWiFiSelectAvailable = new Runnable() {
             @Override
             public void run() {
                 try {
                     Backend.fujiConnectToCmd();
-                    Backend.print("Connection established");
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            findViewById(R.id.wifi_settings).setVisibility(View.GONE);
-                        }
-                    });
-                    Intent intent = new Intent(MainActivity.this, Gallery.class);
-                    startActivity(intent);
                 } catch (Exception e) {
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
-                        }
-                    });
                     Backend.print(e.getMessage());
+                }
+            }
+        };
+        Context ctx = this;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int rc = tryConnect();
+                if (rc != 0) {
+                    if (WiFiComm.connectToAccessPoint(ctx, null) != 0) {
+                        Backend.print("You must manually connect to the WiFi access point");
+                    }
                 }
             }
         }).start();
@@ -265,6 +303,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void openFiles() {
+        // TODO: this sucks
         File[] fileList;
         File file = new File(Backend.getDownloads());
         if (!file.isDirectory()) {
@@ -292,7 +331,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        Backend.print("Back");
         super.onBackPressed();
     }
 

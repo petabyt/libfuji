@@ -4,60 +4,51 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_gravity="center"
     tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/wifi_settings"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/go_button"
-        android:drawableRight="@drawable/baseline_settings_24"
-        android:drawablePadding="10dp"
-        android:gravity="center"
-        android:padding="10dp"
-        android:text="Open WiFi Settings"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/error_msg" />
-
-    <TextView
-        android:id="@+id/error_msg"
+    <FrameLayout
+        android:id="@+id/background"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:padding="10dp"
-        app:layout_constraintTop_toBottomOf="@+id/boxLayout"
-        tools:layout_editor_absoluteX="46dp" />
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/imageView2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/boxLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="#70000000"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.24000001">
 
         <Button
             android:id="@+id/connect_wifi"
             style="@style/GoButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@drawable/go_button"
             android:drawableRight="@drawable/baseline_wifi_tethering_24"
             android:padding="10dp"
             android:text="@string/connect_to_wifi" />
 
-        <Button
-            android:id="@+id/connect_autosave"
-            style="@style/GoButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/go_button2"
-            android:drawableRight="@drawable/baseline_usb_24"
-            android:padding="10dp"
-            android:text="Connect to PC AUTOSAVE" />
+        <!--        <Button-->
+        <!--            android:id="@+id/connect_autosave"-->
+        <!--            style="@style/GoButton"-->
+        <!--            android:layout_width="match_parent"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:background="@drawable/go_button2"-->
+        <!--            android:drawableRight="@drawable/baseline_wifi_tethering_24"-->
+        <!--            android:padding="10dp"-->
+        <!--            android:text="Connect to PC AUTOSAVE" />-->
 
         <Button
             android:id="@+id/connect_usb"
@@ -72,29 +63,79 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="horizontal">
+            android:layout_margin="1dp"
+            android:background="@color/card"
+            android:orientation="vertical"
+            android:padding="10dp">
 
-            <Button
-                android:id="@+id/plugins"
-                style="@style/GreyButton"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Looking for a camera..."
+                        android:textSize="20sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="\u2022 PC AutoSave" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="\u2022 Wireless Tether Shooting" />
+                </LinearLayout>
+
+                <Button
+                    style="@style/GreyButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:drawableRight="@drawable/baseline_help_24"
+                    android:padding="10dp"
+                    android:text="Learn more"
+                    android:visibility="gone" />
+
+                <ImageButton
+                    android:id="@+id/imageButton"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:background="@drawable/grey_button"
+                    android:src="@drawable/baseline_question_mark_24" />
+
+            </LinearLayout>
+
+            <ProgressBar
+                style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:drawableRight="@drawable/baseline_terminal_24"
-                android:padding="10dp"
-                android:text="@string/plugins"
-                android:visibility="visible" />
+                android:indeterminateOnly="true" />
 
-            <Button
-                android:id="@+id/help_button"
-                style="@style/GreyButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:drawableRight="@drawable/baseline_help_24"
-                android:padding="10dp"
-                android:text="@string/help" />
         </LinearLayout>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="10dp" />
+
+        <Button
+            android:id="@+id/help_button"
+            style="@style/GreyButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:drawableRight="@drawable/baseline_help_24"
+            android:padding="10dp"
+            android:text="@string/help" />
 
         <Button
             style="@style/GoButton"
@@ -109,36 +150,30 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:background="#1E1E1E"
-        android:orientation="horizontal"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <ProgressBar
-            android:id="@+id/progressBar"
-            style="?android:attr/progressBarStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:indeterminateBehavior="repeat" />
-
         <TextView
-            android:id="@+id/bottomText"
+            android:id="@+id/error_msg"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp" />
 
-            android:layout_weight="1"
-            android:gravity="center|center_horizontal|center_vertical"
-            android:text="Waiting for 'PC AUTO SAVE' cameras..." />
-
-        <ImageButton
-            android:id="@+id/imageButton"
+        <Button
+            android:id="@+id/wifi_settings"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:background="@drawable/grey_button"
+            android:layout_height="wrap_content"
+            android:background="@drawable/go_button"
+            android:drawableRight="@drawable/baseline_settings_24"
+            android:drawablePadding="10dp"
+            android:gravity="center"
             android:padding="10dp"
-            android:src="@drawable/baseline_help_24" />
+            android:text="Open WiFi Settings"
+            android:visibility="gone" />
 
     </LinearLayout>
 

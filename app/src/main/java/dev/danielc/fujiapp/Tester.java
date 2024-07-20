@@ -24,36 +24,6 @@ import android.widget.Toast;
 public class Tester extends AppCompatActivity {
     private Handler handler;
 
-    Bluetooth bt;
-
-    private void connectBluetooth() {
-        bt = new Bluetooth();
-        Intent intent;
-        try {
-            intent = bt.getIntent();
-        } catch (Exception e) {
-            fail("Failed to use bluetooth: " + e.toString());
-            return;
-        }
-
-        if (intent != null) {
-            try {
-                startActivityForResult(intent, 1);
-            } catch (Exception e) {
-                fail("Failed to use bluetooth: permission denied (or bluetooth is off)" + e);
-                return;
-            }
-
-            log("Gained access to bluetooth");
-
-            // TODO: Finish bluetooth tests
-        } else {
-            return;
-        }
-
-        bt.getConnectedDevice();
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,10 +47,9 @@ public class Tester extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    Backend.fujiConnectToCmd();
-                } catch (Exception e) {
-                    fail("WIFI: " + e.toString());
+                int rc = Backend.fujiConnectToCmd();
+                if (rc != 0) {
+                    fail("WIFI: " + Backend.parseErr(rc));
 
                     try {
                         Backend.connectUSB(ctx);

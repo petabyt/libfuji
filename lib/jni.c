@@ -43,7 +43,7 @@ JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reaso
 JNI_FUNC(void, cClearKillSwitch)(JNIEnv *env, jobject thiz) {
 	backend.r.io_kill_switch = 0;
 }
-
+// TODO: Remove?
 JNI_FUNC(jboolean, cGetKillSwitch)(JNIEnv *env, jobject thiz) {
 	return backend.r.io_kill_switch != 0;
 }
@@ -292,16 +292,32 @@ JNI_FUNC(jint, cFujiTestSuite)(JNIEnv *env, jobject thiz, jstring ip) {
 	}
 }
 
+JNI_FUNC(jint, cTryConnectWiFi)(JNIEnv *env, jobject thiz) {
+	set_jni_env(env);
+	const char *c_ip = fuji_get_camera_ip();
+
+	int rc = ptpip_connect(&backend.r, c_ip, FUJI_CMD_IP_PORT);
+
+	if (rc == 0) {
+		fuji_reset_ptp(ptp_get()); // ???
+		strcpy(fuji_get(ptp_get())->ip_address, c_ip);
+	}
+
+	return rc;
+}
+
 JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
 	set_jni_env(env);
 	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
 
 	int rc = ptpip_connect(&backend.r, c_ip, (int)port);
 
-	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
-	(*env)->DeleteLocalRef(env, ip);
+	if (rc == 0) {
+		fuji_reset_ptp(ptp_get()); // ???
+		strcpy(fuji_get(ptp_get())->ip_address, c_ip);
+	}
 
-	fuji_reset_ptp(&backend.r);
+	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
 
 	return rc;
 }
@@ -352,11 +368,12 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 		);
 	} else if (rc == FUJI_D_GO_PTP) {
 		jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onCameraWantsToConnect",
-			"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+												   "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
 		(*env)->CallVoidMethod(env, ctx, register_m,
 			(*env)->NewStringUTF(env, info.camera_model),
 			(*env)->NewStringUTF(env, info.camera_name),
-			(*env)->NewStringUTF(env, info.camera_ip)
+			(*env)->NewStringUTF(env, info.camera_ip),
+			info.camera_port
 		);
 	} else if (rc < 0) {
 		app_print("AutoSave Err: %d", rc);

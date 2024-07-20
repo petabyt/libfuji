@@ -74,26 +74,9 @@ public class Backend extends Camlib {
 
     static String chosenIP = Backend.FUJI_IP;
 
-    public static void fujiConnectToCmd() throws Exception {
+    public static int fujiConnectToCmd() {
         Backend.print(getString(R.string.connecting));
-
-        int rc = cConnectNative(Backend.FUJI_IP, Backend.FUJI_CMD_PORT);
-        chosenIP = Backend.FUJI_IP;
-        if (rc != 0) {
-            if (BuildConfig.DEBUG) {
-                Backend.print("Trying emulator IP..");
-                rc = cConnectNative(Backend.FUJI_EMU_IP, Backend.FUJI_CMD_PORT);
-                chosenIP = Backend.FUJI_EMU_IP;
-            }
-        }
-
-        if (rc == 0) {
-            cClearKillSwitch();
-        } else if (rc == PTP_NO_DEVICE) {
-            throw new Exception("No device found. Please make sure you are connected to your camera.");
-        } else {
-            throw new Exception(parseErr(rc));
-        }
+        return cTryConnectWiFi();
     }
 
     // Block all communication in UsbComm and WiFiComm
@@ -123,6 +106,7 @@ public class Backend extends Camlib {
     public native static boolean cGetKillSwitch();
 
     public native static int cUSBConnectNative(SimpleUSB usb);
+    public native static int cTryConnectWiFi();
     public native static int cConnectNative(String ip, int port);
     public native static void cInit();
     public native static int cFujiSetup(String ip);
@@ -155,8 +139,23 @@ public class Backend extends Camlib {
     }
 
     public native static int cStartDiscovery(Context ctx);
+    public static void discoveryThread(Context ctx) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    int rc = Backend.cStartDiscovery(ctx);
+                    if (rc < 0) {
+                        return;
+                    }
+                }
+            }
+        }).start();
+    }
+    public static void cancelDiscoveryThread() {
+        // ...
+    }
 
-    // C/Java -> async UI logging
     final static int MAX_LOG_LINES = 3;
 
     public static void clearPrint() {

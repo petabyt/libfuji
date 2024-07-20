@@ -9,6 +9,9 @@
 // X-A2 decided to freak out and stall. So, we have to do it the Fuji way :)
 #define FUJI_MAX_PARTIAL_OBJECT 0x100000
 
+const char *fuji_get_camera_ip();
+int fuji_do_connect_without_wifi();
+
 enum DiscoverRet {
 	FUJI_D_REGISTERED = 1,
 	FUJI_D_GO_PTP = 2,
@@ -30,7 +33,7 @@ struct DiscoverInfo {
 
 // Holds runtime info about the camera
 struct FujiDeviceKnowledge {
-	//struct FujiCameraInfo *info;
+	char ip_address[64];
 	int camera_state;
 	enum FujiTransport transport;
 	int selected_imgs_mode;

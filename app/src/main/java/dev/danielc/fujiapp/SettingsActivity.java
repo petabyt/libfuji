@@ -3,10 +3,13 @@ package dev.danielc.fujiapp;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.widget.Switch;
 
 public class SettingsActivity extends AppCompatActivity {
+    native void handleSettingsButtons(Context x);
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -14,6 +17,7 @@ public class SettingsActivity extends AppCompatActivity {
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle("Settings");
+        handleSettingsButtons(this);
     }
 
     @Override

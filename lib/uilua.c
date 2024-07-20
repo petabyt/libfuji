@@ -16,22 +16,13 @@ struct wrap {
 	uiControl *control;
 };
 
-
 #define CAST_ARG(n, type) ui ## type(((struct wrap *)lua_touserdata(L, n))->control)
 
 #define CREATE_META(n) \
 	luaL_newmetatable(L, "libui." #n);  \
 	luaL_setfuncs(L, meta_ ## n, 0);
 
-#define CREATE_OBJECT(t, c) \
-	struct wrap *w = lua_newuserdata(L, sizeof(struct wrap)); \
-	w->control = uiControl(c); \
-	lua_newtable(L); \
-	luaL_getmetatable(L, "libui." #t); \
-	lua_setfield(L, -2, "__index"); \
-	lua_pushcfunction(L, l_gc); \
-	lua_setfield(L, -2, "__gc"); \
-	lua_setmetatable(L, -2);
+#define CREATE_OBJECT(t, c) create_object(L, t, uiControl(c));
 
 static void create_callback_data(lua_State *L, int n)
 {
@@ -126,19 +117,39 @@ int l_gc(lua_State *L)
 	return 0;
 }
 
+static void create_meta(lua_State *L, const char *name, struct luaL_Reg *reg) {
+	char buffer[64];
+	snprintf(buffer, sizeof(buffer), "libui.%s", name);
+	luaL_newmetatable(L, buffer);
+	luaL_setfuncs(L, reg, 0);
+}
+
+static void create_object(lua_State *L, const char *t, uiControl *c) {
+	struct wrap *w = lua_newuserdata(L, sizeof(struct wrap));
+	w->control = uiControl(c);
+	lua_newtable(L);
+	char buffer[64];
+	snprintf(buffer, sizeof(buffer), "libui.%s", t);
+	luaL_getmetatable(L, buffer);
+	lua_setfield(L, -2, "__index");
+	lua_pushcfunction(L, l_gc);
+	lua_setfield(L, -2, "__gc");
+	lua_setmetatable(L, -2);
+}
+
 /*
  * Box
  */
 
 int l_NewVerticalBox(lua_State *L)
 {
-	CREATE_OBJECT(Box, uiNewVerticalBox());
+	create_object(L, "Box", uiControl(uiNewVerticalBox()));
 	return 1;
 }
 
 int l_NewHorizontalBox(lua_State *L)
 {
-	CREATE_OBJECT(Box, uiNewHorizontalBox());
+	CREATE_OBJECT("Box", uiNewHorizontalBox());
 	return 1;
 }
 
@@ -193,7 +204,7 @@ static struct luaL_Reg meta_Box[] = {
 
 int l_NewButton(lua_State *L)
 {
-	CREATE_OBJECT(Button, uiNewButton(
+	CREATE_OBJECT("Button", uiNewButton(
 			luaL_checkstring(L, 1)
 	));
 	return 1;
@@ -250,7 +261,7 @@ int l_ControlDestroy(lua_State *L)
 
 int l_NewGroup(lua_State *L)
 {
-	CREATE_OBJECT(Group, uiNewGroup(
+	CREATE_OBJECT("Group", uiNewGroup(
 			luaL_checkstring(L, 1)
 	));
 	return 1;
@@ -310,7 +321,7 @@ static struct luaL_Reg meta_Group[] = {
 
 int l_NewLabel(lua_State *L)
 {
-	CREATE_OBJECT(Label, uiNewLabel(
+	CREATE_OBJECT("Label", uiNewLabel(
 			luaL_checkstring(L, 1)
 	));
 	return 1;
@@ -345,7 +356,7 @@ static struct luaL_Reg meta_Label[] = {
 
 int l_NewProgressBar(lua_State *L)
 {
-	CREATE_OBJECT(ProgressBar, uiNewProgressBar());
+	CREATE_OBJECT("ProgressBar", uiNewProgressBar());
 	return 1;
 }
 
@@ -368,7 +379,7 @@ static struct luaL_Reg meta_ProgressBar[] = {
 
 int l_NewHorizontalSeparator(lua_State *L)
 {
-	CREATE_OBJECT(Separator, uiNewHorizontalSeparator());
+	CREATE_OBJECT("Separator", uiNewHorizontalSeparator());
 	return 1;
 }
 
@@ -382,7 +393,7 @@ static struct luaL_Reg meta_Separator[] = {
 
 int l_NewTab(lua_State *L)
 {
-	CREATE_OBJECT(Tab, uiNewTab());
+	CREATE_OBJECT("Tab", uiNewTab());
 	return 1;
 }
 
@@ -411,7 +422,7 @@ static struct luaL_Reg meta_Tab[] = {
 
 int l_NewWindow(lua_State *L)
 {
-	CREATE_OBJECT(Window, uiNewWindow(
+	CREATE_OBJECT("Window", uiNewWindow(
 			luaL_checkstring(L, 1),
 			luaL_checknumber(L, 2),
 			luaL_checknumber(L, 3),
@@ -451,7 +462,7 @@ static struct luaL_Reg meta_Window[] = {
  * Various top level
  */
 
-int l_Toast(lua_State *L)
+static int l_Toast(lua_State *L)
 {
 	uiToast(luaL_checkstring(L, 1));
 	lua_pushvalue(L, 1);
@@ -462,16 +473,20 @@ static struct luaL_Reg lui_table[] = {
 		{ "NewButton",              l_NewButton },
 		{ "NewGroup",               l_NewGroup },
 		{ "NewHorizontalBox",       l_NewHorizontalBox },
+		{ "NewVerticalBox",         l_NewVerticalBox },
 		{ "NewHorizontalSeparator", l_NewHorizontalSeparator },
 		{ "NewLabel",               l_NewLabel },
 		{ "NewProgressBar",         l_NewProgressBar },
 		{ "NewTab",                 l_NewTab },
-		{ "NewVerticalBox",         l_NewVerticalBox },
 		{ "NewWindow",              l_NewWindow },
 		{ "Toast",                  l_Toast},
 		{ NULL }
 };
 
+int libuilua_from_control(lua_State *L, uiControl *c) {
+	CREATE_OBJECT("Button", c);
+	return 0;
+}
 
 int luaopen_libuilua(lua_State *L)
 {
