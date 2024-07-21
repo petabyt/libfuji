@@ -77,6 +77,7 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 
 	int rc = app_bind_socket_wifi(sockfd);
 	if (rc) {
+		ptp_verbose_log("Error binding to wifi network\n");
 		return rc;
 	}
 
@@ -126,12 +127,12 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	FD_ZERO(&fdset);
 	FD_SET(sockfd, &fdset);
 	struct timeval tv;
-	tv.tv_sec = 1;
+	tv.tv_sec = timeout_sec;
 	tv.tv_usec = 0;
 
 	set_receive_timeout(sockfd, 5);
 
-	// If operation is in progress, wait for it to become ready
+	// Wait for socket event
 	if (errno == EINPROGRESS) {
 		rc = select(sockfd + 1, NULL, &fdset, NULL, &tv);
 		if (rc != 1) {

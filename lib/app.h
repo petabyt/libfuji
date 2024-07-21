@@ -20,4 +20,7 @@ struct PtpRuntime *ptp_get();
 
 void app_increment_progress_bar(int read);
 
+void app_print_id(int resid);
+int app_get_string(const char *key);
+
 #endif

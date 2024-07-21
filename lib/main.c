@@ -4,40 +4,33 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-
 #include <camlib.h>
-
+#include <android.h>
 #include "fuji.h"
 #include "app.h"
 #include "backend.h"
 
 struct AndroidBackend backend;
 
-// This will be put in a __emutls_t.* variable
-// It's up to the compiler to decide how to implement it
-struct JNILocal {
-	JNIEnv *env;
-	jobject ctx;
-};
-__thread struct JNILocal local = {0, 0};
+__thread struct AndroidLocal local = {0, 0};
 
 void set_jni_env_ctx(JNIEnv *env, jobject ctx) {
-	plat_dbg("Setting env/ctx %d, %d: %d", local.env, local.ctx, gettid());
+	//plat_dbg("Setting env/ctx %d, %d: %d", local.env, local.ctx, gettid());
 	local.env = env;
 	local.ctx = ctx;
 }
 
-struct JNILocal push_jni_env_ctx(JNIEnv *env, jobject ctx) {
-	struct JNILocal l;
+struct AndroidLocal push_jni_env_ctx(JNIEnv *env, jobject ctx) {
+	struct AndroidLocal l;
 	l.env = local.env;
 	l.ctx = local.ctx;
-	plat_dbg("env: %u, ctx: %u, tid: %d", local.env, local.ctx, gettid());
+	//plat_dbg("env: %u, ctx: %u, tid: %d", local.env, local.ctx, gettid());
 	local.env = env;
 	local.ctx = ctx;
 	return l;
 }
 
-void pop_jni_env_ctx(struct JNILocal l) {
+void pop_jni_env_ctx(struct AndroidLocal l) {
 	set_jni_env_ctx(l.env, l.ctx);
 }
 
@@ -137,6 +130,17 @@ void ptp_panic(char *fmt, ...) {
 
 	__android_log_write(ANDROID_LOG_ERROR, "ptp_panic", buffer);
 	abort();
+}
+
+int app_get_string(const char *key) {
+	return jni_get_string_id(get_jni_env(), get_jni_ctx(), key);
+}
+
+void app_print_id(int resid) {
+	JNIEnv *env = get_jni_env();
+	jclass class = (*env)->FindClass(env, "dev/danielc/fujiapp/Backend");
+	jmethodID id = (*env)->GetStaticMethodID(env, class, "print", "(I)V");
+	(*env)->CallStaticVoidMethod(env, backend.main, backend.jni_print, resid);
 }
 
 void app_print(char *fmt, ...) {

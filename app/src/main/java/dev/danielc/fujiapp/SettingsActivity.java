@@ -9,7 +9,8 @@ import android.view.MenuItem;
 import android.widget.Switch;
 
 public class SettingsActivity extends AppCompatActivity {
-    native void handleSettingsButtons(Context x);
+    native static void handleSettingsButtons(Context x);
+    native static String getWPA2Password(Context x);
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

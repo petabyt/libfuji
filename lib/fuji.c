@@ -493,6 +493,7 @@ int fuji_remote_mode_end(struct PtpRuntime *r) {
 }
 
 int fuji_config_image_viewer(struct PtpRuntime *r) {
+	plat_dbg("remote_image_view_version: %X", fuji_known.remote_image_view_version);
 	if (fuji_known.remote_image_view_version != -1) {
 		// Tell the camera that we actually want that mode
 		int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_CameraState, FUJI_REMOTE_ACCESS);

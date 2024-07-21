@@ -3,29 +3,22 @@ package dev.danielc.fujiapp;
 
 import android.Manifest;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
+import android.view.ViewTreeObserver;
 import android.widget.ImageView;
-import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.provider.Settings;
 
@@ -46,17 +39,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        LibUI.buttonBackgroundResource = R.drawable.grey_button;
+        LibUI.popupDrawableResource = R.drawable.border;
         setContentView(R.layout.activity_main);
         instance = this;
         handler = new Handler(Looper.getMainLooper());
 
-        getSupportActionBar().setTitle("Fudge " + BuildConfig.VERSION_NAME);
+        getSupportActionBar().setTitle(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
 
         Backend.init();
         Backend.updateLog();
-
-        LibUI.buttonBackgroundResource = R.drawable.grey_button;
-        LibUI.popupDrawableResource = R.drawable.border;
 
         findViewById(R.id.connect_wifi).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -83,13 +75,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-//        findViewById(R.id.plugins).setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Intent intent = new Intent(MainActivity.this, Scripts.class);
-//                startActivity(intent);
-//            }
-//        });
         findViewById(R.id.help_button).setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
@@ -117,14 +102,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-//        findViewById(R.id.plugins).setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Intent intent = new Intent(MainActivity.this, Scripts.class);
-//                startActivity(intent);
-//            }
-//        });
-
         // Require legacy Android write permissions
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
@@ -145,16 +122,33 @@ public class MainActivity extends AppCompatActivity {
 
         discoveryPopup = new AlertDialog.Builder(MainActivity.this);
 
+        ViewTreeObserver viewTreeObserver = this.getWindow().getDecorView().getViewTreeObserver();
+        viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                MainActivity.this.getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                backgroundImage();
+            }
+        });
+    }
+
+    void backgroundImage() {
         try {
+            ImageView fl = findViewById(R.id.background_image);
+            int width = fl.getWidth();
+            int height = fl.getHeight();
+
             // https://www.pexels.com/photo/photo-of-vehicle-on-asphalt-road-3066867/
+            int scale = 2;
+            int x = 400;
+            int y = 0;
             InputStream is = getAssets().open("pexels-thevibrantmachine-3066867.jpg");
             int size = is.available();
             byte[] buffer = new byte[size];
             is.read(buffer);
             is.close();
             Bitmap bitmap = BitmapFactory.decodeByteArray(buffer, 0, buffer.length, null);
-            Bitmap resizedBmp = Bitmap.createBitmap(bitmap, 0, 0, 1080*3, bitmap.getHeight());
-            ImageView fl = findViewById(R.id.imageView2);
+            Bitmap resizedBmp = Bitmap.createBitmap(bitmap, x, y, width * scale, height * scale);
             fl.setImageBitmap(resizedBmp);
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -254,10 +248,10 @@ public class MainActivity extends AppCompatActivity {
         WiFiComm.onWiFiSelectAvailable = new Runnable() {
             @Override
             public void run() {
-                try {
-                    Backend.fujiConnectToCmd();
-                } catch (Exception e) {
-                    Backend.print(e.getMessage());
+                Backend.print("Selection successful");
+                int rc = tryConnect();
+                if (rc != 0) {
+                    Backend.print("connect failed");
                 }
             }
         };
@@ -265,9 +259,11 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                String password = SettingsActivity.getWPA2Password(ctx);
+                if (password.length() == 0) password = null;
                 int rc = tryConnect();
                 if (rc != 0) {
-                    if (WiFiComm.connectToAccessPoint(ctx, null) != 0) {
+                    if (WiFiComm.connectToAccessPoint(ctx, password) != 0) {
                         Backend.print("You must manually connect to the WiFi access point");
                     }
                 }

@@ -55,6 +55,7 @@ int ptp_dirty_rotten_thumb_hack(struct PtpRuntime *r, int handle, int *offset, i
 int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg);
 int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info);
 int fuji_discovery_check_cancel(void *arg);
+void fuji_discovery_update_progress(void *arg, int progress);
 
 // (Not a part of camlib)
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code);

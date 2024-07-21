@@ -13,16 +13,24 @@
         android:layout_height="match_parent">
 
         <ImageView
-            android:id="@+id/imageView2"
+            android:id="@+id/background_image"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/background_credit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="right"
+            android:text="Courtesy of thevibrantmachine" />
+
     </FrameLayout>
 
     <LinearLayout
         android:id="@+id/boxLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#70000000"
+        android:background="#43000000"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="16dp"

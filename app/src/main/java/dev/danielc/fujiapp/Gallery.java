@@ -64,10 +64,6 @@ public class Gallery extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        LayoutInflater inf = getLayoutInflater();
-
-        // TODO: redundant
-        View gallery = inf.inflate(R.layout.gallery, null);
 
         setContentView(R.layout.gallery);
 
@@ -78,7 +74,7 @@ public class Gallery extends AppCompatActivity {
 
         ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
 
-        recyclerView = gallery.findViewById(R.id.galleryView);
+        recyclerView = findViewById(R.id.galleryView);
         recyclerView.setLayoutManager(new GridLayoutManager(this, GRID_SIZE));
         recyclerView.setNestedScrollingEnabled(false);
 

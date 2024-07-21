@@ -83,6 +83,7 @@ public class Backend extends Camlib {
     // Write reason + code, and reconnect popup
     public native static void cReportError(int code, String reason);
     public static void reportError(int code, String reason) {
+        discoveryThread(MainActivity.instance);
         if (Backend.cGetKillSwitch()) return;
         Log.d("fudge", reason);
         cReportError(code, reason);
@@ -151,10 +152,9 @@ public class Backend extends Camlib {
                 }
             }
         }).start();
+        Log.d("x", "Ending discovery thread");
     }
-    public static void cancelDiscoveryThread() {
-        // ...
-    }
+    public static native void cancelDiscoveryThread();
 
     final static int MAX_LOG_LINES = 3;
 
@@ -176,6 +176,10 @@ public class Backend extends Camlib {
         }
 
         updateLog();
+    }
+
+    public static void print(int resID) {
+        print(getString(resID));
     }
 
     public static void updateLog() {
@@ -203,8 +207,6 @@ public class Backend extends Camlib {
             case "cam_name":
                 if (Gallery.instance == null) return;
                 Gallery.instance.setTitleCamName(value);
-                return;
-            case "registering":
                 return;
         }
         Log.d("fudge", "Unknown update key " + key);

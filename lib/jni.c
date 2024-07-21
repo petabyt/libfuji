@@ -168,8 +168,7 @@ JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jin
 JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
-
-	{
+	if (fuji_get(r)->transport == FUJI_FEATURE_AUTOSAVE) {
 		ptp_mutex_keep_locked(r);
 		int length, offset;
 		int rc = ptp_dirty_rotten_thumb_hack(r, handle, &offset, &length);
@@ -183,24 +182,24 @@ JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 		ptp_mutex_unlock(r);
 
 		return ret;
+	} else {
+		ptp_mutex_keep_locked(r);
+		int rc = ptp_get_thumbnail(r, (int)handle);
+		if (rc == PTP_CHECK_CODE || ptp_get_payload_length(r) < 100) {
+			plat_dbg("Thumbnail get failed");
+			ptp_mutex_unlock(r);
+			return (*env)->NewByteArray(env, 0);
+		} else if (rc) {
+			ptp_mutex_unlock(r);
+			return NULL;
+		}
+
+		jbyteArray ret = (*env)->NewByteArray(env, ptp_get_payload_length(r));
+		(*env)->SetByteArrayRegion(env, ret, 0, ptp_get_payload_length(r), (const jbyte *)(ptp_get_payload(r)));
+		ptp_mutex_unlock(r);
+
+		return ret;
 	}
-
-	ptp_mutex_keep_locked(r);
-	int rc = ptp_get_thumbnail(r, (int)handle);
-	if (rc == PTP_CHECK_CODE || ptp_get_payload_length(r) < 100) {
-	__android_log_write(ANDROID_LOG_ERROR, "camlib", "Thumbnail get failed");
-	ptp_mutex_unlock(r);
-	return (*env)->NewByteArray(env, 0);
-	} else if (rc) {
-	ptp_mutex_unlock(r);
-	return NULL;
-	}
-
-	jbyteArray ret = (*env)->NewByteArray(env, ptp_get_payload_length(r));
-	(*env)->SetByteArrayRegion(env, ret, 0, ptp_get_payload_length(r), (const jbyte *)(ptp_get_payload(r)));
-	ptp_mutex_unlock(r);
-
-	return ret;
 }
 
 JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz, jstring ip) {
@@ -322,15 +321,9 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 	return rc;
 }
 
-struct FujiDiscoverArg {
-	JNIEnv *env;
-	jobject ctx;
-};
-
 int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
-	struct FujiDiscoverArg *farg = (struct FujiDiscoverArg *)arg;
-	JNIEnv *env = farg->env;
-	jobject ctx = farg->ctx;
+	JNIEnv *env = get_jni_env();
+	jobject ctx = get_jni_ctx();
 	// Ask if we want to connect?
 	// onReceiveCameraInfo
 	jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onReceiveCameraInfo",
@@ -343,21 +336,45 @@ int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 	return 1;
 }
 
+volatile static int already_discovering = 0;
+volatile static int do_cancel = 0;
+
+JNI_FUNC(void, cancelDiscoveryThread)(JNIEnv *env, jobject thiz) {
+	do_cancel = 1;
+}
+
 int fuji_discovery_check_cancel(void *arg) {
+	if (do_cancel) {
+		do_cancel = 0;
+		return 1;
+	}
 	return 0;
 }
 
-volatile int already_discovering = 0;
+void fuji_discovery_update_progress(void *arg, int progress) {
+	switch (progress) {
+	case 0:
+		app_print_id(app_get_string); return;
+	case 1:
+		app_print("Exchanging a loving greeting..."); return;
+	case 2:
+		app_print("Waiting for the camera to invite us in..."); return;
+	case 3:
+		app_print("Waiting for the camera to tell us it's secrets..."); return;
+	case 4:
+		app_print("Accepting the camera's offer..."); return;
+	default:
+		app_print("...");
+	}
+}
+
 JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
+	set_jni_env_ctx(env, ctx);
 	if (already_discovering) return 0;
 	already_discovering = 1;
-	set_jni_env(env);
+
 	struct DiscoverInfo info;
-	struct FujiDiscoverArg arg = {
-		.env = env,
-		.ctx = ctx,
-	};
-	int rc = fuji_discover_thread(&info, "Fudge", &arg);
+	int rc = fuji_discover_thread(&info, "Fudge", fuji_get(ptp_get()));
 	if (rc == FUJI_D_REGISTERED) {
 		jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onCameraRegistered",
 			"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
@@ -376,7 +393,7 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 			info.camera_port
 		);
 	} else if (rc < 0) {
-		app_print("AutoSave Err: %d", rc);
+		app_print("Discovery thread err: %d", rc);
 	}
 	already_discovering = 0;
 	return rc;
@@ -398,12 +415,9 @@ int app_bind_socket_wifi(int fd) {
 	_android_setsocknetwork_td _android_setsocknetwork = (_android_setsocknetwork_td)dlsym(lib, "android_setsocknetwork");
 
 	if (_android_setsocknetwork == NULL) {
+		ptp_verbose_log("android_setsocknetwork not found");
 		return -1;
 	}
-
-	jobject jni_get_application_ctx(JNIEnv *env);
-	jobject jni_get_pref(JNIEnv *env, jobject ctx, char *key);
-	//plat_dbg("WiFi: %d\n", jni_get_pref(get_jni_env(), jni_get_application_ctx(get_jni_env()), "foo"));
 
 	jlong handle = get_handle();
 	if (handle < 0) {

@@ -137,6 +137,8 @@ static int start_invite_server(struct DiscoverInfo *info, int port) {
 
 	plat_dbg("invite server: Connection accepted from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
+	fuji_discovery_update_progress(NULL, 3);
+
 	// We don't really care about this info
 	char buffer[1024];
 	int rc = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
@@ -207,6 +209,8 @@ static int respond_to_datagram(char *greeting, struct DiscoverInfo *info) {
 		cur = strtok_r(NULL, delim, &saveptr);
 	}
 
+	fuji_discovery_update_progress(NULL, 1);
+
 	char *client_name = "desktop";
 
 	char response[] =
@@ -225,9 +229,10 @@ static int respond_to_datagram(char *greeting, struct DiscoverInfo *info) {
 
 	send(fd, notify, strlen(notify), 0);
 
-	char repsonse[512];
-	int len = recv(fd, response, sizeof(response), 0);
+	char ack[512];
+	int len = recv(fd, ack, sizeof(ack), 0);
 	response[len] = '\0';
+	// Don't care about that message...
 
 	close(fd);
 
@@ -238,10 +243,14 @@ static int accept_register(struct DiscoverInfo *info, char *greeting) {
 	int rc = respond_to_datagram(greeting, info);
 	if (rc) return rc;
 
+	fuji_discovery_update_progress(NULL, 2);
+
 	rc = start_invite_server(info, FUJI_AUTOSAVE_REGISTER);
 	if (rc) return rc;
 
 	plat_dbg("Finished registering");
+
+	fuji_discovery_update_progress(NULL, 4);
 
 	return 0;
 }
@@ -250,12 +259,16 @@ static int accept_connect(struct DiscoverInfo *info, char *greeting) {
 	int rc = respond_to_datagram(greeting, info);
 	if (rc) return rc;
 
+	fuji_discovery_update_progress(NULL, 2);
+
 	rc = start_invite_server(info, FUJI_AUTOSAVE_CONNECT);
 	if (rc) return rc;
 
 	plat_dbg("Finished connecting");
 
 	info->camera_port = FUJI_CMD_IP_PORT;
+
+	fuji_discovery_update_progress(NULL, 4);
 
 	return 0;
 }
@@ -480,7 +493,7 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 		}
 
 		if (n != 0) {
-			plat_dbg("Received something!");
+			fuji_discovery_update_progress(arg, 0);
 		}
 
 		if (FD_ISSET(reg_fd, &fdset)) {

@@ -54,6 +54,7 @@ public class WiFiComm {
 
     public static int connectToAccessPoint(Context ctx, String password) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            Log.d("wifi", "Connecting: " + password);
             WifiNetworkSpecifier.Builder builder = new WifiNetworkSpecifier.Builder();
             builder.setSsidPattern(new PatternMatcher("FUJIFILM", PatternMatcher.PATTERN_PREFIX));
             if (password != null) {
@@ -72,13 +73,13 @@ public class WiFiComm {
             ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override
                 public void onAvailable(Network network) {
-                    Log.d("wifi", "Network availaable");
+                    Log.d("wifi", "Network selected by user: " + network);
                     foundWiFiDevice = network;
                     run(onWiFiSelectAvailable);
                 }
                 @Override
                 public void onUnavailable() {
-                    Log.d("wifi", "Network unavailable");
+                    Log.d("wifi", "Network unavailable, not selected by user");
                     foundWiFiDevice = null;
                     run(onWiFiSelectCancel);
                 }
@@ -134,6 +135,13 @@ public class WiFiComm {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return UNSUPPORTED_SDK;
         }
+
+        // Prefer user-selected network
+        if (foundWiFiDevice != null) {
+            Log.d("wifi", "Returning found wifi device");
+            return foundWiFiDevice.getNetworkHandle();
+        }
+
         NetworkInfo wifiInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
         if (!wifiInfo.isAvailable()) {
             return NOT_AVAILABLE;
@@ -143,10 +151,6 @@ public class WiFiComm {
 
         if (wifiDevice != null) {
             return wifiDevice.getNetworkHandle();
-        }
-
-        if (foundWiFiDevice != null) {
-            return foundWiFiDevice.getNetworkHandle();
         }
 
         return NOT_AVAILABLE;

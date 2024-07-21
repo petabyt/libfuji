@@ -20,7 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> {
-    private Context context;
+    private Context context; // TODO: leak
     private static int[] object_ids;
     public static RecyclerView recyclerView;
 
@@ -67,8 +67,10 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         });
     }
 
+    static boolean stop_downloading = false;
+
     static void requestThread() {
-        while (!Backend.cGetKillSwitch()) {
+        while (stop_downloading == false) {
             if (requests.size() == 0) {
                 try {
                     Thread.sleep(100);
