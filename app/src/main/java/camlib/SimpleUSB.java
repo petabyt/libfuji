@@ -13,7 +13,7 @@ import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
 
-import dev.danielc.fujiapp.Backend;
+import dev.danielc.fujiapp.Frontend;
 
 public class SimpleUSB {
     public UsbDevice dev = null;
@@ -36,7 +36,7 @@ public class SimpleUSB {
     }
 
     public void waitPermission(Context ctx) throws Exception {
-        Backend.print("Trying to get permission...");
+        Frontend.print("Trying to get permission...");
         PendingIntent permissionIntent = PendingIntent.getBroadcast(
                 ctx, 0, new Intent(ctx.getPackageName() + ".USB_PERMISSION"), PendingIntent.FLAG_IMMUTABLE);
 

@@ -112,24 +112,25 @@ int fuji_init_setup(struct PtpRuntime *r) {
 }
 
 int fuji_test_filesystem(struct PtpRuntime *r) {
-	if (fuji_known.num_objects == 0) {
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	if (fuji->num_objects == 0) {
 		tester_log("There are no images on the SD card!");
 		return 0;
 	}
 
-	if (fuji_known.remote_version == -1) {
-		if (fuji_known.selected_imgs_mode == FUJI_FULL_ACCESS) {
-			if (fuji_known.num_objects == -1) {
+	if (fuji->remote_version == -1) {
+		if (fuji->selected_imgs_mode == FUJI_FULL_ACCESS) {
+			if (fuji->num_objects == -1) {
 				tester_fail(
 						"The camera return didn't want to give access to num_objects property!");
 				return 1;
 			}
 
-			tester_log("There are %d images on the SD card.", fuji_known.num_objects);
-		} else if (fuji_known.selected_imgs_mode == FUJI_MULTIPLE_TRANSFER) {
+			tester_log("There are %d images on the SD card.", fuji->num_objects);
+		} else if (fuji->selected_imgs_mode == FUJI_MULTIPLE_TRANSFER) {
 			tester_log(
 					"Camera is in multiple transfer mode. Doesn't tell us how many images there are.");
-		} else if (fuji_known.selected_imgs_mode == -1) {
+		} else if (fuji->selected_imgs_mode == -1) {
 			tester_log("Camera is not in multiple transfer mode.");
 		}
 	}
@@ -160,7 +161,7 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 		}
 
 		int offset, length;
-		rc = ptp_dirty_rotten_thumb_hack(r, 1, &offset, &length);
+		rc = ptp_get_partial_exif(r, 1, &offset, &length);
 		if (rc) {
 			tester_fail("Failed to get dirty rotten thumb");
 		} else {
@@ -249,6 +250,7 @@ int fuji_test_usb(struct PtpRuntime *r) {
 }
 
 int fuji_test_suite(struct PtpRuntime *r, const char *ip) {
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 	if (r->connection_type == PTP_USB) {
 		return fuji_test_usb(r);
 	}
@@ -256,7 +258,7 @@ int fuji_test_suite(struct PtpRuntime *r, const char *ip) {
 	int rc = fuji_test_setup(r);
 	if (rc) return rc;
 
-	if (fuji_known.remote_version != -1) {
+	if (fuji->remote_version != -1) {
 		rc = fuji_setup_remote_mode(r, ip);
 		if (rc) return rc;
 	}

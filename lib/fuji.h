@@ -9,8 +9,8 @@
 // X-A2 decided to freak out and stall. So, we have to do it the Fuji way :)
 #define FUJI_MAX_PARTIAL_OBJECT 0x100000
 
-const char *fuji_get_camera_ip();
-int fuji_do_connect_without_wifi();
+const char *app_get_camera_ip();
+int app_do_connect_without_wifi();
 
 enum DiscoverRet {
 	FUJI_D_REGISTERED = 1,
@@ -50,7 +50,7 @@ struct FujiDeviceKnowledge {
 };
 struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r);
 
-int ptp_dirty_rotten_thumb_hack(struct PtpRuntime *r, int handle, int *offset, int *length);
+int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *length);
 
 int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg);
 int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info);
@@ -92,12 +92,13 @@ int fuji_get_events(struct PtpRuntime *r);
 int fuji_disable_compression(struct PtpRuntime *r);
 int fuji_enable_compression(struct PtpRuntime *r);
 
-int fuji_download_multiple(struct PtpRuntime *r);
+// TODO: fuji_downloading_file to return path
+void app_downloading_file(const struct PtpObjectInfo *oi);
+void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path);
+int fuji_download_classic(struct PtpRuntime *r);
 
 // Another socket on top of the 2 that camlib connects to
 int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port);
-
-extern struct FujiDeviceKnowledge fuji_known;
 
 int fujiusb_setup(struct PtpRuntime *r);
 int fujitether_setup(struct PtpRuntime *r);

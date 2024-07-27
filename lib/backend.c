@@ -1,5 +1,5 @@
 // JNI PTP/IP interface for camlib and fuji.c
-// Copyright 2023 (C) Fudge
+// Copyright 2024 (C) Fudge
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -11,6 +11,49 @@
 #include "backend.h"
 #include "fuji.h"
 #include "fujiptp.h"
+
+static inline jclass get_backend_class(JNIEnv *env) {
+	return (*env)->FindClass(env, "dev/danielc/fujiapp/Backend");
+}
+
+JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz) {
+	set_jni_env(env);
+	ptp_init(&backend.r);
+	fuji_reset_ptp(&backend.r);
+}
+
+JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
+	set_jni_env(env);
+}
+
+JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz) {
+	set_jni_env(env);
+
+	backend.log_buf = malloc(1000);
+	backend.log_size = 1000;
+	backend.log_pos = 0;
+
+	strcpy(backend.log_buf, "Fudge log file - Send this to devs!\n");
+
+	ptp_verbose_log("ABI: %s\n", ABI);
+	ptp_verbose_log("Compile date: %s\n", __DATE__);
+	ptp_verbose_log("https://github.com/petabyt/fudge\n");
+	return 0;
+}
+
+JNI_FUNC(jstring, cEndLogs)(JNIEnv *env, jobject thiz) {
+	set_jni_env(env);
+
+	if (backend.log_buf == NULL) return NULL;
+
+	jstring str = (*env)->NewStringUTF(env, backend.log_buf);
+
+	free(backend.log_buf);
+	backend.log_buf = NULL;
+
+	return str;
+}
+
 
 volatile int download_cancel = 1;
 
@@ -171,10 +214,10 @@ JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	if (fuji_get(r)->transport == FUJI_FEATURE_AUTOSAVE) {
 		ptp_mutex_keep_locked(r);
 		int length, offset;
-		int rc = ptp_dirty_rotten_thumb_hack(r, handle, &offset, &length);
+		int rc = ptp_get_partial_exif(r, handle, &offset, &length);
 		if (rc) {
-		ptp_mutex_unlock(r);
-		return (*env)->NewByteArray(env, 0);
+			ptp_mutex_unlock(r);
+			return (*env)->NewByteArray(env, 0);
 		}
 
 		jbyteArray ret = (*env)->NewByteArray(env, length);
@@ -204,12 +247,23 @@ JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 
 JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz, jstring ip) {
 	set_jni_env(env);
+	struct PtpRuntime *r = ptp_get();
 
-	if (backend.r.connection_type == PTP_USB) return fujiusb_setup(&backend.r);
+	if (r->connection_type == PTP_USB) return fujiusb_setup(r);
 
 	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
 
-	int rc = fuji_setup(&backend.r, c_ip);
+	int rc = fuji_setup(r, c_ip);
+
+	if (!rc && fuji_get(r)->camera_state == FUJI_MULTIPLE_TRANSFER) {
+		rc = fuji_download_classic(r);
+		if (rc) {
+			app_print("Error downloading images");
+			return rc;
+		}
+		app_print("Check your file manager app/gallery.");
+		ptp_report_error(r, "Disconnected", 0);
+	}
 
 	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
 	(*env)->DeleteLocalRef(env, ip);
@@ -252,22 +306,24 @@ jintArray ptpusb_get_object_handles(JNIEnv *env, struct PtpRuntime *r) {
 
 // Return array of valid objects on main storage device
 JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
+	struct PtpRuntime *r = ptp_get();
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 	if (backend.r.connection_type == PTP_USB) {
 		return ptpusb_get_object_handles(env, &backend.r);
 	} else {
 		// By this point num_objects should be known - by gain_access
-		if (fuji_known.num_objects == 0 || fuji_known.num_objects == -1) {
+		if (fuji->num_objects == 0 || fuji->num_objects == -1) {
 			return NULL;
 		}
 
 		// (Object handles 0x0 is invalid, as per spec)
-		int *list = malloc(sizeof(int) * fuji_known.num_objects);
-		for (int i = 0; i < fuji_known.num_objects; i++) {
+		int *list = malloc(sizeof(int) * fuji->num_objects);
+		for (int i = 0; i < fuji->num_objects; i++) {
 			list[i] = i + 1;
 		}
 
-		jintArray result = (*env)->NewIntArray(env, fuji_known.num_objects);
-		(*env)->SetIntArrayRegion(env, result, 0, fuji_known.num_objects, list);
+		jintArray result = (*env)->NewIntArray(env, fuji->num_objects);
+		(*env)->SetIntArrayRegion(env, result, 0, fuji->num_objects, list);
 		free(list);
 
 		return result;
@@ -293,7 +349,7 @@ JNI_FUNC(jint, cFujiTestSuite)(JNIEnv *env, jobject thiz, jstring ip) {
 
 JNI_FUNC(jint, cTryConnectWiFi)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
-	const char *c_ip = fuji_get_camera_ip();
+	const char *c_ip = app_get_camera_ip();
 
 	int rc = ptpip_connect(&backend.r, c_ip, FUJI_CMD_IP_PORT);
 
@@ -312,7 +368,7 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 	int rc = ptpip_connect(&backend.r, c_ip, (int)port);
 
 	if (rc == 0) {
-		fuji_reset_ptp(ptp_get()); // ???
+		//fuji_reset_ptp(ptp_get()); // ???
 		strcpy(fuji_get(ptp_get())->ip_address, c_ip);
 	}
 
@@ -354,7 +410,7 @@ int fuji_discovery_check_cancel(void *arg) {
 void fuji_discovery_update_progress(void *arg, int progress) {
 	switch (progress) {
 	case 0:
-		app_print_id(app_get_string); return;
+		app_print_id(app_get_string("discovery1")); return;
 	case 1:
 		app_print("Exchanging a loving greeting..."); return;
 	case 2:
@@ -370,7 +426,10 @@ void fuji_discovery_update_progress(void *arg, int progress) {
 
 JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 	set_jni_env_ctx(env, ctx);
-	if (already_discovering) return 0;
+	if (already_discovering) {
+		plat_dbg("cStartDiscovery called twice");
+		abort();
+	}
 	already_discovering = 1;
 
 	struct DiscoverInfo info;
@@ -408,6 +467,10 @@ static jlong get_handle() {
 }
 
 int app_bind_socket_wifi(int fd) {
+	if (app_do_connect_without_wifi()) {
+		return 0;
+	}
+
 	typedef int (*_android_setsocknetwork_td)(jlong handle, int fd);
 
 	// https://developer.android.com/ndk/reference/group/networking#android_setsocknetwork

@@ -473,7 +473,7 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 		struct timeval tv;
 		tv.tv_sec = 1;
 		tv.tv_usec = 0;
-	
+
 		fd_set fdset;
 		FD_ZERO(&fdset);
 		FD_SET(reg_fd, &fdset);

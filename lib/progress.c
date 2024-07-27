@@ -6,9 +6,12 @@
 #include "app.h"
 #include "backend.h"
 
+static int last_p = 0;
+
 void app_increment_progress_bar(int read) {
-	// Measures progress on all threads
-	static int last_p = 0;
+	if (backend.progress_bar == NULL) {
+		return;
+	}
 
 	backend.download_progress += read;
 
@@ -33,6 +36,7 @@ JNI_FUNC(jboolean, cSetProgressBarObj)(JNIEnv *env, jobject thiz, jobject pg, ji
 		return 0;
 	}
 	tm = clock();
+	last_p = 0;
 	backend.download_size = size;
 	backend.download_progress = 0;
 	backend.progress_bar = (*env)->NewGlobalRef(env, pg);

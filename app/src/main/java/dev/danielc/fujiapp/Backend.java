@@ -10,29 +10,12 @@ import android.view.View;
 
 import java.io.File;
 import org.json.JSONObject;
-import java.util.Arrays;
 
 import camlib.*;
 
 public class Backend extends Camlib {
     static {
-        System.loadLibrary("fujiapp");
-    }
-
-    public static String getString(int res) {
-        return MainActivity.instance.getString(res);
-    }
-
-    public static String parseErr(int rc) {
-        switch (rc) {
-            case PTP_NO_DEVICE: return "No device found.";
-            case PTP_NO_PERM: return "Invalid permissions.";
-            case PTP_OPEN_FAIL: return "Couldn't connect to device.";
-            case WiFiComm.NOT_AVAILABLE: return "WiFi not ready yet.";
-            case WiFiComm.NOT_CONNECTED: return "WiFi is not connected. Wait a few seconds or check your settings.";
-            case WiFiComm.UNSUPPORTED_SDK: return "Unsupported SDK";
-            default: return "Unknown error";
-        }
+        System.loadLibrary("fudge");
     }
 
     static SimpleUSB usb = new SimpleUSB();
@@ -41,7 +24,7 @@ public class Backend extends Camlib {
         UsbManager man = (UsbManager)ctx.getSystemService(Context.USB_SERVICE);
         usb.getUsbDevices(man);
 
-        Backend.print("Trying to get permission...");
+        Frontend.print("Trying to get permission...");
         usb.waitPermission(ctx);
 
         for (int i = 0; i < 100; i++) {
@@ -75,7 +58,6 @@ public class Backend extends Camlib {
     static String chosenIP = Backend.FUJI_IP;
 
     public static int fujiConnectToCmd() {
-        Backend.print(getString(R.string.connecting));
         return cTryConnectWiFi();
     }
 
@@ -83,8 +65,8 @@ public class Backend extends Camlib {
     // Write reason + code, and reconnect popup
     public native static void cReportError(int code, String reason);
     public static void reportError(int code, String reason) {
-        discoveryThread(MainActivity.instance);
         if (Backend.cGetKillSwitch()) return;
+        discoveryThread(MainActivity.instance);
         Log.d("fudge", reason);
         cReportError(code, reason);
     }
@@ -114,6 +96,7 @@ public class Backend extends Camlib {
     public native static int cPtpFujiPing();
     public native static int[] cGetObjectHandles();
     public native static int cFujiConfigImageGallery();
+    public native static byte[] cFujiGetThumb(int handle);
 
     // For tester only
     public native static int cFujiTestSuite(String ip);
@@ -139,57 +122,36 @@ public class Backend extends Camlib {
         return new JSONObject(resp);
     }
 
+    // TODO: Discovery thread as single Thread object, code can request for it to be reactivated
+    final static int DISCOVERY_ERROR_THRESHOLD = 5;
     public native static int cStartDiscovery(Context ctx);
+    static Thread discoveryThread = null;
     public static void discoveryThread(Context ctx) {
-        new Thread(new Runnable() {
+        if (discoveryThread != null) {
+            Log.d("backend", "Discovery thread already running");
+        }
+        discoveryThread = new Thread(new Runnable() {
             @Override
             public void run() {
+                Frontend.discoveryIsActive();
                 while (true) {
+                    long start_time = System.nanoTime();
                     int rc = Backend.cStartDiscovery(ctx);
-                    if (rc < 0) {
-                        return;
+                    if (rc != 0) break;
+                    long end_time = System.nanoTime();
+                    Log.d("backend", "cstartdiscovery: " + ((end_time - start_time) / 1e6));
+                    if (((end_time - start_time) / 1e6) < DISCOVERY_ERROR_THRESHOLD) {
+                        Frontend.discoveryFailed();
+                        break;
                     }
                 }
+                Backend.discoveryThread = null;
             }
-        }).start();
-        Log.d("x", "Ending discovery thread");
+        });
+        discoveryThread.start();
+        Log.d("backend", "Ending discovery thread");
     }
     public static native void cancelDiscoveryThread();
-
-    final static int MAX_LOG_LINES = 3;
-
-    public static void clearPrint() {
-        basicLog = "";
-        updateLog();
-    }
-
-    // debug function for both Java frontend and JNI backend
-    private static String basicLog = "";
-    public static void print(String arg) {
-        Log.d("fudge", arg);
-
-        basicLog += arg + "\n";
-
-        String[] lines = basicLog.split("\n");
-        if (lines.length > MAX_LOG_LINES) {
-            basicLog = String.join("\n", Arrays.copyOfRange(lines, 1, lines.length)) + "\n";
-        }
-
-        updateLog();
-    }
-
-    public static void print(int resID) {
-        print(getString(resID));
-    }
-
-    public static void updateLog() {
-        if (MainActivity.instance != null) {
-            MainActivity.instance.setLogText(basicLog.strip());
-        }
-        if (Gallery.instance != null) {
-            Gallery.instance.setLogText(basicLog.strip());
-        }
-    }
 
     // Return directory is guaranteed to exist
     public static String getDownloads() {
@@ -200,15 +162,5 @@ public class Backend extends Camlib {
             directory.mkdirs();
         }
         return fujifilm;
-    }
-
-    public static void sendTextUpdate(String key, String value) {
-        switch (key) {
-            case "cam_name":
-                if (Gallery.instance == null) return;
-                Gallery.instance.setTitleCamName(value);
-                return;
-        }
-        Log.d("fudge", "Unknown update key " + key);
     }
 }

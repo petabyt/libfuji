@@ -124,10 +124,17 @@
             </LinearLayout>
 
             <ProgressBar
+                android:id="@+id/discoveryProgressBar"
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:indeterminateOnly="true" />
+
+            <TextView
+                android:id="@+id/discoveryMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#FF0000" />
 
         </LinearLayout>
 

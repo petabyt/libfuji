@@ -2,30 +2,29 @@ package dev.danielc.fujiapp;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
-import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.view.Menu;
 import android.view.MenuItem;
-import android.webkit.WebView;
 
-public class Help extends AppCompatActivity {
+public class FileGallery extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //setContentView(R.layout.activity_help);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-        Intent intent = getIntent();
-        String section = intent.getStringExtra("section");
-        if (section == null) section = "";
-        WebView wv = new WebView(this);
-        wv.loadUrl("file:///android_asset/help.html#" + section);
-        wv.setBackgroundColor(Color.TRANSPARENT);
-        setContentView(wv);
-    }
+        actionBar.setTitle(getString(R.string.gallery));
 
+        RecyclerView rv = new RecyclerView(this);
+        rv.setLayoutManager(new GridLayoutManager(this, 4));
+        rv.setNestedScrollingEnabled(false);
+        ThumbAdapter imageAdapter = new FileThumbAdapter(this, Backend.getDownloads());
+        rv.setAdapter(imageAdapter);
+        rv.setItemViewCacheSize(50);
+        rv.setNestedScrollingEnabled(false);
+        setContentView(rv);
+    }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {

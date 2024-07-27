@@ -10,10 +10,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -26,7 +24,7 @@ public class Gallery extends AppCompatActivity {
     final int GRID_SIZE = 4;
 
     private RecyclerView recyclerView;
-    private ImageAdapter imageAdapter;
+    private ThumbAdapter imageAdapter;
 
     Handler handler;
 
@@ -69,7 +67,7 @@ public class Gallery extends AppCompatActivity {
 
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setTitle(getString(R.string.gallery));
+        actionBar.setTitle(R.string.gallery);
         instance = this;
 
         ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -93,7 +91,7 @@ public class Gallery extends AppCompatActivity {
                 // SINGLE/MULTIPLE downloader fuji will gracefully kill connection (done in cFujiSetup)
                 if (Backend.cGetKillSwitch()) return;
 
-                Backend.print("Entering image gallery..");
+                Frontend.print("Entering image gallery..");
                 rc = Backend.cFujiConfigImageGallery();
                 if (rc != 0) {
                     fail(rc, "Failed to start image gallery");
@@ -103,16 +101,15 @@ public class Gallery extends AppCompatActivity {
                 int[] objectHandles = Backend.cGetObjectHandles();
 
                 if (objectHandles == null) {
-                    Backend.print(getString(R.string.noImages1));
-                    Backend.print(getString(R.string.getImages2));
+                    Frontend.print(getString(R.string.noImages1));
+                    Frontend.print(getString(R.string.getImages2));
                 } else if (objectHandles.length == 0) {
-                    Backend.print("No images available.");
+                    Frontend.print("No images available.");
                 } else {
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            imageAdapter = new ImageAdapter(Gallery.this, objectHandles);
-                            imageAdapter.recyclerView = recyclerView;
+                            imageAdapter = new ThumbAdapter(Gallery.this, objectHandles);
                             recyclerView.setAdapter(imageAdapter);
                             recyclerView.setItemViewCacheSize(50);
                             recyclerView.setNestedScrollingEnabled(false);
@@ -122,7 +119,7 @@ public class Gallery extends AppCompatActivity {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            ImageAdapter.requestThread();
+                            ThumbAdapter.requestThread();
                         }
                     }).start();
                 }

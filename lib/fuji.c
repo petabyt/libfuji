@@ -11,7 +11,7 @@
 #include "fujiptp.h"
 #include "exif.h"
 
-struct FujiDeviceKnowledge fuji_known = {0};
+//struct FujiDeviceKnowledge fuji_known = {0};
 
 struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r) {
 	return (struct FujiDeviceKnowledge *)r->userdata;
@@ -27,6 +27,37 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 	return 0;
 }
 
+void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
+	plat_dbg("Kill switch: %d tid: %d\n", r->io_kill_switch, gettid());
+	if (r->io_kill_switch) return;
+
+	// Safely disconnect if intentional
+	if (code == 0) {
+		plat_dbg("Closing session");
+		ptp_close_session(r);
+	}
+
+	r->io_kill_switch = 1;
+
+	if (r->connection_type == PTP_IP_USB) {
+		ptpip_close(r);
+	} else if (r->connection_type == PTP_USB) {
+		ptp_device_close(r);
+	}
+
+	fuji_reset_ptp(r); // TODO: this should only be called on connected
+
+	if (reason == NULL) {
+		if (code == PTP_IO_ERR) {
+			app_print("Disconnected: IO Error");
+		} else {
+			app_print("Disconnected: Runtime error");
+		}
+	} else {
+		app_print("Disconnected: %s", reason);
+	}
+}
+
 int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info) {
 	fuji_reset_ptp(r);
 	fuji_get(r)->transport = info->transport;
@@ -37,9 +68,9 @@ int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *in
 	}
 }
 
-// Call after cmd socket is opened
+// Assumes cmd socket is valid
 int fuji_setup(struct PtpRuntime *r, const char *ip) {
-	memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 
 	app_print("Waiting on the camera...");
 	app_print("Make sure you pressed OK.");
@@ -55,7 +86,7 @@ int fuji_setup(struct PtpRuntime *r, const char *ip) {
 	}
 	app_print("Initialized connection.");
 
-	ui_send_text("cam_name", resp.cam_name);
+	app_send_cam_name(resp.cam_name);
 
 	// Fuji cameras require delay after init
 	app_print("The camera is thinking...");
@@ -75,7 +106,7 @@ int fuji_setup(struct PtpRuntime *r, const char *ip) {
 
 	// Remote cams don't need to wait for access, so waiting for the 'OK'
 	// is done somewhere else
-	if (fuji_known.camera_state != FUJI_REMOTE_ACCESS) {
+	if (fuji->camera_state != FUJI_REMOTE_ACCESS) {
 		app_print("Your camera loves you.");
 	}
 
@@ -87,14 +118,7 @@ int fuji_setup(struct PtpRuntime *r, const char *ip) {
 		return rc;
 	}
 
-	if (fuji_known.camera_state == FUJI_MULTIPLE_TRANSFER) {
-		rc = fuji_download_multiple(r);
-		if (rc) {
-			app_print("Error downloading images");
-			return rc;
-		}
-		app_print("Check your file manager app/gallery.");
-		ptp_report_error(r, "Disconnected", 0);
+	if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {
 		return 0;
 	}
 
@@ -110,7 +134,7 @@ int fuji_setup(struct PtpRuntime *r, const char *ip) {
 	if (rc) return rc;
 
 	// Setup remote mode
-	if (fuji_known.remote_version != -1 && fuji_known.camera_state == FUJI_REMOTE_MODE) {
+	if (fuji->remote_version != -1 && fuji->camera_state == FUJI_REMOTE_MODE) {
 		rc = fuji_setup_remote_mode(r, ip);
 		if (rc) return rc;
 	}
@@ -170,7 +194,7 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 	if (x < 0) return PTP_IO_ERR;
 
 	if (p->type == PTPIP_INIT_FAIL) {
-		// resend the packet...
+		// TODO: resend the packet...
 		return PTP_RUNTIME_ERR;
 	}
 
@@ -227,10 +251,10 @@ static uint8_t *my_add(void *arg, uint8_t *buffer, int new_len, int old_len) {
 	return i->buffer;
 }
 
-int ptp_dirty_rotten_thumb_hack(struct PtpRuntime *r, int handle, int *offset, int *length) {
+int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *length) {
 	ptp_mutex_keep_locked(r);
 
-	int max_size = 512 * 10;
+	int max_size = 512 * 30;
 	int rc = ptp_get_partial_object(r, handle, 0, max_size);
 	if (rc) {
 		ptp_mutex_unlock(r);
@@ -297,6 +321,7 @@ int fuji_get_device_info(struct PtpRuntime *r) {
 }
 
 int fuji_get_events(struct PtpRuntime *r) {
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 	ptp_mutex_keep_locked(r);
 	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_EventsList);
 	if (rc) {
@@ -323,13 +348,13 @@ int fuji_get_events(struct PtpRuntime *r) {
 		ptp_read_u32(&ev->events[i].value, &value);
 		switch (ev->events[i].code) {
 		case PTP_PC_FUJI_SelectedImgsMode:
-			fuji_known.selected_imgs_mode = ev->events[i].value;
+			fuji->selected_imgs_mode = ev->events[i].value;
 			break;
 		case PTP_PC_FUJI_ObjectCount:
-			fuji_known.num_objects = ev->events[i].value;
+			fuji->num_objects = ev->events[i].value;
 			break;
 		case PTP_PC_FUJI_CameraState:
-			fuji_known.camera_state = ev->events[i].value;
+			fuji->camera_state = ev->events[i].value;
 			break;
 		}
 	}
@@ -341,10 +366,11 @@ int fuji_get_events(struct PtpRuntime *r) {
 
 // Call this immediately after session init
 int fuji_wait_for_access(struct PtpRuntime *r) {
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 	// We *need* these properties on camera init - otherwise, produce an error
-	fuji_known.camera_state = FUJI_WAIT_FOR_ACCESS;
-	fuji_known.num_objects = -1;
-	fuji_known.selected_imgs_mode = -1;
+	fuji->camera_state = FUJI_WAIT_FOR_ACCESS;
+	fuji->num_objects = -1;
+	fuji->selected_imgs_mode = -1;
 
 	while (1) {
 		// After opening session, immediately get events
@@ -352,12 +378,12 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 		if (rc) return rc;
 
 		// Wait until camera state is unlocked
-		if (fuji_known.camera_state != FUJI_WAIT_FOR_ACCESS) {
-			if (fuji_known.selected_imgs_mode != -1) {
+		if (fuji->camera_state != FUJI_WAIT_FOR_ACCESS) {
+			if (fuji->selected_imgs_mode != -1) {
 				// Multiple mode doesn't send num_objects
 				return 0;
 			} else {
-				if (fuji_known.num_objects == -1) {
+				if (fuji->num_objects == -1) {
 					ptp_verbose_log("Failed to get num_objects from first event\n");
 					return PTP_RUNTIME_ERR;
 				}
@@ -372,38 +398,40 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 // Handles critical init sequence. This is after initing the socket, and opening session.
 // Called right after obtaining access to the device.
 int fuji_config_init_mode(struct PtpRuntime *r) {
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+
 	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_GetObjectVersion);
 	if (rc) return rc;
-	fuji_known.get_object_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("GetObjectVersion: 0x%X\n", fuji_known.get_object_version);
+	fuji->get_object_version = ptp_parse_prop_value(r);
+	ptp_verbose_log("GetObjectVersion: 0x%X\n", fuji->get_object_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion);
 	if (rc) return rc;
-	fuji_known.remote_image_view_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("RemoteGetObjectVersion: 0x%X\n", fuji_known.remote_image_view_version);
+	fuji->remote_image_view_version = ptp_parse_prop_value(r);
+	ptp_verbose_log("RemoteGetObjectVersion: 0x%X\n", fuji->remote_image_view_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageGetVersion);
 	if (rc) return rc;
-	fuji_known.image_get_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("ImageGetVersion: 0x%X\n", fuji_known.image_get_version);
+	fuji->image_get_version = ptp_parse_prop_value(r);
+	ptp_verbose_log("ImageGetVersion: 0x%X\n", fuji->image_get_version);
 
 	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteVersion);
 	if (rc) return rc;
-	fuji_known.remote_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("RemoteVersion: 0x%X\n", fuji_known.remote_version);
+	fuji->remote_version = ptp_parse_prop_value(r);
+	ptp_verbose_log("RemoteVersion: 0x%X\n", fuji->remote_version);
 
-	ptp_verbose_log("CameraState is %d\n", fuji_known.camera_state);
+	ptp_verbose_log("CameraState is %d\n", fuji->camera_state);
 
 	// Determine preferred mode from state and version info
 	int mode = 0;
-	if (fuji_known.remote_version != -1) {
+	if (fuji->remote_version != -1) {
 		mode = FUJI_REMOTE_MODE;
 	} else {
-		if (fuji_known.camera_state == FUJI_MULTIPLE_TRANSFER) {
+		if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {
 			mode = FUJI_VIEW_MULTIPLE;
-		} else if (fuji_known.camera_state == FUJI_FULL_ACCESS) {
+		} else if (fuji->camera_state == FUJI_FULL_ACCESS) {
 			mode = FUJI_VIEW_ALL_IMGS;
-		} else if (fuji_known.camera_state == FUJI_PC_AUTO_SAVE) {
+		} else if (fuji->camera_state == FUJI_PC_AUTO_SAVE) {
 			mode = FUJI_OLD_REMOTE;
 		} else {
 			mode = FUJI_VIEW_ALL_IMGS;
@@ -424,14 +452,15 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 
 // TODO: rename config image view version
 int fuji_config_version(struct PtpRuntime *r) {
-	if (fuji_known.camera_state == FUJI_PC_AUTO_SAVE) return 0;
-	if (fuji_known.remote_version == -1) {
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	if (fuji->camera_state == FUJI_PC_AUTO_SAVE) return 0;
+	if (fuji->remote_version == -1) {
 		int rc = ptp_get_prop_value(r, PTP_PC_FUJI_GetObjectVersion);
 		if (rc) return rc;
 
 		int version = ptp_parse_prop_value(r);
 
-		fuji_known.image_view_version = version;
+		fuji->image_view_version = version;
 
 		// The property must be set again (to it's own value) to tell the camera
 		// that the current version is supported - Fuji's app does this, so we assume it's necessary
@@ -452,7 +481,8 @@ int fuji_config_version(struct PtpRuntime *r) {
 }
 
 int fuji_config_device_info_routine(struct PtpRuntime *r) {
-	if (fuji_known.remote_version != -1 && fuji_known.camera_state != FUJI_PC_AUTO_SAVE) {
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	if (fuji->remote_version != -1 && fuji->camera_state != FUJI_PC_AUTO_SAVE) {
 		int rc = fuji_get_device_info(r);
 		if (rc) return rc;
 
@@ -467,11 +497,12 @@ int fuji_config_device_info_routine(struct PtpRuntime *r) {
 
 // Tell camera to open event/video sockets
 int fuji_remote_mode_open_sockets(struct PtpRuntime *r) {
-	if (fuji_known.remote_version == -1) return 0;
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	if (fuji->remote_version == -1) return 0;
 
 	// Begin camera remote - (per spec, OpenCapture is much more broad than 'take picture')
 	// This tells the camera to open the remote mode sockets (video/event)
-	fuji_known.open_capture_trans_id = r->transaction;
+	fuji->open_capture_trans_id = r->transaction;
 	int rc = ptp_init_open_capture(r, 0, 0);
 	if (rc) return rc;
 
@@ -480,21 +511,23 @@ int fuji_remote_mode_open_sockets(struct PtpRuntime *r) {
 
 // 'End' remote mode (or more like finish setup)
 int fuji_remote_mode_end(struct PtpRuntime *r) {
-	if (fuji_known.remote_version == -1) return 0;
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	if (fuji->remote_version == -1) return 0;
 
 	// Right after remote mode is entered, camera gives off a bunch of properties
 	int rc = fuji_get_events(r);
 	if (rc) return rc;
 
-	rc = ptp_terminate_open_capture(r, fuji_known.open_capture_trans_id);
+	rc = ptp_terminate_open_capture(r, fuji->open_capture_trans_id);
 	if (rc) return rc;
 
 	return 0;
 }
 
 int fuji_config_image_viewer(struct PtpRuntime *r) {
-	plat_dbg("remote_image_view_version: %X", fuji_known.remote_image_view_version);
-	if (fuji_known.remote_image_view_version != -1) {
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	plat_dbg("remote_image_view_version: %X", fuji->remote_image_view_version);
+	if (fuji->remote_image_view_version != -1) {
 		// Tell the camera that we actually want that mode
 		int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
 		if (rc) return rc;
@@ -504,7 +537,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		if (rc) return rc;
 
 		rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion);
-		fuji_known.remote_image_view_version = ptp_parse_prop_value(r);
+		fuji->remote_image_view_version = ptp_parse_prop_value(r);
 		if (rc) return rc;
 
 		// Check SD card slot, not really useful for now
@@ -526,4 +559,39 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 	}
 
 	return 0;
+}
+
+int fuji_download_classic(struct PtpRuntime *r) {
+	while (1) {
+		// This determines whether the connection is terminated or not
+		struct PtpObjectInfo oi;
+		int rc = ptp_get_object_info(r, 1, &oi);
+		if (rc) return rc;
+
+		app_print("Downloading %s...", oi.filename);
+		app_downloading_file(&oi);
+
+		char path[128];
+		sprintf(path, "/storage/emulated/0/Pictures/fudge/%s", oi.filename);
+		FILE *f = fopen(path, "wb");
+		if (f == NULL) return PTP_RUNTIME_ERR;
+
+		// Not sure if 0x100000 is required or not, but we'll do what Fuji is doing.
+		rc = ptp_download_object(r, 1, f, 0x100000);
+		fclose(f);
+		if (rc) {
+			app_print("Failed to save %s: %s", oi.filename, ptp_perror(rc));
+			return rc;
+		}
+
+		app_downloaded_file(&oi, path);
+
+		// Fuji's fujisystem will swap out object ID 1 with the next image. If there
+		// are no more images, the camera shuts down the connection and turns off.
+
+		// In other words, the camera is in superposition - it's on and off at the same time.
+		// We don't know until we observe it:
+		rc = fuji_get_events(r);
+		if (rc) return 0;
+	}
 }

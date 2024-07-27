@@ -1,10 +1,10 @@
 #ifndef APP_H
 #define APP_H
 
-// Ping user with technical updates
-void ui_send_text(char *key, char *fmt, ...);
+/// Send current camera name to UI
+void app_send_cam_name(const char *name);
 
-// printf to kernel
+/// OS level debug log
 void plat_dbg(char *fmt, ...);
 
 // printf to UI
@@ -16,6 +16,7 @@ void tester_fail(char *fmt, ...);
 
 int app_bind_socket_wifi(int sockfd);
 
+// TODO: Get PTP runtime, (only one connection allowed at once)
 struct PtpRuntime *ptp_get();
 
 void app_increment_progress_bar(int read);

@@ -1,49 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
 <head>
-	<title>Help</title>
-	<meta charset="UTF-8">
-	<style>
-	body {
-		color: white;
-		background: black;
-		font-family: arial;
-	}
-	</style>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>help</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<p>This app is a reimplementation of Fujifilm's WiFi app. Expect bugs! There are no promises that it will be better than the official app.</p>
-<h1>Troubleshooting</h1>
+<nav id="TOC" role="doc-toc">
 <ul>
-	<li>Your camera's WiFi menu should be accessible from the 'Fn' button on the top of the body.</li>
-	<li>On newer cameras, it's available from 'PLAY BACK MENU' -> 'WIRELESS COMMUNICATION'</li>
-	<li>Bluetooth is not supported yet. That's on the roadmap!</li>
+<li><a href="#finding-the-wireless-menu">Finding the wireless menu</a></li>
+<li><a href="#pairing-over-wifi">Pairing over WiFi</a></li>
+<li><a href="#pc-autosave">PC AutoSave</a></li>
 </ul>
-<p>Android might be disconnecting you from the Fuji WiFi access point since it has no WiFi. (This is an Android feature)
-You should get a notification that can allow you to stay on the network.</p>
-<img src="n.png" width="100%">
-You should see a popup similar to this:
-<img src="popup.png" width="100%">
-<p>Please report any bugs on this project's Github page: https://github.com/petabyt/fudge</p>
-<h2 id="autosave">PC AutoSave</h2>
-<p>'PC AutoSave' is a feature offered on Fujifilm cameras made from 2013 to 2022.</p>
-<p>To </p>
-<ol>
-	<li></li>
-</ol>
-<h2>Licenses:</h2>
+</nav>
+<p>To be clear, the following is not supported yet:</p>
 <ul>
-	<li>camlib (Apache license)</li>
-	<li>libui + libuifw (MIT License)</li>
-	<li>Google Material Icons (Apache license)</li>
-	<li>com.jsibbold.zoomage.ZoomageView (Apache license)</li>
+<li>Bluetooth</li>
+<li>Liveview</li>
+<li>Geotagging</li>
 </ul>
-<h2>Thanks:</h2>
+<h2 id="finding-the-wireless-menu">Finding the wireless menu</h2>
 <ul>
-	<li>@spaqin for X-S10 packet dumps</li>
-	<li>Beta-testing: @spaqin, @matthias, @nutter</li>
+<li>Look for ‘WIRELESS TRANSFER’ or ‘WIRELESS COMMUNICATION’ in ‘PLAYBACK MENU’</li>
+<li>On some cameras, the ‘Fn’ button opens up the WiFi menu by default</li>
 </ul>
-<hr>
-<p>Copyright (C) 2023-2024 by Daniel Cook. Fudge source code is licensed under GPL2.0</p>
+<h2 id="pairing-over-wifi">Pairing over WiFi</h2>
+<p>Older cameras will have these options:</p>
+<pre><code>VIEW &amp; OBTAIN IMAGES ON (phone)
+SEND INDIVIDUAL IMAGES
+SEND SELECTED MULTIPLE IMAGES</code></pre>
+<p>When you press a connection mode, you will get a screen like this:</p>
+<pre><code>   SEARCHING
+FUJIFILM-X-A2-5DBC
+SELECT Browse Camera
+ON (phone) FUJIFILM APP
+(OK) CHANGE   (BACK) CANCEL</code></pre>
+<p>If you are connecting for the first time, press <code>(OK) CHANGE</code>.</p>
+<p>On your device, open WiFi settings and manually connect to the access point (aka hotspot) your camera is exposing. It will start with FUJIFILM. Once you connect, you might need to confirm the connection in certain versions of Android.</p>
+<h2 id="pc-autosave">PC AutoSave</h2>
+<ul>
+<li>‘SET-UP’ -&gt; ‘PC AUTO SAVE SETTING’</li>
+<li>‘CONNECTION SETTING’ -&gt; ‘PC AUTO SAVE’ -&gt; ‘PC AUTO SAVE SETTING’</li>
+</ul>
+<p>‘SIMPLE SETUP’<br />
+Press the WPS button on your router for 3 seconds and wait until your camera confirms a connection.</p>
+<p>‘MANUAL SETUP’<br />
+Select your WiFi network and punch in password on the camera.</p>
 </body>
 </html>

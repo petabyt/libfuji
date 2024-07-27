@@ -10,21 +10,25 @@
     <string name="downloading_image">Downloading image…</string>
     <string name="waiting_on_camera">Waiting on the camera…</string>
     <string name="good_connection">Initialized connection.</string>
+    <string name="connection_failed">Failed to connect.</string>
     <string name="wait1">The camera is thinking…</string>
     <string name="camera_accept1">Your camera loves you.</string>
+    <string name="camera_accept2">Your camera is happy.</string>
     <string name="setup_img_viewer">Setting up image viewer</string>
     <string name="started_remote_mode">Started remote mode.</string>
     <string name="connecting">Connecting…</string>
     <string name="dimensions">Image size</string>
     <string name="filesize">File size</string>
-    <string name="alreadydownloaded">File is already downloaded</string>
+    <string name="alreadydownloaded">File is already downloaded.</string>
     <string name="regressiontesting">Regression Testing</string>
     <string name="gallery">Gallery</string>
+    <string name="waiting_on_wifi">Waiting for WiFi</string>
     <string name="getImages2">Maybe you only have RAW files? Fuji doesn\'t let us view RAW over WiFi :(</string>
     <string name="noImages1">No images available on camera.</string>
     <string name="title_activity_settings">Settings</string>
     <string name="title_activity_liveview">Liveview</string>
 
     <string name="discovery1">Received the camera\'s intimate broadcast…</string>
-    <string name="make_sure_press_ok">Make sure you pressed OK.</string>
+    <string name="make_sure_press_ok">Make sure you pressed OK on the camera.</string>
+    <string name="settings">Settings</string>
 </resources>

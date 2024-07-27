@@ -6,8 +6,6 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.ClipData;
-import android.util.Log;
-import android.content.Intent;
 import android.text.Html;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -47,9 +45,10 @@ public class Tester extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                Frontend.print(getString(R.string.connecting));
                 int rc = Backend.fujiConnectToCmd();
                 if (rc != 0) {
-                    fail("WIFI: " + Backend.parseErr(rc));
+                    fail("WIFI: " + Frontend.parseErr(rc));
 
                     try {
                         Backend.connectUSB(ctx);

@@ -4,8 +4,10 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Switch;
 
 public class SettingsActivity extends AppCompatActivity {
@@ -17,8 +19,14 @@ public class SettingsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_settings);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setTitle("Settings");
+        actionBar.setTitle(R.string.settings);
         handleSettingsButtons(this);
+        findViewById(R.id.start_discovery).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Backend.discoveryThread(MainActivity.instance);
+            }
+        });
     }
 
     @Override

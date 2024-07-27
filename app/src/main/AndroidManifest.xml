@@ -21,6 +21,9 @@
         android:theme="@style/Theme.AppCompat"
         tools:targetApi="32">
         <activity
+            android:name=".FileGallery"
+            android:exported="false" />
+        <activity
             android:name=".Autosave"
             android:exported="false" />
         <activity

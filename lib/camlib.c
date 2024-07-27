@@ -7,13 +7,12 @@
 #define PTP_FUNC(ret, name) JNIEXPORT ret JNICALL Java_camlib_Camlib_##name
 
 void set_jni_env_ctx(JNIEnv *env, jobject ctx);
-#define set_jni_env(x) set_jni_env_ctx(x, NULL)
 struct PtpRuntime *ptp_get();
 
-int ptp_dirty_rotten_thumb_hack(struct PtpRuntime *r, int handle, int *offset, int *length);
+int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *length);
 
 PTP_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
-	set_jni_env(env);
+	set_jni_env_ctx(env, NULL);
 	struct PtpRuntime *r = ptp_get();
 
 	ptp_mutex_keep_locked(r);
@@ -35,7 +34,7 @@ PTP_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 }
 
 PTP_FUNC(jint, cPtpGetPropValue)(JNIEnv *env, jobject thiz, jint code) {
-	set_jni_env(env);
+	set_jni_env_ctx(env, NULL);
 	struct PtpRuntime *r = ptp_get();
 
 	int rc = ptp_get_prop_value(r, code);
@@ -47,19 +46,19 @@ PTP_FUNC(jint, cPtpGetPropValue)(JNIEnv *env, jobject thiz, jint code) {
 }
 
 PTP_FUNC(jint, cPtpOpenSession)(JNIEnv *env, jobject thiz) {
-	set_jni_env(env);
+	set_jni_env_ctx(env, NULL);
 	struct PtpRuntime *r = ptp_get();
 	return ptp_open_session(r);
 }
 
 PTP_FUNC(jint, cPtpCloseSession)(JNIEnv *env, jobject thiz) {
-	set_jni_env(env);
+	set_jni_env_ctx(env, NULL);
 	struct PtpRuntime *r = ptp_get();
 	return ptp_close_session(r);
 }
 
 PTP_FUNC(jstring, cGetObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
-	set_jni_env(env);
+	set_jni_env_ctx(env, NULL);
 	struct PtpRuntime *r = ptp_get();
 
 	struct PtpObjectInfo oi;

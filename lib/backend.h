@@ -41,10 +41,6 @@
 #endif
 
 struct AndroidBackend {
-	jobject main; // Backend global obj
-	jmethodID jni_print;
-	jmethodID send_text_m;
-
 	jobject progress_bar;
 	int download_progress;
 	int download_size;
@@ -53,7 +49,7 @@ struct AndroidBackend {
 	jmethodID tester_log;
 	jmethodID tester_fail;
 
-	// Global one connection runtime
+	// Only a single PTP connection supported
 	struct PtpRuntime r;
 
 	void *log_buf;

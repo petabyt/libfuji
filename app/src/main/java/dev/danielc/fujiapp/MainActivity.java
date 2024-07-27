@@ -34,7 +34,7 @@ import dev.danielc.libui.*;
 
 public class MainActivity extends AppCompatActivity {
     public static MainActivity instance;
-    Handler handler;
+    public Handler handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,12 +48,12 @@ public class MainActivity extends AppCompatActivity {
         getSupportActionBar().setTitle(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
 
         Backend.init();
-        Backend.updateLog();
+        Frontend.updateLog();
 
         findViewById(R.id.connect_wifi).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Backend.clearPrint();
+                Frontend.clearPrint();
                 connectClick();
             }
         });
@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.connect_usb).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Backend.clearPrint();
+                Frontend.clearPrint();
                 connectUSB();
             }
         });
@@ -83,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
-
 
         findViewById(R.id.help_button).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -111,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Idea: Show WiFi status on screen?
         // Show/hide discovery message
+        Frontend.discoveryWaitWifi();
         WiFiComm.startNetworkListeners(this);
         Context ctx = this;
         WiFiComm.onAvailable = new Runnable() {
@@ -137,19 +137,22 @@ public class MainActivity extends AppCompatActivity {
             ImageView fl = findViewById(R.id.background_image);
             int width = fl.getWidth();
             int height = fl.getHeight();
-
-            // https://www.pexels.com/photo/photo-of-vehicle-on-asphalt-road-3066867/
-            int scale = 2;
-            int x = 400;
-            int y = 0;
             InputStream is = getAssets().open("pexels-thevibrantmachine-3066867.jpg");
-            int size = is.available();
-            byte[] buffer = new byte[size];
-            is.read(buffer);
+            Bitmap bitmap = BitmapFactory.decodeStream(is);
             is.close();
-            Bitmap bitmap = BitmapFactory.decodeByteArray(buffer, 0, buffer.length, null);
-            Bitmap resizedBmp = Bitmap.createBitmap(bitmap, x, y, width * scale, height * scale);
-            fl.setImageBitmap(resizedBmp);
+
+            int bmpWidth = bitmap.getWidth();
+            int bmpHeight = bitmap.getHeight();
+
+            float scale = Math.max((float)width / bmpWidth, (float)height / bmpHeight);
+
+            int newWidth = Math.round(bmpWidth * scale);
+            int newHeight = Math.round(bmpHeight * scale);
+
+            Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
+
+            Bitmap croppedBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0, width, height);
+            fl.setImageBitmap(croppedBitmap);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -212,14 +215,15 @@ public class MainActivity extends AppCompatActivity {
                     findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
                 }
             });
-            Backend.print(e.getMessage());
+            Frontend.print(e.getMessage());
         }
     }
 
     public int tryConnect() {
+        Frontend.print(getString(R.string.connecting));
         int rc = Backend.fujiConnectToCmd();
         if (rc != 0) return rc;
-        Backend.print("Connection established");
+        Frontend.print("Connection established");
         Backend.cancelDiscoveryThread();
         handler.post(new Runnable() {
             @Override
@@ -236,7 +240,7 @@ public class MainActivity extends AppCompatActivity {
         WiFiComm.onWiFiSelectCancel = new Runnable() {
             @Override
             public void run() {
-                Backend.print("Selection canceled");
+                Frontend.print("Selection canceled");
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -248,10 +252,10 @@ public class MainActivity extends AppCompatActivity {
         WiFiComm.onWiFiSelectAvailable = new Runnable() {
             @Override
             public void run() {
-                Backend.print("Selection successful");
+                Frontend.print("Selection successful");
                 int rc = tryConnect();
                 if (rc != 0) {
-                    Backend.print("connect failed");
+                    Frontend.print(R.string.connection_failed);
                 }
             }
         };
@@ -263,8 +267,9 @@ public class MainActivity extends AppCompatActivity {
                 if (password.length() == 0) password = null;
                 int rc = tryConnect();
                 if (rc != 0) {
+                    Frontend.print(R.string.connection_failed);
                     if (WiFiComm.connectToAccessPoint(ctx, password) != 0) {
-                        Backend.print("You must manually connect to the WiFi access point");
+                        Frontend.print("You must manually connect to the WiFi access point");
                     }
                 }
             }
@@ -277,11 +282,11 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 try {
                     Backend.connectUSB(MainActivity.this);
-                    Backend.print("Connection established");
+                    Frontend.print(R.string.connection_failed);
                     Intent intent = new Intent(MainActivity.this, Gallery.class);
                     startActivity(intent);
                 } catch (Exception e) {
-                    Backend.print(e.getMessage());
+                    Frontend.print(e.getMessage());
                 }
             }
         }).start();
@@ -298,33 +303,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    void openFiles() {
-        // TODO: this sucks
-        File[] fileList;
-        File file = new File(Backend.getDownloads());
-        if (!file.isDirectory()) {
-            return;
-        }
-
-        fileList = file.listFiles();
-        String mime = "*/*";
-        String path = Backend.getDownloads();
-        if (fileList.length != 0) {
-            path = fileList[0].getPath();
-            mime = "image/*";
-        }
-
-//        if (Viewer.filename != null) {
-//            path = Viewer.filename;
-//            mime = "image/*";
-//        }
-
-        Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_VIEW);
-        intent.setDataAndType(Uri.parse(path), mime);
-        startActivity(intent);
-    }
-
     @Override
     public void onBackPressed() {
         super.onBackPressed();
@@ -333,7 +311,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getTitle() == "open") {
-            openFiles();
+            //openFiles();
+            Intent intent = new Intent(MainActivity.this, FileGallery.class);
+            startActivity(intent);
         } else if (item.getTitle() == "settings") {
             Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
             startActivity(intent);

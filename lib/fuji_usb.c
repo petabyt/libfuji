@@ -20,14 +20,12 @@ int fujiusb_setup(struct PtpRuntime *r) {
 	rc = ptp_get_device_info(r, &di);
 	if (rc) return rc;
 
-	ui_send_text("cam_name", di.model);
+	app_send_cam_name(di.model);
 
 	return rc;
 }
 
 int fujitether_setup(struct PtpRuntime *r) {
-	//memset(&fuji_known, 0, sizeof(struct FujiDeviceKnowledge));
-
 	app_print("Waiting on the camera...");
 	app_print("Make sure you pressed OK.");
 
@@ -42,7 +40,7 @@ int fujitether_setup(struct PtpRuntime *r) {
 	}
 	app_print("Initialized connection.");
 
-	ui_send_text("cam_name", resp.cam_name);
+	app_send_cam_name(resp.cam_name);
 
 	// Fuji cameras require delay after init
 	app_print("The camera is thinking...");
