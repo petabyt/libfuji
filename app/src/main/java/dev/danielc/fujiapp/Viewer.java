@@ -183,7 +183,7 @@ public class Viewer extends AppCompatActivity {
 
     private void loadThumb(int handle) {
         try {
-            JSONObject jsonObject = Backend.fujiGetUncompressedObjectInfo(handle);
+            JSONObject jsonObject = new JSONObject(Backend.cFujiGetUncompressedObjectInfo(handle));
 
             filename = jsonObject.getString("filename");
             int size = jsonObject.getInt("compressedSize");

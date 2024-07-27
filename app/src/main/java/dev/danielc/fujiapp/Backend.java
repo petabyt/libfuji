@@ -116,13 +116,6 @@ public class Backend extends Camlib {
 
     public native static View cFujiScriptsScreen(Context ctx);
 
-    public static JSONObject fujiGetUncompressedObjectInfo(int handle) throws Exception {
-        String resp = cFujiGetUncompressedObjectInfo(handle);
-        if (resp == null) throw new Exception("Failed to get obj info");
-        return new JSONObject(resp);
-    }
-
-    // TODO: Discovery thread as single Thread object, code can request for it to be reactivated
     final static int DISCOVERY_ERROR_THRESHOLD = 5;
     public native static int cStartDiscovery(Context ctx);
     static Thread discoveryThread = null;
@@ -137,7 +130,7 @@ public class Backend extends Camlib {
                 while (true) {
                     long start_time = System.nanoTime();
                     int rc = Backend.cStartDiscovery(ctx);
-                    if (rc != 0) break;
+                    if (rc < 0) break;
                     long end_time = System.nanoTime();
                     Log.d("backend", "cstartdiscovery: " + ((end_time - start_time) / 1e6));
                     if (((end_time - start_time) / 1e6) < DISCOVERY_ERROR_THRESHOLD) {

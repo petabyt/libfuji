@@ -392,7 +392,6 @@ int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 	return 1;
 }
 
-volatile static int already_discovering = 0;
 volatile static int do_cancel = 0;
 
 JNI_FUNC(void, cancelDiscoveryThread)(JNIEnv *env, jobject thiz) {
@@ -424,6 +423,7 @@ void fuji_discovery_update_progress(void *arg, int progress) {
 	}
 }
 
+volatile static int already_discovering = 0;
 JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 	set_jni_env_ctx(env, ctx);
 	if (already_discovering) {
