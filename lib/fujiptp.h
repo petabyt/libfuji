@@ -46,6 +46,8 @@ enum FujiTransport {
 #define PTP_OC_FUJI_Unknown2	0x9055
 
 // Device property codes, IP only
+#define PTP_PC_FUJI_Unknown_D21C	0xd21c // TetherVersion
+#define PTP_PC_FUJI_Unknown_D224	0xd224
 #define PTP_PC_FUJI_Unknown_D228	0xD228
 #define PTP_PC_FUJI_Unknown15		0xD22B
 #define PTP_PC_FUJI_CompressionCutOff	0xD235

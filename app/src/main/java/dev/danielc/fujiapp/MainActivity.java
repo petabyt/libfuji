@@ -188,9 +188,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void onReceiveCameraInfo(String model, String name, String ip) {
-        discoveryPopup.setTitle("Found a camera! (" + model + ")");
-        discoveryPopup.setMessage("Do you want to connect?");
-        discoveryPopup.show();
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                discoveryPopup.setTitle("Found a camera! (" + model + ")");
+                discoveryPopup.setMessage("Do you want to connect?");
+                discoveryPopup.show();
+            }
+        });
 //        return bool accept connection or not
     }
 
@@ -198,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             Thread.sleep(1000);
             Backend.chosenIP = ip;
-            Backend.cConnectNative(ip, Backend.FUJI_CMD_PORT);
+            Backend.cConnectNative(ip, port);
             Backend.cClearKillSwitch();
             handler.post(new Runnable() {
                 @Override
@@ -223,6 +228,7 @@ public class MainActivity extends AppCompatActivity {
         Frontend.print(getString(R.string.connecting));
         int rc = Backend.fujiConnectToCmd();
         if (rc != 0) return rc;
+        Backend.cancelDiscoveryThread();
         Frontend.print("Connection established");
         Backend.cancelDiscoveryThread();
         handler.post(new Runnable() {
@@ -292,11 +298,12 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    public void setLogText(String arg) {
-        handler.post(new Runnable() {
+    public static void setLogText(String arg) {
+        if (instance == null) return;
+       instance.handler.post(new Runnable() {
             @Override
             public void run() {
-                TextView tv = findViewById(R.id.error_msg);
+                TextView tv = instance.findViewById(R.id.error_msg);
                 if (tv == null) return;
                 tv.setText(arg);
             }

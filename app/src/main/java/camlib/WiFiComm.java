@@ -150,6 +150,7 @@ public class WiFiComm {
         }
 
         if (wifiDevice != null) {
+            Log.d("wifi", "Returning default WiFi");
             return wifiDevice.getNetworkHandle();
         }
 

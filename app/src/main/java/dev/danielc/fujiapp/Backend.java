@@ -97,6 +97,7 @@ public class Backend extends Camlib {
     public native static int[] cGetObjectHandles();
     public native static int cFujiConfigImageGallery();
     public native static byte[] cFujiGetThumb(int handle);
+    public native static int cFujiImportFiles(int[] handles);
 
     // For tester only
     public native static int cFujiTestSuite(String ip);
@@ -116,12 +117,20 @@ public class Backend extends Camlib {
 
     public native static View cFujiScriptsScreen(Context ctx);
 
+    final static int FUJI_D_REGISTERED = 1;
+    final static int FUJI_D_GO_PTP = 2;
+    final static int FUJI_D_CANCELED = 3;
+    final static int FUJI_D_IO_ERR = 4;
+    final static int FUJI_D_OPEN_DENIED = 5;
+    final static int FUJI_D_INVALID_NETWORK = 6;
     final static int DISCOVERY_ERROR_THRESHOLD = 5;
-    public native static int cStartDiscovery(Context ctx);
     static Thread discoveryThread = null;
     public static void discoveryThread(Context ctx) {
         if (discoveryThread != null) {
             Log.d("backend", "Discovery thread already running");
+            return;
+        } else {
+            Log.d("discovery", "Discovery starting");
         }
         discoveryThread = new Thread(new Runnable() {
             @Override
@@ -131,8 +140,17 @@ public class Backend extends Camlib {
                     long start_time = System.nanoTime();
                     int rc = Backend.cStartDiscovery(ctx);
                     if (rc < 0) break;
+                    if (rc == FUJI_D_INVALID_NETWORK || rc == FUJI_D_IO_ERR || rc == FUJI_D_OPEN_DENIED) {
+                        Log.d("discovery", "error: " + rc);
+                        break;
+                    }
+                    if (rc == FUJI_D_CANCELED || rc == FUJI_D_GO_PTP) {
+                        Log.d("discovery", "Go/cancel");
+                        break;
+                    }
+                    Log.d("discovery", "code: " + rc);
                     long end_time = System.nanoTime();
-                    Log.d("backend", "cstartdiscovery: " + ((end_time - start_time) / 1e6));
+                    Log.d("discovery", "cstartdiscovery: " + ((end_time - start_time) / 1e6));
                     if (((end_time - start_time) / 1e6) < DISCOVERY_ERROR_THRESHOLD) {
                         Frontend.discoveryFailed();
                         break;
@@ -144,6 +162,7 @@ public class Backend extends Camlib {
         discoveryThread.start();
         Log.d("backend", "Ending discovery thread");
     }
+    public native static int cStartDiscovery(Context ctx);
     public static native void cancelDiscoveryThread();
 
     // Return directory is guaranteed to exist
@@ -155,5 +174,8 @@ public class Backend extends Camlib {
             directory.mkdirs();
         }
         return fujifilm;
+    }
+    public static String getFilePath(String filename) {
+        return getDownloads() + File.separator + filename;
     }
 }

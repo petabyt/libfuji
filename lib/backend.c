@@ -133,6 +133,10 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 	// (extra data won't go through for some reason)
 	int read = 0;
 	while (1) {
+		if (app_check_thread_cancel()) {
+			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
+			return PTP_CANCELED;
+		}
 		if (download_cancel) {
 			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
 			return PTP_CANCELED;
@@ -273,7 +277,6 @@ JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz, jstring ip) {
 
 JNI_FUNC(jint, cFujiConfigImageGallery)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
-	if (backend.r.connection_type == PTP_USB) return 0;
 	int rc = fuji_config_image_viewer(&backend.r);
 	return rc;
 }
@@ -353,10 +356,10 @@ JNI_FUNC(jint, cTryConnectWiFi)(JNIEnv *env, jobject thiz) {
 
 	int rc = ptpip_connect(&backend.r, c_ip, FUJI_CMD_IP_PORT);
 
-	if (rc == 0) {
-		fuji_reset_ptp(ptp_get()); // ???
-		strcpy(fuji_get(ptp_get())->ip_address, c_ip);
-	}
+//	if (rc == 0) {
+//		fuji_reset_ptp(ptp_get()); // ???
+//		strcpy(fuji_get(ptp_get())->ip_address, c_ip);
+//	}
 
 	return rc;
 }
@@ -377,6 +380,19 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 	return rc;
 }
 
+JNI_FUNC(jint, cFujiImportFiles)(JNIEnv *env, jobject thiz, jintArray handles) {
+	set_jni_env(env);
+
+	jsize length = (*env)->GetArrayLength(env, handles);
+	jint *handles_n = (*env)->GetIntArrayElements(env, handles, NULL);
+
+	int rc = fuji_import_all(ptp_get(), handles_n, length);
+
+	(*env)->ReleaseIntArrayElements(env, handles, handles_n, 0);
+
+	return rc;
+}
+
 int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 	JNIEnv *env = get_jni_env();
 	jobject ctx = get_jni_ctx();
@@ -385,20 +401,23 @@ int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 	jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onReceiveCameraInfo",
 											   "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 	(*env)->CallVoidMethod(env, ctx, register_m,
-						   (*env)->NewStringUTF(env, info->camera_model),
-						   (*env)->NewStringUTF(env, info->camera_name),
-						   (*env)->NewStringUTF(env, info->camera_ip)
+	   (*env)->NewStringUTF(env, info->camera_model),
+	   (*env)->NewStringUTF(env, info->camera_name),
+	   (*env)->NewStringUTF(env, info->camera_ip)
 	);
 	return 1;
 }
 
-volatile static int do_cancel = 0;
+volatile static int do_cancel = 0; // TODO: deprecate
 
 JNI_FUNC(void, cancelDiscoveryThread)(JNIEnv *env, jobject thiz) {
 	do_cancel = 1;
 }
 
 int fuji_discovery_check_cancel(void *arg) {
+	if (app_check_thread_cancel()) {
+		return 1;
+	}
 	if (do_cancel) {
 		do_cancel = 0;
 		return 1;
@@ -425,6 +444,9 @@ void fuji_discovery_update_progress(void *arg, int progress) {
 
 volatile static int already_discovering = 0;
 JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
+	struct PtpRuntime *r = ptp_get();
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+
 	set_jni_env_ctx(env, ctx);
 	if (already_discovering) {
 		plat_dbg("cStartDiscovery called twice");
@@ -453,7 +475,15 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 		);
 	} else if (rc < 0) {
 		app_print("Discovery thread err: %d", rc);
+		already_discovering = 0;
+		return rc;
 	}
+
+	// Do the connection here -
+
+	fuji->transport = info.transport;
+	strncpy(fuji->ip_address, info.camera_ip, sizeof(fuji->ip_address));
+
 	already_discovering = 0;
 	return rc;
 }
@@ -467,9 +497,9 @@ static jlong get_handle() {
 }
 
 int app_bind_socket_wifi(int fd) {
-	if (app_do_connect_without_wifi()) {
-		return 0;
-	}
+//	if (app_do_connect_without_wifi()) {
+//		return 0;
+//	}
 
 	typedef int (*_android_setsocknetwork_td)(jlong handle, int fd);
 

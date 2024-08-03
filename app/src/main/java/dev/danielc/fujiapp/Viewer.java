@@ -183,7 +183,13 @@ public class Viewer extends AppCompatActivity {
 
     private void loadThumb(int handle) {
         try {
-            JSONObject jsonObject = new JSONObject(Backend.cFujiGetUncompressedObjectInfo(handle));
+            // TODO: nullPointerException from cFujiGetUncompressedObjectInfo
+            String t = Backend.cFujiGetUncompressedObjectInfo(handle);
+            if (t == null) {
+                fail(Backend.PTP_IO_ERR, "Failed to get object info");
+                return;
+            }
+            JSONObject jsonObject = new JSONObject(t);
 
             filename = jsonObject.getString("filename");
             int size = jsonObject.getInt("compressedSize");

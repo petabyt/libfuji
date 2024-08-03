@@ -9,21 +9,15 @@
         android:id="@+id/downloadingText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="PC AutoSave"
+        android:text="Import All"
         android:textSize="34sp" />
 
     <TextView
-        android:id="@+id/textView2"
+        android:id="@+id/import_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Fudge is looking for a camera in PC AutoSave mode!"
+        android:text="Will download any photos that you haven't already downloaded."
         android:textSize="15sp" />
-
-    <TextView
-        android:id="@+id/textView3"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Learn More" />
 
     <ProgressBar
         android:id="@+id/progressBar"
@@ -32,14 +26,8 @@
         android:layout_height="wrap_content"
         android:indeterminateOnly="true" />
 
-    <TextView
-        android:id="@+id/textView4"
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:text="Looking for a camera..." />
-
     <Button
-        android:id="@+id/button4"
+        android:id="@+id/import_start_stop_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="cancel" />

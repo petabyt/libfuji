@@ -23,15 +23,16 @@ import java.util.ArrayList;
 public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHolder> {
     private final Context context;
     private final int[] object_ids;
+    final Queue queue;
 
     public ThumbAdapter(Context ctx, int[] object_ids) {
         this.context = ctx;
         this.object_ids = object_ids;
+        queue = new Queue();
     }
 
     public ThumbAdapter(Context ctx) {
-        this.context = ctx;
-        this.object_ids = null;
+        this(ctx, null);
     }
 
     void imageClickHandler(ImageViewHolder holder) {
@@ -62,10 +63,7 @@ public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHol
         int object_id;
     };
 
-    // LIFO stack
-    static ArrayList<Request> requests = new ArrayList<Request>();
-
-    static void invalidThumb(Context ctx, ImageViewHolder holder) {
+    void invalidThumb(Context ctx, ImageViewHolder holder) {
         holder.isLoaded = false;
         holder.itemView.post(new Runnable() {
             @SuppressLint("UseCompatLoadingForDrawables")
@@ -78,9 +76,7 @@ public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHol
         });
     }
 
-    static boolean stop_downloading = false;
-
-    static void loadThumb(ImageViewHolder holder, byte[] data) {
+    void loadThumb(ImageViewHolder holder, byte[] data) {
         try {
             BitmapFactory.Options opt = new BitmapFactory.Options();
             opt.inScaled = true;
@@ -105,17 +101,10 @@ public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHol
         }
     }
 
-    static void requestThread() {
-        // This loop sucks
-        while (stop_downloading == false) {
-            if (requests.size() == 0) {
-                try {
-                    Thread.sleep(100);
-                } catch (Exception ignored) {}
-                continue;
-            }
-            Request req = requests.remove(requests.size() - 1);
-
+    class Queue extends DownloadQueue {
+        @Override
+        void perform(Object request) {
+            Request req = (Request)request;
             int id = req.object_id;
             byte[] jpegByteArray = Backend.cFujiGetThumb(id);
             if (jpegByteArray == null) {
@@ -124,7 +113,7 @@ public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHol
             } else if (jpegByteArray.length == 0) {
                 // Unable to find thumbnail - assume it's a folder or non-jpeg
                 invalidThumb(req.holder.image.getContext(), req.holder);
-                continue;
+                return;
             }
 
             loadThumb(req.holder, jpegByteArray);
@@ -138,7 +127,7 @@ public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHol
         req.position = position;
         req.object_id = object_ids[position];
         holder.handle = req.object_id;
-        requests.add(req);
+        queue.enqueue(req);
     }
 
     @Override

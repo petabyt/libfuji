@@ -4,6 +4,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+
 import java.util.Arrays;
 
 import camlib.Camlib;
@@ -57,6 +59,10 @@ public class Frontend {
         });
     }
 
+    public static String formatFilesize(int size) {
+        return String.format("%.2fMB\n", size / 1024.0 / 1024.0);
+    }
+
     final static int MAX_LOG_LINES = 3;
 
     // debug function for both Java frontend and JNI backend
@@ -84,6 +90,10 @@ public class Frontend {
         updateLog();
     }
 
+    static void downloadingFile(JSONObject info) {
+        Gallery.downloadingFile();
+    }
+
     public static void print(int resID) {
         print(getString(resID));
     }
@@ -92,13 +102,10 @@ public class Frontend {
         if (MainActivity.instance != null) {
             MainActivity.instance.setLogText(basicLog.trim());
         }
-        if (Gallery.instance != null) {
-            Gallery.instance.setLogText(basicLog.trim());
-        }
+        Gallery.setLogText(basicLog.trim());
     }
 
     public static void sendCamName(String value) {
-        if (Gallery.instance == null) return;
-        Gallery.instance.setTitleCamName(value);
+        Gallery.setTitleCamName(value);
     }
 }

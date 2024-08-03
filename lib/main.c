@@ -61,15 +61,11 @@ struct PtpRuntime *luaptp_get_runtime(void *L) {
 	return ptp_get();
 }
 
-void app_downloading_file(const struct PtpObjectInfo *oi) {
-
+void app_get_file_path(char buffer[256], const char *filename) {
+	sprintf(buffer, "/storage/emulated/0/Pictures/fudge/%s", filename);
 }
 
-void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path) {
-
-}
-
-#define VERBOSE
+//#define VERBOSE
 
 void ptp_verbose_log(char *fmt, ...) {
 #ifndef VERBOSE
@@ -120,6 +116,54 @@ static inline jclass get_frontend_class(JNIEnv *env) {
 
 static inline jclass get_tester_class(JNIEnv *env) {
 	return (*env)->FindClass(env, "dev/danielc/fujiapp/Tester");
+}
+
+void app_downloading_file(const struct PtpObjectInfo *oi) {
+	plat_dbg("Downloading file %s", oi->filename);
+	// Photo importer has started downloading a file, send signal
+}
+
+jobject jni_to_json(JNIEnv *env, const char *string) {
+	jclass json_class = (*env)->FindClass(env, "org/json/JSONObject");
+	jmethodID constructor = (*env)->GetMethodID(env, json_class, "<init>", "(Ljava/lang/String;)V");
+
+	jstring jstring_arg = (*env)->NewStringUTF(env, string);
+	if (jstring_arg == NULL) {
+		return NULL;
+	}
+
+	jobject json_object = (*env)->NewObject(env, json_class, constructor, jstring_arg);
+
+	(*env)->DeleteLocalRef(env, jstring_arg);
+	(*env)->DeleteLocalRef(env, json_class);
+
+	return json_object;
+}
+
+int app_check_thread_cancel() {
+	JNIEnv *env = get_jni_env();
+	jclass thread_class = (*env)->FindClass(env, "java/lang/Thread");
+	jmethodID current_thread_id = (*env)->GetStaticMethodID(env, thread_class, "currentThread", "()Ljava/lang/Thread;");
+	jobject current_thread = (*env)->CallStaticObjectMethod(env, thread_class, current_thread_id);
+	jmethodID is_interrupted_id = (*env)->GetMethodID(env, thread_class, "isInterrupted", "()Z");
+	return (int)(*env)->CallBooleanMethod(env, current_thread, is_interrupted_id);
+}
+
+void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path) {
+	plat_dbg("Downloaded file %s", path);
+
+	char oi_buffer[512];
+	ptp_object_info_json(oi, oi_buffer, sizeof(oi_buffer));
+
+	JNIEnv *env = get_jni_env();
+
+	jobject json = jni_to_json(env, oi_buffer);
+
+	jclass frontend_c = (*env)->FindClass(env, "dev/danielc/fujiapp/Frontend");
+	jmethodID id = (*env)->GetStaticMethodID(env, frontend_c, "downloadingFile", "(Lorg/json/JSONObject;)V");
+	(*env)->CallStaticVoidMethod(env, frontend_c, id, json);
+
+	(*env)->DeleteLocalRef(env, json);
 }
 
 void app_print_id(int resid) {

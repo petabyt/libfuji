@@ -66,6 +66,8 @@ int fuji_setup_remote_mode(struct PtpRuntime *r, const char *ip);
 
 int fuji_setup(struct PtpRuntime *r, const char *ip);
 
+int fuji_import_all(struct PtpRuntime *r, int *object_ids, int length);
+
 // Test suite stuff
 int fuji_test_suite(struct PtpRuntime *r, const char *ip);
 int fuji_test_setup(struct PtpRuntime *r);

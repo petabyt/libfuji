@@ -17,6 +17,7 @@
 #define FUJI_AUTOSAVE_REGISTER 51542
 #define FUJI_AUTOSAVE_CONNECT 51541
 #define FUJI_AUTOSAVE_NOTIFY 51540
+#define FUJI_PCSS_BROADCAST 51562
 
 static int get_local_ip(char buffer[64]) {
 	struct sockaddr_in serv;
@@ -300,42 +301,6 @@ static int open_dgram_socket(int port) {
 	return fd;
 }
 
-static int send_pcss_datagram(char *local_ip) {
-	int sock;
-	struct sockaddr_in addr;
-
-	sock = socket(AF_INET, SOCK_DGRAM, 0);
-	app_bind_socket_wifi(sock);
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(51562);
-	addr.sin_addr.s_addr = inet_addr("192.168.1.255");
-
-	int b = 1;
-	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &b, sizeof(b)) < 0) {
-		return -1;
-	}
-
-	char broadcast[512];
-	sprintf(
-		broadcast,
-		"DISCOVERY * HTTP/1.1\r\n"
-		"HOST: %s\r\n"
-		"MX: 5\r\n"
-		"SERVICE: PCSS/1.0\r\n",
-		local_ip
-	);
-
-	ssize_t rc = sendto(sock, broadcast, sizeof(broadcast), 0, (struct sockaddr *)&addr, sizeof(addr));
-	if (rc == -1) {
-		return -1;
-	}
-
-	close(sock);
-
-	return 0;
-}
-
-
 int fuji_open_tether_server(char *local_ip) {
 	int server_fd;
 	struct sockaddr_in server_addr;
@@ -433,6 +398,44 @@ static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *ar
 	return 0;
 }
 
+static int open_pcss() {
+	int sock;
+
+	sock = socket(AF_INET, SOCK_DGRAM, 0);
+	app_bind_socket_wifi(sock);
+
+	int b = 1;
+	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &b, sizeof(b)) < 0) {
+		return -1;
+	}
+
+	return sock;
+}
+
+static int send_pcss_datagram(int sock, const char *local_ip) {
+	struct sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(FUJI_PCSS_BROADCAST);
+	addr.sin_addr.s_addr = inet_addr("192.168.1.255");
+
+	char broadcast[512];
+	sprintf(
+		broadcast,
+		"DISCOVERY * HTTP/1.1\r\n"
+		"HOST: %s\r\n"
+		"MX: 5\r\n"
+		"SERVICE: PCSS/1.0\r\n",
+		local_ip
+	);
+
+	ssize_t rc = sendto(sock, broadcast, sizeof(broadcast), 0, (struct sockaddr *)&addr, sizeof(addr));
+	if (rc == -1) {
+		return -1;
+	}
+
+	return 0;
+}
+
 int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg) {
 	int rc = 0;
 	memset(info, 0, sizeof(struct DiscoverInfo));
@@ -461,10 +464,15 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 		return -1;
 	}
 
+	int pcss_fd = open_pcss();
+	if (pcss_fd < 0) {
+		plat_dbg("Failed to open pcss port");
+		return -1;
+	}
+
 	char greeting[1024];
 	while (1) {
-		//plat_dbg("Sending tether/pcss datagram");
-		if (send_pcss_datagram(local_ip)) {
+		if (send_pcss_datagram(pcss_fd, local_ip)) {
 			plat_dbg("Failed to send datagram: %d", errno);
 			rc = -1;
 			break;

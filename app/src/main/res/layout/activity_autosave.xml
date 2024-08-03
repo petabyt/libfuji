@@ -14,7 +14,7 @@
         android:padding="10dp">
 
         <TextView
-            android:id="@+id/textView2"
+            android:id="@+id/import_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Wireless Transfer/Remote"

@@ -2,6 +2,8 @@
 // Copyright Daniel Cook - Apache License
 package camlib;
 
+import org.json.JSONObject;
+
 public class Camlib {
     // Integer error exception - see camlib PTP_ error codes
     public static class PtpErr extends Exception {
@@ -38,4 +40,8 @@ public class Camlib {
     public native static int cPtpGetPropValue(int code);
     public native static int cPtpOpenSession();
     public native static int cPtpCloseSession();
+    public native static String cGetObjectInfo(int handle);
+    public static JSONObject getObjectInfo(int handle) throws Exception {
+        return new JSONObject(cGetObjectInfo(handle));
+    }
 };

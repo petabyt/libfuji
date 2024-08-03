@@ -48,15 +48,24 @@ public class FileThumbAdapter extends ThumbAdapter {
     }
 
     void queueImage(ImageViewHolder holder, int position) {
-        try {
-            holder.filename = files[position].getPath();
-            FileInputStream fis = new FileInputStream(files[position]);
-            byte[] buffer = new byte[(int)files[position].length()];
-            fis.read(buffer);
-            loadThumb(holder, buffer);
-            holder.isLoaded = true;
-        } catch (Exception e) {
-            invalidThumb(holder.image.getContext(), holder);
-        }
+        holder.image.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    // This is very stupid
+                    // Wait android doesn't have an API to get exif thumb without reading entire file??
+                    // I have to read an entire 20mb raw to get a 15kb thumbnail?!?!?
+                    // TODO: C code to get thumb from file
+                    holder.filename = files[position].getPath();
+                    FileInputStream fis = new FileInputStream(files[position]);
+                    byte[] buffer = new byte[(int)files[position].length()];
+                    fis.read(buffer);
+                    loadThumb(holder, buffer);
+                    holder.isLoaded = true;
+                } catch (Exception e) {
+                    invalidThumb(holder.image.getContext(), holder);
+                }
+            }
+        });
     }
 }
