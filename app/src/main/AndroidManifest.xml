@@ -24,9 +24,6 @@
             android:name=".FileGallery"
             android:exported="false" />
         <activity
-            android:name=".Autosave"
-            android:exported="false" />
-        <activity
             android:name=".Help"
             android:exported="false" />
         <activity

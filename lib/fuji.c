@@ -285,7 +285,7 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 	c.arg = &temp;
 	c.get_more = my_add;
 
-	ptp_verbose_log("Exif reader: %d", exif_start_raw(&c));
+	plat_dbg("Exif reader: %d", exif_start_raw(&c));
 
 	if (c.thumb_of == 0 || c.thumb_size == 0) {
 		rc = ptp_get_partial_object(r, handle, 0xfffffff0, 0x1);
@@ -298,7 +298,7 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 
 	*offset = c.thumb_of;
 	*length = c.thumb_size;
-	ptp_verbose_log("%X -> %X", c.thumb_of, c.thumb_size);
+	plat_dbg("%X -> %X", c.thumb_of, c.thumb_size);
 
 	// Get camera to think we have ended this file stream
 	rc = ptp_get_partial_object(r, handle, 0xfffffff0, 0x1);

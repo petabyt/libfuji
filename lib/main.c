@@ -118,12 +118,7 @@ static inline jclass get_tester_class(JNIEnv *env) {
 	return (*env)->FindClass(env, "dev/danielc/fujiapp/Tester");
 }
 
-void app_downloading_file(const struct PtpObjectInfo *oi) {
-	plat_dbg("Downloading file %s", oi->filename);
-	// Photo importer has started downloading a file, send signal
-}
-
-jobject jni_to_json(JNIEnv *env, const char *string) {
+static jobject jni_to_json(JNIEnv *env, const char *string) {
 	jclass json_class = (*env)->FindClass(env, "org/json/JSONObject");
 	jmethodID constructor = (*env)->GetMethodID(env, json_class, "<init>", "(Ljava/lang/String;)V");
 
@@ -149,21 +144,33 @@ int app_check_thread_cancel() {
 	return (int)(*env)->CallBooleanMethod(env, current_thread, is_interrupted_id);
 }
 
-void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path) {
-	plat_dbg("Downloaded file %s", path);
-
+void app_downloading_file(const struct PtpObjectInfo *oi) {
+	plat_dbg("Downloading file %s", oi->filename);
+	// Photo importer has started downloading a file, send signal
 	char oi_buffer[512];
 	ptp_object_info_json(oi, oi_buffer, sizeof(oi_buffer));
 
 	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 5);
 
 	jobject json = jni_to_json(env, oi_buffer);
 
-	jclass frontend_c = (*env)->FindClass(env, "dev/danielc/fujiapp/Frontend");
+	jclass frontend_c = get_frontend_class(env);
 	jmethodID id = (*env)->GetStaticMethodID(env, frontend_c, "downloadingFile", "(Lorg/json/JSONObject;)V");
 	(*env)->CallStaticVoidMethod(env, frontend_c, id, json);
 
-	(*env)->DeleteLocalRef(env, json);
+	(*env)->PopLocalFrame(env, NULL);
+}
+
+void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path) {
+	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 5);
+	plat_dbg("Downloaded file %s", path);
+
+	jclass frontend_c = get_frontend_class(env);
+	jmethodID id = (*env)->GetStaticMethodID(env, frontend_c, "downloadedFile", "(Ljava/lang/String;)V");
+	(*env)->CallStaticVoidMethod(env, frontend_c, id, (*env)->NewStringUTF(env, path));
+	(*env)->PopLocalFrame(env, NULL);
 }
 
 void app_print_id(int resid) {

@@ -1,5 +1,6 @@
 package dev.danielc.fujiapp;
 
+import android.media.MediaScannerConnection;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -91,7 +92,12 @@ public class Frontend {
     }
 
     static void downloadingFile(JSONObject info) {
-        Gallery.downloadingFile();
+        Gallery.downloadingFile(info);
+    }
+
+    static void downloadedFile(String path) {
+        Gallery.downloadedFile(path);
+        MediaScannerConnection.scanFile(MainActivity.instance, new String[] {path}, null, null);
     }
 
     public static void print(int resID) {

@@ -42,6 +42,8 @@ public class Camlib {
     public native static int cPtpCloseSession();
     public native static String cGetObjectInfo(int handle);
     public static JSONObject getObjectInfo(int handle) throws Exception {
-        return new JSONObject(cGetObjectInfo(handle));
+        String x = cGetObjectInfo(handle);
+        if (x == null) return null;
+        return new JSONObject(x);
     }
 };

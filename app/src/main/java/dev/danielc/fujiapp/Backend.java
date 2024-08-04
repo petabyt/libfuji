@@ -160,10 +160,11 @@ public class Backend extends Camlib {
             }
         });
         discoveryThread.start();
-        Log.d("backend", "Ending discovery thread");
     }
     public native static int cStartDiscovery(Context ctx);
-    public static native void cancelDiscoveryThread();
+    public static void cancelDiscoveryThread() {
+        discoveryThread.interrupt();
+    }
 
     // Return directory is guaranteed to exist
     public static String getDownloads() {

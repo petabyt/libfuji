@@ -543,6 +543,7 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 		}
 	}
 
+	close(open_pcss);
 	close(tether_fd);
 	close(con_fd);
 	close(reg_fd);

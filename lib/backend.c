@@ -408,18 +408,8 @@ int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 	return 1;
 }
 
-volatile static int do_cancel = 0; // TODO: deprecate
-
-JNI_FUNC(void, cancelDiscoveryThread)(JNIEnv *env, jobject thiz) {
-	do_cancel = 1;
-}
-
 int fuji_discovery_check_cancel(void *arg) {
 	if (app_check_thread_cancel()) {
-		return 1;
-	}
-	if (do_cancel) {
-		do_cancel = 0;
 		return 1;
 	}
 	return 0;
@@ -449,7 +439,7 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 
 	set_jni_env_ctx(env, ctx);
 	if (already_discovering) {
-		plat_dbg("cStartDiscovery called twice");
+		plat_dbg("cStartDiscovery called twice, sanity check failed");
 		abort();
 	}
 	already_discovering = 1;

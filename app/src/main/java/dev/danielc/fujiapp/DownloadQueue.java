@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 abstract public class DownloadQueue {
     // LIFO stack
-    static ArrayList<Object> requests = new ArrayList<Object>();
+    ArrayList<Object> requests = new ArrayList<Object>();
 
     abstract void perform(Object request);
 

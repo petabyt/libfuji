@@ -4,19 +4,14 @@ plugins {
 
 android {
     namespace 'dev.danielc.fujiapp'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "dev.danielc.fujiapp"
         minSdk 23
-        targetSdk 33
-        versionCode 8
-        versionName "0.1.6"
-//        externalNativeBuild {
-//            ndkBuild {
-//                arguments "NDK_MODULE_PATH+=${rootProject.projectDir}"
-//            }
-//        }
+        targetSdk 34
+        versionCode 9
+        versionName "0.1.5"
     }
 
     buildTypes {

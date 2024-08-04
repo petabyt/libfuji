@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Import All"
-        android:textSize="34sp" />
+        android:textSize="24sp" />
 
     <TextView
         android:id="@+id/import_text"
@@ -19,17 +19,36 @@
         android:text="Will download any photos that you haven't already downloaded."
         android:textSize="15sp" />
 
-    <ProgressBar
-        android:id="@+id/progressBar"
-        style="?android:attr/progressBarStyleHorizontal"
+    <Switch
+        android:id="@+id/import_switch_jpegs"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:indeterminateOnly="true" />
+        android:text="JPEGs" />
+
+    <Switch
+        android:id="@+id/import_switch_movs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MOVs" />
+
+    <Switch
+        android:id="@+id/import_switch_raws"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="RAWs" />
+
+    <ProgressBar
+        android:id="@+id/import_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
     <Button
         android:id="@+id/import_start_stop_button"
+        style="@style/GoButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@drawable/grey_button"
         android:text="cancel" />
 
 </LinearLayout>

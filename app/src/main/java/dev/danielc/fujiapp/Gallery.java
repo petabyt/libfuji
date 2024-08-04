@@ -26,7 +26,11 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.PopupWindow;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class Gallery extends AppCompatActivity {
     private static Gallery instance;
@@ -47,21 +51,33 @@ public class Gallery extends AppCompatActivity {
         int length;
         Thread thread;
     }
-    static ImportPopup importPopup;
+    static ImportPopup importPopup = null;
 
     static void stopDownloading() {
         importPopup.thread.interrupt();
-        importPopup.window.dismiss();
-        importPopup.thread = null;
-        importPopup = null;
     }
 
-    static void downloadingFile() {
+    static void downloadingFile(JSONObject oi) {
+        if (importPopup == null) return;
+        importPopup.box.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ((TextView)importPopup.box.findViewById(R.id.import_text)).setText(String.format("Downloading %s", oi.getString("filename"), importPopup.length));
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+
+    static void downloadedFile(String filepath) {
+        if (importPopup == null) return;
         importPopup.count++;
         importPopup.box.post(new Runnable() {
             @Override
             public void run() {
-                ((TextView)importPopup.box.findViewById(R.id.import_text)).setText(String.format("Downloading %d/%d", importPopup.count, importPopup.length));
+                ((ProgressBar)importPopup.box.findViewById(R.id.import_progress)).setProgress(importPopup.count * 100 / importPopup.length);
             }
         });
     }
@@ -78,6 +94,14 @@ public class Gallery extends AppCompatActivity {
             @Override
             public void run() {
                 Backend.cFujiImportFiles(objectHandles);
+                importPopup.box.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        importPopup.window.dismiss();
+                        importPopup.thread = null;
+                        importPopup = null;
+                    }
+                });
             }
         });
         importPopup.thread.start();
