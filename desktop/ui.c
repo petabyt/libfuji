@@ -1,4 +1,4 @@
-// #include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -25,15 +25,52 @@ struct PtpRuntime *luaptp_get_runtime(lua_State *L) {
 	return ptp_get();
 }
 
-void ui_send_text(char *key, char *value, ...) {
+void app_send_cam_name(const char *name) {
 	if (!app.is_opened) {
 		return;
 	}
-	if (!strcmp(key, "cam_name")) {
-		char buffer[64];
-		sprintf(buffer, "Fudge - %s", value);
-		uiWindowSetTitle(app.main_win, buffer);
-	}
+
+	char buffer[64];
+	sprintf(buffer, "Fudge - %s", name);
+	uiWindowSetTitle(app.main_win, buffer);
+}
+
+void fuji_discovery_update_progress(void *arg, int progress) {
+	// ...
+}
+
+void app_get_file_path(char buffer[256], const char *filename) {
+	snprintf(buffer, 256, "%s", filename);
+}
+
+void app_downloading_file(const struct PtpObjectInfo *oi) {
+	// ...
+}
+
+void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path) {
+	// ...
+}
+
+void app_increment_progress_bar(int read) {
+	// ...
+}
+
+void tester_log(char *fmt, ...) {
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+	printf("LOG: %s\n", buffer);
+}
+
+void tester_fail(char *fmt, ...) {
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+	printf("FAIL: %s\n", buffer);
 }
 
 static void print_thread(char *buffer) {
@@ -142,12 +179,12 @@ static uiControl *files_tab() {
 	return uiControl(t);
 }
 
-extern void *fudge_backup_test(void *arg);
+extern void *fudge_usb_connect(void *arg);
 
 static void usb_connect(uiButton *btn, void *data) {
 	pthread_t thread;
 
-	pthread_create(&thread, 0, fudge_backup_test, NULL);
+	pthread_create(&thread, 0, fudge_usb_connect, NULL);
 }
 
 int cam_lua_setup(lua_State *L) {

@@ -32,4 +32,4 @@ jobs:
     - name: Compile desktop
       run: cd desktop && make TARGET=l fudge.out
     - name: Run desktop unit test
-      run: cd desktop && ./fudge.out -tw
+      run: bash .github/workflows/test.sh

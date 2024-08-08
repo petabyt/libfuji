@@ -1,6 +1,6 @@
 FUDGE = ../lib
 
-OBJ := main.o ui.o
+OBJ := main.o ui.o jank.o
 
 CAMLIB_CORE := transport.o operations.o packet.o enums.o data.o enum_dump.o lib.o canon.o liveview.o bind.o ml.o conv.o generic.o canon_adv.o
 ifeq ($(TARGET),l)
@@ -13,7 +13,7 @@ OBJ += $(addprefix camlib-,$(CAMLIB_CORE))
 OBJ += $(addprefix camlua-,lua.o runtime.o)
 OBJ += $(addprefix camluajson-,lua_cjson.o strbuf.o)
 
-FUDGE_CORE := fuji.o tester.o viewer.o data.o net.o discovery.o exif.o uilua.o fuji_usb.o
+FUDGE_CORE := fuji.o tester.o data.o net.o discovery.o exif.o uilua.o fuji_usb.o
 OBJ += $(addprefix fudge-,$(FUDGE_CORE))
 
 CAMLIB_DIR := ../lib/camlib
@@ -58,4 +58,4 @@ fudge-%.o: $(FUDGE)/%.c
 -include $(CAMLIB_DIR)/src/*.d $(CAMLIB_DIR)/lua/*.d $(CAMLIB_DIR)/lua/lua-cjson/*.d $(FUDGE)/*.d
 
 clean:
-	$(RM) *.o $(LIB_OBJ) main *.exe *.res
+	$(RM) *.o $(LIB_OBJ) main *.exe *.res *.out
