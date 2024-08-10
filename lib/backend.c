@@ -16,6 +16,13 @@ static inline jclass get_backend_class(JNIEnv *env) {
 	return (*env)->FindClass(env, "dev/danielc/fujiapp/Backend");
 }
 
+static jbyteArray struct_to_bytearr(void *data, int length) {
+	JNIEnv *env = get_jni_env();
+	jbyteArray arr = (*env)->NewByteArray(env, length);
+	(*env)->SetByteArrayRegion(env, arr, 0, length, (const jbyte *)data);
+	return arr;
+}
+
 JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
 	ptp_init(&backend.r);
@@ -54,17 +61,6 @@ JNI_FUNC(jstring, cEndLogs)(JNIEnv *env, jobject thiz) {
 	return str;
 }
 
-
-volatile int download_cancel = 1;
-
-JNI_FUNC(int, cCancelDownload)(JNIEnv *env, jobject thiz) {
-	if (!download_cancel) {
-		download_cancel = 1;
-		return 1;
-	}
-	return 0;
-}
-
 JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reason) {
 	set_jni_env(env);
 
@@ -86,7 +82,8 @@ JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reaso
 JNI_FUNC(void, cClearKillSwitch)(JNIEnv *env, jobject thiz) {
 	backend.r.io_kill_switch = 0;
 }
-// TODO: Remove?
+
+/// For frontend to check connection status
 JNI_FUNC(jboolean, cGetKillSwitch)(JNIEnv *env, jobject thiz) {
 	return backend.r.io_kill_switch != 0;
 }
@@ -126,40 +123,34 @@ JNI_FUNC(jint, cFujiDownloadFile)(JNIEnv *env, jobject thiz, jint handle, jstrin
 // PTP_IP_USB: Must be called after cFujiGetUncompressedObjectInfo
 JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray array, jint file_size) {
 	set_jni_env(env);
-
-	download_cancel = 0;
+	struct PtpRuntime *r = ptp_get();
+	int rc = 0;
 
 	// Makes sure to set the compression prop back to 0 after finished
 	// (extra data won't go through for some reason)
 	int read = 0;
 	while (1) {
 		if (app_check_thread_cancel()) {
-			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
-			return PTP_CANCELED;
-		}
-		if (download_cancel) {
-			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
-			return PTP_CANCELED;
+			rc = PTP_CANCELED;
+			goto end;
 		}
 
 		ptp_mutex_keep_locked(&backend.r);
-		int cur = file_size - read; if (cur > FUJI_MAX_PARTIAL_OBJECT) cur = FUJI_MAX_PARTIAL_OBJECT;
-		int rc = ptp_get_partial_object(&backend.r, handle, read, cur);
+		int cur = file_size - read;
+		if (cur > FUJI_MAX_PARTIAL_OBJECT) cur = FUJI_MAX_PARTIAL_OBJECT;
+		rc = ptp_get_partial_object(&backend.r, handle, read, cur);
 		if (rc == PTP_CHECK_CODE) {
-			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
-			ptp_mutex_unlock(&backend.r);
-			return rc;
+			goto end_unlock;
 		} else if (rc) {
 			plat_dbg("Download fail %d", rc);
-			ptp_mutex_unlock(&backend.r);
-			return rc;
+			goto end_unlock;
 		}
 
 		size_t payload_size = ptp_get_payload_length(&backend.r);
 
 		if (payload_size == 0) {
-			ptp_mutex_unlock(&backend.r);
-			return rc;
+			rc = PTP_RUNTIME_ERR;
+			goto end_unlock;
 		}
 
 		(*env)->SetByteArrayRegion(
@@ -168,11 +159,12 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 			(const jbyte *)(ptp_get_payload(&backend.r))
 		);
 
-		// Check for possible buffer overflow
+		// Check for java possible buffer overflow
 		if ((*env)->ExceptionCheck(env)) {
 			plat_dbg("SetByteArrayRegion exception");
 			(*env)->ExceptionClear(env);
-			return PTP_OUT_OF_MEM;
+			rc = PTP_OUT_OF_MEM;
+			goto end_unlock;
 		}
 
 		read += ptp_get_payload_length(&backend.r);
@@ -181,10 +173,23 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 
 		if (read >= file_size) {
 			plat_dbg("Downloaded %d bytes", read);
-			if (backend.r.connection_type == PTP_IP_USB) fuji_disable_compression(&backend.r);
-			return 0;
+			rc = 0;
+			goto end;
 		}
 	}
+
+	end:;
+	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
+		fuji_disable_compression(r);
+	}
+	return rc;
+
+	end_unlock:;
+	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
+		fuji_disable_compression(r);
+	}
+	ptp_mutex_unlock(r);
+	return rc;
 }
 
 // PTP_IP_USB: Must be called *before* a call to cFujiGetFile
@@ -249,15 +254,13 @@ JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	}
 }
 
-JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz, jstring ip) {
+JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
 
 	if (r->connection_type == PTP_USB) return fujiusb_setup(r);
 
-	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
-
-	int rc = fuji_setup(r, c_ip);
+	int rc = fuji_setup(r);
 
 	if (!rc && fuji_get(r)->camera_state == FUJI_MULTIPLE_TRANSFER) {
 		rc = fuji_download_classic(r);
@@ -268,9 +271,6 @@ JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz, jstring ip) {
 		app_print("Check your file manager app/gallery.");
 		ptp_report_error(r, "Disconnected", 0);
 	}
-
-	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
-	(*env)->DeleteLocalRef(env, ip);
 
 	return rc;
 }
@@ -308,6 +308,7 @@ jintArray ptpusb_get_object_handles(JNIEnv *env, struct PtpRuntime *r) {
 }
 
 // Return array of valid objects on main storage device
+// TODO: Rename cFujiGetObjectHandles
 JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
 	struct PtpRuntime *r = ptp_get();
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
@@ -333,21 +334,14 @@ JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
 	}
 }
 
-JNI_FUNC(jint, cFujiTestSuite)(JNIEnv *env, jobject thiz, jstring ip) {
+JNI_FUNC(jint, cFujiTestSuite)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
+	return fuji_test_suite(&backend.r);
+}
 
-	if (backend.r.connection_type == PTP_USB) {
-		return fuji_test_suite(&backend.r, NULL);
-	} else {
-		const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
-
-		int rc = fuji_test_suite(&backend.r, c_ip);
-
-		(*env)->ReleaseStringUTFChars(env, ip, c_ip);
-		(*env)->DeleteLocalRef(env, ip);
-
-		return rc;
-	}
+JNI_FUNC(jint, cGetTransport)(JNIEnv *env, jobject thiz) {
+	set_jni_env(env);
+	return fuji_get(ptp_get())->transport;
 }
 
 JNI_FUNC(jint, cTryConnectWiFi)(JNIEnv *env, jobject thiz) {
@@ -355,11 +349,28 @@ JNI_FUNC(jint, cTryConnectWiFi)(JNIEnv *env, jobject thiz) {
 	const char *c_ip = app_get_camera_ip();
 
 	int rc = ptpip_connect(&backend.r, c_ip, FUJI_CMD_IP_PORT);
+	if (rc == 0) {
+		fuji_reset_ptp(ptp_get());
+		strcpy(fuji_get(ptp_get())->ip_address, c_ip);
+		fuji_get(ptp_get())->transport = FUJI_FEATURE_WIRELESS_COMM;
+	}
 
-//	if (rc == 0) {
-//		fuji_reset_ptp(ptp_get()); // ???
-//		strcpy(fuji_get(ptp_get())->ip_address, c_ip);
-//	}
+	return rc;
+}
+
+JNI_FUNC(jint, cConnectFromDiscovery)(JNIEnv *env, jobject thiz, jbyteArray discovery) {
+	set_jni_env(env);
+
+	struct DiscoverInfo *info = (struct DiscoverInfo *)(*env)->GetByteArrayElements(env, discovery, 0);
+
+	int rc = ptpip_connect(&backend.r, info->camera_ip, info->camera_port);
+	if (rc == 0) {
+		fuji_reset_ptp(ptp_get());
+		strcpy(fuji_get(ptp_get())->ip_address, info->camera_ip);
+		fuji_get(ptp_get())->transport = info->transport;
+	}
+
+	(*env)->ReleaseByteArrayElements(env, discovery, (jbyte *)info, JNI_ABORT);
 
 	return rc;
 }
@@ -373,6 +384,7 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 	if (rc == 0) {
 		//fuji_reset_ptp(ptp_get()); // ???
 		strcpy(fuji_get(ptp_get())->ip_address, c_ip);
+		// TODO: ->transport ???
 	}
 
 	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
@@ -399,11 +411,11 @@ int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 	// Ask if we want to connect?
 	// onReceiveCameraInfo
 	jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onReceiveCameraInfo",
-											   "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+											   "(Ljava/lang/String;Ljava/lang/String;[B)V");
 	(*env)->CallVoidMethod(env, ctx, register_m,
 	   (*env)->NewStringUTF(env, info->camera_model),
 	   (*env)->NewStringUTF(env, info->camera_name),
-	   (*env)->NewStringUTF(env, info->camera_ip)
+	   struct_to_bytearr(info, sizeof(struct DiscoverInfo))
 	);
 	return 1;
 }
@@ -456,23 +468,17 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 		);
 	} else if (rc == FUJI_D_GO_PTP) {
 		jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onCameraWantsToConnect",
-												   "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
+												   "(Ljava/lang/String;Ljava/lang/String;[B)V");
 		(*env)->CallVoidMethod(env, ctx, register_m,
 			(*env)->NewStringUTF(env, info.camera_model),
 			(*env)->NewStringUTF(env, info.camera_name),
-			(*env)->NewStringUTF(env, info.camera_ip),
-			info.camera_port
+			struct_to_bytearr(&info, sizeof(struct DiscoverInfo))
 		);
 	} else if (rc < 0) {
 		app_print("Discovery thread err: %d", rc);
 		already_discovering = 0;
 		return rc;
 	}
-
-	// Do the connection here -
-
-	fuji->transport = info.transport;
-	strncpy(fuji->ip_address, info.camera_ip, sizeof(fuji->ip_address));
 
 	already_discovering = 0;
 	return rc;

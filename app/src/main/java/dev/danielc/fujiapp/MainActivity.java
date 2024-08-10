@@ -187,7 +187,8 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    void onReceiveCameraInfo(String model, String name, String ip) {
+    /// Called by backend
+    void onReceiveCameraInfo(String model, String name, byte[] struct) {
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -196,14 +197,14 @@ public class MainActivity extends AppCompatActivity {
                 discoveryPopup.show();
             }
         });
-//        return bool accept connection or not
+        // TODO: return user accepts connection or not
     }
 
-    void onCameraWantsToConnect(String model, String name, String ip, int port) {
+    // called by backend
+    void onCameraWantsToConnect(String model, String name, byte[] struct) {
         try {
             Thread.sleep(1000);
-            Backend.chosenIP = ip;
-            Backend.cConnectNative(ip, port);
+            Backend.cConnectFromDiscovery(struct);
             Backend.cClearKillSwitch();
             handler.post(new Runnable() {
                 @Override
@@ -317,7 +318,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getTitle() == "open") {
-            //openFiles();
             Intent intent = new Intent(MainActivity.this, FileGallery.class);
             startActivity(intent);
         } else if (item.getTitle() == "settings") {

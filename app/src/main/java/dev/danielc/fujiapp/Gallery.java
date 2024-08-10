@@ -163,26 +163,42 @@ public class Gallery extends AppCompatActivity {
         });
     }
 
+    static void pauseAll() {
+        if (instance.imageAdapter != null) {
+            instance.imageAdapter.queue.pause();
+        }
+        if (instance.list != null) {
+            instance.list.queue.pause();
+        }
+    }
+
+    static void resumeAll() {
+        if (instance == null) return;
+        if (instance.imageAdapter != null)
+            instance.imageAdapter.queue.pause();
+        if (instance.list != null)
+            instance.list.queue.pause();
+    }
+
     void createGallery() {
         recyclerView = new RecyclerView(this);
         recyclerView.setLayoutManager(new GridLayoutManager(this, GRID_SIZE));
-        recyclerView.setNestedScrollingEnabled(false);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            recyclerView.setFocusable(View.FOCUSABLE);
-        }
-        recyclerView.setClickable(true);
-
-        ViewGroup fileView = findViewById(R.id.fileView);
-        fileView.addView(recyclerView);
 
         imageAdapter = new ThumbAdapter(this, objectHandles);
 
         handler.post(new Runnable() {
             @Override
             public void run() {
+                ViewGroup fileView = findViewById(R.id.fileView);
+                fileView.addView(recyclerView);
+
                 recyclerView.setAdapter(imageAdapter);
                 recyclerView.setItemViewCacheSize(50);
                 recyclerView.setNestedScrollingEnabled(false);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    recyclerView.setFocusable(View.FOCUSABLE);
+                }
+                recyclerView.setClickable(true);
             }
         });
         imageAdapter.queue.startRequestThread();
@@ -278,7 +294,7 @@ public class Gallery extends AppCompatActivity {
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                int rc = Backend.cFujiSetup(Backend.chosenIP);
+                int rc = Backend.cFujiSetup();
                 if (rc != 0) {
                     fail(rc, "Setup error");
                     return;
@@ -302,7 +318,12 @@ public class Gallery extends AppCompatActivity {
                 } else if (objectHandles.length == 0) {
                     Frontend.print("No images available.");
                 } else {
-                    createList();
+                    int f = Backend.cGetTransport();
+                    if (f == Backend.FUJI_FEATURE_AUTOSAVE) {
+                        createList();
+                    } else {
+                        createGallery();
+                    }
                 }
 
                 // After init, use this thread to ping the camera for events
@@ -310,7 +331,7 @@ public class Gallery extends AppCompatActivity {
                     if (Backend.cPtpFujiPing() == 0) {
                         try {
                             Thread.sleep(1000);
-                        } catch (InterruptedException e) {}
+                        } catch (InterruptedException ignored) {}
                     } else {
                         fail(Backend.PTP_IO_ERR, "Failed to ping camera");
                         return;

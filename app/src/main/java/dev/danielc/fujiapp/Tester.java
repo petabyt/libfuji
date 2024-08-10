@@ -88,7 +88,7 @@ public class Tester extends AppCompatActivity {
     }
 
     public void mainTest(ConnectivityManager m) {
-        int rc = Backend.cFujiTestSuite(Backend.chosenIP);
+        int rc = Backend.cFujiTestSuite();
         log("Return code: " + rc);
         if (rc != 0) return;
         log("Test completed.");

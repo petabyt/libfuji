@@ -105,9 +105,7 @@ public class Frontend {
     }
 
     public static void updateLog() {
-        if (MainActivity.instance != null) {
-            MainActivity.instance.setLogText(basicLog.trim());
-        }
+        MainActivity.setLogText(basicLog.trim());
         Gallery.setLogText(basicLog.trim());
     }
 

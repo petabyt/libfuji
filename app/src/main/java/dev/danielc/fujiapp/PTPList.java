@@ -81,10 +81,16 @@ public class PTPList extends BaseAdapter {
         void perform(Object request) {
             Request req = (Request)request;
             try {
+                // TODO: 2013 StoreNotAvailable
                 JSONObject info = Backend.getObjectInfo(req.object_id);
+                if (info == null) {
+                    stopRequestThread();
+                    Backend.reportError(Backend.PTP_IO_ERR, "Failed to download image");
+                    return;
+                }
                 Holder h = new Holder();
                 h.object_id = req.object_id;
-                h.filename = info.getString("filename");
+                h.filename = info.getString("filename"); // TODO: info is null
                 h.size = info.getInt("compressedSize");
                 h.format = info.getInt("format_int");
                 req.list.lv.post(new Runnable() {

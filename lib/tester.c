@@ -249,8 +249,9 @@ int fuji_test_usb(struct PtpRuntime *r) {
 	return 0;
 }
 
-int fuji_test_suite(struct PtpRuntime *r, const char *ip) {
+int fuji_test_suite(struct PtpRuntime *r) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+
 	if (r->connection_type == PTP_USB) {
 		return fuji_test_usb(r);
 	}
@@ -259,7 +260,7 @@ int fuji_test_suite(struct PtpRuntime *r, const char *ip) {
 	if (rc) return rc;
 
 	if (fuji->remote_version != -1) {
-		rc = fuji_setup_remote_mode(r, ip);
+		rc = fuji_setup_remote_mode(r);
 		if (rc) return rc;
 	}
 

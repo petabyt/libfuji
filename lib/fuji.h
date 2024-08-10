@@ -62,14 +62,14 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code);
 
 int fuji_reset_ptp(struct PtpRuntime *r);
 
-int fuji_setup_remote_mode(struct PtpRuntime *r, const char *ip);
+int fuji_setup_remote_mode(struct PtpRuntime *r);
 
-int fuji_setup(struct PtpRuntime *r, const char *ip);
+int fuji_setup(struct PtpRuntime *r);
 
 int fuji_import_all(struct PtpRuntime *r, int *object_ids, int length);
 
 // Test suite stuff
-int fuji_test_suite(struct PtpRuntime *r, const char *ip);
+int fuji_test_suite(struct PtpRuntime *r);
 int fuji_test_setup(struct PtpRuntime *r);
 int fuji_test_filesystem(struct PtpRuntime *r);
 
@@ -94,9 +94,6 @@ int fuji_get_events(struct PtpRuntime *r);
 int fuji_disable_compression(struct PtpRuntime *r);
 int fuji_enable_compression(struct PtpRuntime *r);
 
-// TODO: fuji_downloading_file to return path
-void app_downloading_file(const struct PtpObjectInfo *oi);
-void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path);
 int fuji_download_classic(struct PtpRuntime *r);
 
 // Another socket on top of the 2 that camlib connects to
@@ -110,5 +107,8 @@ int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data);
 // Fuji (PTP/IP)
 int ptp_fuji_get_init_info(struct PtpRuntime *r, struct PtpFujiInitResp *resp);
 int ptp_fuji_parse_object_info(struct PtpRuntime *r, struct PtpFujiObjectInfo *oi);
+
+/// Download camera settings backup file
+int fujiusb_download_backup(struct PtpRuntime *r, FILE *f);
 
 #endif

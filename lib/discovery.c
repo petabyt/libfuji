@@ -34,14 +34,13 @@ static int get_local_ip(char buffer[64]) {
 	rc = getsockname(sock, (struct sockaddr*) &name, &namelen);
 	if (rc < 0) return rc;
 
-	const char *p = inet_ntop(AF_INET, &name.sin_addr, buffer, 64);
+	inet_ntop(AF_INET, &name.sin_addr, buffer, 64);
 
 	return 0;
 }
 
 static int connect_to_notify_server(char *ip, int port) {
-	int server_fd, client_fd;
-	struct sockaddr_in server_addr;
+	int server_fd;
 
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
 	int rc = app_bind_socket_wifi(server_fd);
@@ -130,6 +129,7 @@ static int start_invite_server(struct DiscoverInfo *info, int port) {
 
 	plat_dbg("invite server is listening...");
 
+	// TODO: timeout here 20 seconds?
 	client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
 	if (client_fd < 0) {
 		plat_dbg("invite server: Accepting connection failed");
@@ -156,11 +156,11 @@ static int start_invite_server(struct DiscoverInfo *info, int port) {
 		if (!strcmp(cur, "DSCNAME")) {
 			cur = strtok_r(NULL, delim, &saveptr);
 			if (cur == NULL) return -1;
-			strncpy(info->camera_name, cur, sizeof(info->camera_name));
+			snprintf(info->camera_name, sizeof(info->camera_name), "%s", cur);
 		} else if (!strcmp(cur, "DSCMODEL")) {
 			cur = strtok_r(NULL, delim, &saveptr);
 			if (cur == NULL) return -1;
-			strncpy(info->camera_model, cur, sizeof(info->camera_model));
+			snprintf(info->camera_model, sizeof(info->camera_model), "%s", cur);
 		}
 		cur = strtok_r(NULL, delim, &saveptr);
 	}
@@ -369,16 +369,16 @@ static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *ar
 		if (!strcmp(cur, "DSC")) {
 			cur = strtok_r(NULL, delim, &saveptr);
 			if (cur == NULL) return -1;
-			strncpy(info->camera_ip, cur, sizeof(info->camera_ip));
+			snprintf(info->camera_ip, sizeof(info->camera_ip), "%s", cur);
 		} else if (!strcmp(cur, "CAMERANAME")) {
 			cur = strtok_r(NULL, delim, &saveptr);
 			if (cur == NULL) return -1;
-			strncpy(info->camera_model, cur, sizeof(info->camera_model));
+			snprintf(info->camera_model, sizeof(info->camera_model), "%s", cur);
 		} else if (!strcmp(cur, "DSCPORT")) {
 			cur = strtok_r(NULL, delim, &saveptr);
 			if (cur == NULL) return -1;
 			char port_buf[16];
-			strncpy(port_buf, cur, sizeof(port_buf));
+			snprintf(port_buf, sizeof(port_buf), "%s", cur);
 			info->camera_port = strtol(port_buf, NULL, 10);
 		}
 		cur = strtok_r(NULL, delim, &saveptr);
@@ -533,6 +533,7 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 			}
 			greeting[len] = '\0';
 			rc = accept_connect(info, greeting);
+			info->transport = FUJI_FEATURE_AUTOSAVE;
 			if (rc == 0) rc = FUJI_D_GO_PTP;
 			break;
 		}
@@ -543,7 +544,7 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 		}
 	}
 
-	close(open_pcss);
+	close(pcss_fd);
 	close(tether_fd);
 	close(con_fd);
 	close(reg_fd);

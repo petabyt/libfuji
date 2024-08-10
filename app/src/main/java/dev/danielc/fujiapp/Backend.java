@@ -18,6 +18,18 @@ public class Backend extends Camlib {
         System.loadLibrary("fudge");
     }
 
+    // Discovery errors
+    final static int FUJI_D_REGISTERED = 1;
+    final static int FUJI_D_GO_PTP = 2;
+    final static int FUJI_D_CANCELED = 3;
+    final static int FUJI_D_IO_ERR = 4;
+    final static int FUJI_D_OPEN_DENIED = 5;
+    final static int FUJI_D_INVALID_NETWORK = 6;
+    final static int DISCOVERY_ERROR_THRESHOLD = 5;
+
+    final static int FUJI_FEATURE_AUTOSAVE = 1;
+    final static int FUJI_FEATURE_WIRELESS_COMM = 3;
+
     static SimpleUSB usb = new SimpleUSB();
 
     public static void connectUSB(Context ctx) throws Exception {
@@ -55,8 +67,6 @@ public class Backend extends Camlib {
         }
     }
 
-    static String chosenIP = Backend.FUJI_IP;
-
     public static int fujiConnectToCmd() {
         return cTryConnectWiFi();
     }
@@ -79,20 +89,15 @@ public class Backend extends Camlib {
         haveInited = true;
     }
 
-    // Constants
-    public static final String FUJI_EMU_IP = "192.168.1.33"; // IP addr of my laptop
-    public static final String FUJI_IP = "192.168.0.1";
-    public static final int FUJI_CMD_PORT = 55740;
-
     // IO kill switch is in C/camlib, so we must set it when a connection is established
     public native static void cClearKillSwitch();
     public native static boolean cGetKillSwitch();
-
+    public native static int cGetTransport();
     public native static int cUSBConnectNative(SimpleUSB usb);
     public native static int cTryConnectWiFi();
-    public native static int cConnectNative(String ip, int port);
+    public native static int cConnectFromDiscovery(byte[] struct);
     public native static void cInit();
-    public native static int cFujiSetup(String ip);
+    public native static int cFujiSetup();
     public native static int cPtpFujiPing();
     public native static int[] cGetObjectHandles();
     public native static int cFujiConfigImageGallery();
@@ -100,14 +105,13 @@ public class Backend extends Camlib {
     public native static int cFujiImportFiles(int[] handles);
 
     // For tester only
-    public native static int cFujiTestSuite(String ip);
+    public native static int cFujiTestSuite();
 
     // Must be called in order - first one enables compression, second disables compression
     // It must be this way to be as optimized as possible
     public native static String cFujiGetUncompressedObjectInfo(int handle);
     public native static int cFujiGetFile(int handle, byte[] array, int fileSize);
     public native static int cFujiDownloadFile(int handle, String path);
-    public native static int cCancelDownload();
     public native static int cSetProgressBarObj(Object progressBar, int size);
 
     // For test suite only
@@ -117,13 +121,6 @@ public class Backend extends Camlib {
 
     public native static View cFujiScriptsScreen(Context ctx);
 
-    final static int FUJI_D_REGISTERED = 1;
-    final static int FUJI_D_GO_PTP = 2;
-    final static int FUJI_D_CANCELED = 3;
-    final static int FUJI_D_IO_ERR = 4;
-    final static int FUJI_D_OPEN_DENIED = 5;
-    final static int FUJI_D_INVALID_NETWORK = 6;
-    final static int DISCOVERY_ERROR_THRESHOLD = 5;
     static Thread discoveryThread = null;
     public static void discoveryThread(Context ctx) {
         if (discoveryThread != null) {

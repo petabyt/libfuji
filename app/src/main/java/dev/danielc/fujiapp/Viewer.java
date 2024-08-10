@@ -105,7 +105,7 @@ public class Viewer extends AppCompatActivity {
     }
 
     public void toast(String msg) {
-        handler.post(new Runnable() { // null exception here
+        handler.post(new Runnable() { // handler null exception here
             @Override
             public void run() {
                 Toast.makeText(Viewer.this, msg, Toast.LENGTH_SHORT).show();
@@ -147,15 +147,18 @@ public class Viewer extends AppCompatActivity {
     }
 
     ActionBar actionBar;
+    Thread thread = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Gallery.pauseAll();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_viewer);
 
         actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
 
+        // ???
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
 
@@ -171,25 +174,27 @@ public class Viewer extends AppCompatActivity {
             public void onGlobalLayout() {
                 getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 progressBar = downloadPopup(Viewer.this);
-                new Thread(new Runnable() {
+                thread = new Thread(new Runnable() {
                     @Override
                     public void run() {
                         loadThumb(handle);
                     }
-                }).start();
+                });
+                thread.start();
             }
         });
     }
 
     private void loadThumb(int handle) {
         try {
-            // TODO: nullPointerException from cFujiGetUncompressedObjectInfo
             String t = Backend.cFujiGetUncompressedObjectInfo(handle);
             if (t == null) {
                 fail(Backend.PTP_IO_ERR, "Failed to get object info");
                 return;
             }
             JSONObject jsonObject = new JSONObject(t);
+
+            if (Thread.interrupted()) { return; }
 
             filename = jsonObject.getString("filename");
             int size = jsonObject.getInt("compressedSize");
@@ -203,7 +208,6 @@ public class Viewer extends AppCompatActivity {
             }
 
             handler.post(new Runnable() {
-                //@SuppressLint({"SetTextI18n", "DefaultLocale"})
                 @Override
                 public void run() {
                     actionBar.setTitle(filename);
@@ -229,6 +233,8 @@ public class Viewer extends AppCompatActivity {
                 return;
             }
 
+            if (Thread.interrupted()) { return; }
+
             Backend.cSetProgressBarObj(progressBar, size);
             int rc = Backend.cFujiGetFile(handle, fileByteData, size);
             if (rc == Backend.PTP_CHECK_CODE) {
@@ -249,6 +255,8 @@ public class Viewer extends AppCompatActivity {
 
             Backend.cSetProgressBarObj(null, 0);
 
+            if (Thread.interrupted()) { return; }
+
             BitmapFactory.Options options = new BitmapFactory.Options();
             if (imgX > GL10.GL_MAX_TEXTURE_SIZE) {
                 options.inSampleSize = 2;
@@ -263,6 +271,8 @@ public class Viewer extends AppCompatActivity {
                 options.inScaled = true;
             }
 
+            if (Thread.interrupted()) { return; }
+
             bitmap = BitmapFactory.decodeByteArray(fileByteData, 0, fileByteData.length, options);
 
             // Resizing didn't go as expected, we need to scale the bitmap again
@@ -273,7 +283,8 @@ public class Viewer extends AppCompatActivity {
                 bitmap = newBitmap;
             }
 
-            if (handler == null) return;
+            if (Thread.interrupted()) { return; }
+
             handler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -291,6 +302,7 @@ public class Viewer extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        actionBar = null;
         if (bitmap != null) {
             bitmap.recycle();
             bitmap = null;
@@ -324,9 +336,9 @@ public class Viewer extends AppCompatActivity {
                 }
                 return true;
             case android.R.id.home:
-                if (threadIsDone || (Backend.cCancelDownload() == 0)) {
-                    finish();
-                }
+                thread.interrupt();
+                Gallery.resumeAll();
+                finish();
                 return true;
         }
 
@@ -335,9 +347,9 @@ public class Viewer extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (threadIsDone || (Backend.cCancelDownload() == 0)) {
-            super.onBackPressed();
-        }
+        thread.interrupt();
+        Gallery.resumeAll();
+        super.onBackPressed();
     }
 
     @Override

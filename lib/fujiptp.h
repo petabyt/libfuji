@@ -6,17 +6,17 @@
 
 enum FujiTransport {
 	/// 'PLAY BACK MENU' -> 'PC AUTO SAVE'
-	FUJI_FEATURE_AUTOSAVE,
+	FUJI_FEATURE_AUTOSAVE = 1,
 	/// 'WIRELESS TETHER SHOOTING FIXED'
-	FUJI_FEATURE_WIRELESS_TETHER,
+	FUJI_FEATURE_WIRELESS_TETHER = 2,
 	/// 'WIRELESS COMMUNICATION' or 'WIRELESS TRANSFER'
-	FUJI_FEATURE_WIRELESS_COMM,
+	FUJI_FEATURE_WIRELESS_COMM = 3,
 	/// 'USB CARD READER'
-	FUJI_FEATURE_USB_CARD_READER,
+	FUJI_FEATURE_USB_CARD_READER = 4,
 	/// 'USB TETHER SHOOTING FIXED/AUTO'
-	FUJI_FEATURE_USB_TETHER_SHOOT,
+	FUJI_FEATURE_USB_TETHER_SHOOT = 5,
 	/// 'USB RAW CONV./BACKUP RESTORE'
-	FUJI_FEATURE_RAW_CONV,
+	FUJI_FEATURE_RAW_CONV = 6,
 };
 
 #define FUJI_CMD_IP_PORT 55740
@@ -63,7 +63,7 @@ enum FujiTransport {
 #define PTP_PC_FUJI_Unknown_D52F	0xd52f // probably version code
 #define PTP_PC_FUJI_ImageGetVersion	0xdf21 // Another prop used for image related things
 #define PTP_PC_FUJI_GetObjectVersion	0xdf22 // version for GetObjectInfo and GetObject behavior
-#define PTP_PC_FUJI_Unknown10		0xdf23 // another version prop?
+#define PTP_PC_FUJI_AutoSaveVersion		0xdf23
 #define PTP_PC_FUJI_RemoteVersion	0xdf24
 #define PTP_PC_FUJI_RemoteGetObjectVersion	0xdf25 // same as GetObjectVersion, but for cams that support remote mode
 #define PTP_PC_FUJI_ImageGetLimitedVersion	0xdf26 // supports less features

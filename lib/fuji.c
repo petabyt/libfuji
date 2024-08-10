@@ -1,6 +1,5 @@
-// Fujifilm WiFi connection library - this code is a portable extension to camlib.
-// Don't add any iOS, JNI, or Dart stuff to it
-// Copyright 2023 (c) Unofficial fujiapp
+// Implements Fujifilm nonstandard PTP/IP implementation
+// This is all portable code
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -11,15 +10,13 @@
 #include "fujiptp.h"
 #include "exif.h"
 
-//struct FujiDeviceKnowledge fuji_known = {0};
-
 struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r) {
 	return (struct FujiDeviceKnowledge *)r->userdata;
 }
 
 int fuji_reset_ptp(struct PtpRuntime *r) {
 	ptp_reset(r);
-	// leak
+	// leaks, don't care
 	r->userdata = calloc(1, sizeof(struct FujiDeviceKnowledge));
 	r->connection_type = PTP_IP_USB;
 	r->response_wait_default = 3; // Fuji cams are slow!
@@ -28,7 +25,7 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 }
 
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
-	plat_dbg("Kill switch: %d tid: %d\n", r->io_kill_switch, gettid());
+	plat_dbg("Kill switch: %d\n", r->io_kill_switch);
 	if (r->io_kill_switch) return;
 
 	// Safely disconnect if intentional
@@ -58,6 +55,7 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	}
 }
 
+// TODO: use this function
 int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info) {
 	fuji_reset_ptp(r);
 	fuji_get(r)->transport = info->transport;
@@ -69,7 +67,7 @@ int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *in
 }
 
 // Assumes cmd socket is valid
-int fuji_setup(struct PtpRuntime *r, const char *ip) {
+int fuji_setup(struct PtpRuntime *r) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 
 	app_print("Waiting on the camera...");
@@ -100,7 +98,6 @@ int fuji_setup(struct PtpRuntime *r, const char *ip) {
 		return rc;
 	}
 
-	app_print("Transport: %d", fuji->transport);
 	if (fuji->transport == FUJI_FEATURE_WIRELESS_TETHER) {
 		return 0;
 	}
@@ -137,19 +134,24 @@ int fuji_setup(struct PtpRuntime *r, const char *ip) {
 		return rc;
 	}
 
+	if (fuji->transport == FUJI_FEATURE_AUTOSAVE) {
+		rc = fuji_enable_compression(r);
+		if (rc) return rc;
+	}
+
 	rc = fuji_config_device_info_routine(r);
 	if (rc) return rc;
 
 	// Setup remote mode
 	if (fuji->remote_version != -1 && fuji->camera_state == FUJI_REMOTE_MODE) {
-		rc = fuji_setup_remote_mode(r, ip);
+		rc = fuji_setup_remote_mode(r);
 		if (rc) return rc;
 	}
 
 	return 0;
 }
 
-int fuji_setup_remote_mode(struct PtpRuntime *r, const char *ip) {
+int fuji_setup_remote_mode(struct PtpRuntime *r) {
 	int rc = fuji_remote_mode_open_sockets(r);
 	if (rc) {
 		app_print("Failed to start remote mode");
@@ -160,6 +162,8 @@ int fuji_setup_remote_mode(struct PtpRuntime *r, const char *ip) {
 
 	rc = fuji_get_events(r);
 	if (rc) return rc;
+
+	const char *ip = fuji_get(r)->ip_address;
 
 	rc = ptpip_connect_events(r, ip, FUJI_EVENT_IP_PORT);
 	if (rc) return rc;
@@ -201,18 +205,17 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 	if (x < 0) return PTP_IO_ERR;
 
 	if (p->type == PTPIP_INIT_FAIL) {
-		// TODO: resend the packet...
+		// Caller should resend the packet...
 		return PTP_RUNTIME_ERR;
 	}
 
 	ptp_fuji_get_init_info(r, resp);
 	ptp_verbose_log("Connected to %s\n", resp->cam_name);
 
-	if (ptp_get_return_code(r) == 0x0) {
-		return 0;
-	} else {
+	if (ptp_get_return_code(r) != 0) {
 		return PTP_IO_ERR;
 	}
+	return 0;
 }
 
 int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
@@ -226,7 +229,8 @@ int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
 	return ptp_generic_send_data(r, &cmd, dat, sizeof(dat));
 }
 
-int fuji_d228() {
+int fuji_d228(void) {
+	// Thing that PC AutoSave does
 	//	char buffer[64];
 	//	int s = 0;
 	//	s += ptp_write_u8(buffer + s, 6);
@@ -263,8 +267,14 @@ static uint8_t *my_add(void *arg, uint8_t *buffer, int new_len, int old_len) {
 int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *length) {
 	ptp_mutex_keep_locked(r);
 
-	int max_size = 512 * 30;
-	int rc = ptp_get_partial_object(r, handle, 0, max_size);
+	int rc = fuji_get_events(r);
+	if (rc) return rc;
+
+	int max_size = 0x4000;
+	rc = ptp_get_partial_object(r, handle, 0, max_size);
+	if (rc == PTP_CHECK_CODE) {
+		return PTP_RUNTIME_ERR;
+	}
 	if (rc) {
 		ptp_mutex_unlock(r);
 		return rc;
@@ -288,27 +298,31 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 	plat_dbg("Exif reader: %d", exif_start_raw(&c));
 
 	if (c.thumb_of == 0 || c.thumb_size == 0) {
-		rc = ptp_get_partial_object(r, handle, 0xfffffff0, 0x1);
-		ptp_mutex_unlock(r);
-		if (rc == PTP_IO_ERR) {
-			return rc;
-		}
-		return PTP_RUNTIME_ERR;
+		rc = PTP_RUNTIME_ERR;
+		goto end;
 	}
 
 	*offset = c.thumb_of;
 	*length = c.thumb_size;
-	plat_dbg("%X -> %X", c.thumb_of, c.thumb_size);
+	plat_dbg("Exif thumb offset: %u size: %u", c.thumb_of, c.thumb_size);
 
-	// Get camera to think we have ended this file stream
-	rc = ptp_get_partial_object(r, handle, 0xfffffff0, 0x1);
-	if (rc) return rc;
+	// Given transfer speed/camera speed 5 event calls is generally enough for the camera
+	// to not stop responding to object-related PTP commands
+	rc = fuji_get_events(r);
+	if (rc) goto end;
+	rc = fuji_get_events(r);
+	if (rc) goto end;
+	rc = fuji_get_events(r);
+	if (rc) goto end;
+	rc = fuji_get_events(r);
+	if (rc) goto end;
 
+	end:;
 	ptp_mutex_unlock(r);
-
-	return 0;
+	return rc;
 }
 
+// TODO: I named these functions completely backwards
 // Set the compression prop (allows full images to go through, otherwise puts
 // extra data in ObjectInfo and cuts off image downloads)
 // This appears to take a while, so r->wait_for_response is used here
@@ -327,7 +341,7 @@ int fuji_get_device_info(struct PtpRuntime *r) {
 	struct PtpCommand cmd;
 	cmd.code = PTP_OC_FUJI_GetDeviceInfo;
 	cmd.param_length = 0;
-
+	// TODO: Parsing should be done here
 	return ptp_generic_send(r, &cmd);
 }
 
@@ -441,7 +455,7 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 	}
 }
 
-// Handles critical init sequence. This is after initing the socket, and opening session.
+// Handles critical init sequence. This is after initializing the socket, and opening session.
 // Called right after obtaining access to the device.
 int fuji_config_init_mode(struct PtpRuntime *r) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
@@ -496,13 +510,21 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	return 0;
 }
 
-// TODO: rename config image view version
+
 int fuji_config_version(struct PtpRuntime *r) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
-	if (fuji->camera_state == FUJI_PC_AUTO_SAVE) return 0;
+	int rc = 0;
+	ptp_mutex_lock(r);
+	if (fuji->camera_state == FUJI_PC_AUTO_SAVE) {
+		rc = ptp_get_prop_value(r, PTP_PC_FUJI_AutoSaveVersion);
+		if (rc) goto end;
+		int code = ptp_parse_prop_value(r);
+		rc = ptp_set_prop_value(r, PTP_PC_FUJI_AutoSaveVersion, code);
+		goto end;
+	}
 	if (fuji->remote_version == -1) {
-		int rc = ptp_get_prop_value(r, PTP_PC_FUJI_GetObjectVersion);
-		if (rc) return rc;
+		rc = ptp_get_prop_value(r, PTP_PC_FUJI_GetObjectVersion);
+		if (rc) goto end;
 
 		int version = ptp_parse_prop_value(r);
 
@@ -511,19 +533,16 @@ int fuji_config_version(struct PtpRuntime *r) {
 		// The property must be set again (to it's own value) to tell the camera
 		// that the current version is supported - Fuji's app does this, so we assume it's necessary
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_GetObjectVersion, version);
-		if (rc) return rc;
+		if (rc) goto end;
 	} else {
-		//ptp_verbose_log(" %X\n", fuji_known.remote_version);
-
-		// Fuji sets 2000a to 2000b
-		// Sets 20006 to 2000c (?)
-		uint32_t new_remote_version = FUJI_CAM_CONNECT_REMOTE_VER;
-
-		int rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteVersion, new_remote_version);
-		if (rc) return rc;
+		// Some cams set from 2000a to 2000b
+		// Others set 20006 to 2000c (?)
+		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteVersion, FUJI_CAM_CONNECT_REMOTE_VER);
 	}
 
-	return 0;
+	end:;
+	ptp_mutex_unlock(r);
+	return rc;
 }
 
 int fuji_config_device_info_routine(struct PtpRuntime *r) {
@@ -535,7 +554,7 @@ int fuji_config_device_info_routine(struct PtpRuntime *r) {
 		fuji_register_device_info(r, ptp_get_payload(r));
 
 		// TODO: Parse device info
-		// I don't think we actually need it (?)
+		// Only useful for later on when we want to do property setting/getting
 	}
 
 	return 0;

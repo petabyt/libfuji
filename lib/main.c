@@ -34,7 +34,7 @@ void pop_jni_env_ctx(struct AndroidLocal l) {
 	set_jni_env_ctx(l.env, l.ctx);
 }
 
-JNIEnv *get_jni_env() {
+JNIEnv *get_jni_env(void) {
 	if (local.env == NULL) {
 		plat_dbg("JNIEnv not set for this thread");
 		abort();
@@ -43,7 +43,7 @@ JNIEnv *get_jni_env() {
 	return local.env;
 }
 
-jobject get_jni_ctx() {
+jobject get_jni_ctx(void) {
 	if (local.ctx == NULL) {
 		plat_dbg("ctx not set for this thread");
 		abort();
@@ -52,7 +52,7 @@ jobject get_jni_ctx() {
 	return local.ctx;
 }
 
-struct PtpRuntime *ptp_get() {
+struct PtpRuntime *ptp_get(void) {
 	return &backend.r;
 }
 
@@ -65,7 +65,7 @@ void app_get_file_path(char buffer[256], const char *filename) {
 	sprintf(buffer, "/storage/emulated/0/Pictures/fudge/%s", filename);
 }
 
-//#define VERBOSE
+#define VERBOSE
 
 void ptp_verbose_log(char *fmt, ...) {
 #ifndef VERBOSE
@@ -135,7 +135,7 @@ static jobject jni_to_json(JNIEnv *env, const char *string) {
 	return json_object;
 }
 
-int app_check_thread_cancel() {
+int app_check_thread_cancel(void) {
 	JNIEnv *env = get_jni_env();
 	jclass thread_class = (*env)->FindClass(env, "java/lang/Thread");
 	jmethodID current_thread_id = (*env)->GetStaticMethodID(env, thread_class, "currentThread", "()Ljava/lang/Thread;");
@@ -241,4 +241,41 @@ void app_send_cam_name(const char *name) {
 	jmethodID id = (*env)->GetStaticMethodID(env, f, "sendCamName", "(Ljava/lang/String;)V");
 	(*env)->CallStaticVoidMethod(env, f, id, j_str);
 	(*env)->DeleteLocalRef(env, j_str);
+}
+
+static int last_p = 0;
+
+void app_increment_progress_bar(int read) {
+	if (backend.progress_bar == NULL) {
+		return;
+	}
+
+	backend.download_progress += read;
+
+	int n = (((double)backend.download_progress) / (double)backend.download_size * 100.0);
+	if (last_p != n) {
+		if (n > 100) return;
+
+		JNIEnv *env = get_jni_env();
+
+		jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, backend.progress_bar), "setProgress", "(I)V");
+		(*env)->CallVoidMethod(env, backend.progress_bar, method, n);
+	}
+	last_p = n;
+}
+
+JNI_FUNC(jboolean, cSetProgressBarObj)(JNIEnv *env, jobject thiz, jobject pg, jint size) {
+	static clock_t tm;
+	if (pg == NULL) {
+		plat_dbg("Time taken to download: %f", (double)(clock() - tm) / CLOCKS_PER_SEC);
+		(*env)->DeleteGlobalRef(env, backend.progress_bar);
+		backend.progress_bar = NULL;
+		return 0;
+	}
+	tm = clock();
+	last_p = 0;
+	backend.download_size = size;
+	backend.download_progress = 0;
+	backend.progress_bar = (*env)->NewGlobalRef(env, pg);
+	return 0;
 }
