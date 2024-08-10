@@ -1,30 +1,23 @@
 // Basic wifi-priority socket interface for camlib
 // Copyright Daniel Cook - Apache License
-package camlib;
-
-import static android.net.wifi.WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS;
+package dev.danielc.common;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
-import android.net.MacAddress;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkRequest;
 import android.net.NetworkSpecifier;
 import android.net.Uri;
-import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSpecifier;
-import android.net.wifi.WifiNetworkSuggestion;
 import android.os.Build;
 import android.os.Handler;
 import android.os.PatternMatcher;
 import android.provider.Settings;
 import android.util.Log;
-
-import java.util.ArrayList;
 
 public class WiFiComm {
     public static final String TAG = "camlib";

@@ -9,9 +9,9 @@ import android.os.Environment;
 import android.view.View;
 
 import java.io.File;
-import org.json.JSONObject;
 
-import camlib.*;
+import dev.danielc.common.Camlib;
+import dev.danielc.common.SimpleUSB;
 
 public class Backend extends Camlib {
     static {

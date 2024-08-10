@@ -1,5 +1,5 @@
 // Fujifilm USB
-// Copyright 2023 (c) Unofficial fujiapp
+// Copyright 2024 (c) Unofficial Fudge
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -22,7 +22,7 @@ int fujiusb_setup(struct PtpRuntime *r) {
 
 	app_send_cam_name(di.model);
 
-	// TODO: Determine transport
+	// TODO: Determine transport based on product_id? Or other things?
 	fuji_get(r)->transport = FUJI_FEATURE_USB_CARD_READER;
 
 	return rc;

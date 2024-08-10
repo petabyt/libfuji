@@ -38,8 +38,6 @@ public class Tester extends AppCompatActivity {
             log("Routing logs to memory buffer.");
         }
 
-        ConnectivityManager m = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
-
         Context ctx = this;
 
         new Thread(new Runnable() {
@@ -62,7 +60,7 @@ public class Tester extends AppCompatActivity {
 
                 log("Established connection, starting test");
 
-                mainTest(m);
+                mainTest();
 
                 verboseLog = Backend.cEndLogs();
                 log("Hit the copy button to share the verbose log with devs.");
@@ -87,7 +85,7 @@ public class Tester extends AppCompatActivity {
         log("<font color='#EE0000'>[FAIL] " + str + "</font>");
     }
 
-    public void mainTest(ConnectivityManager m) {
+    public void mainTest() {
         int rc = Backend.cFujiTestSuite();
         log("Return code: " + rc);
         if (rc != 0) return;

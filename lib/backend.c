@@ -486,7 +486,7 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 
 static jlong get_handle() {
 	JNIEnv *env = get_jni_env();
-	jclass class = (*env)->FindClass(env, "camlib/WiFiComm");
+	jclass class = (*env)->FindClass(env, "dev/danielc/common/WiFiComm");
 	jmethodID get_handle_m = (*env)->GetStaticMethodID(env, class, "getNetworkHandle", "()J");
 	jlong handle = (*env)->CallStaticLongMethod(env, class, get_handle_m);
 	return handle;

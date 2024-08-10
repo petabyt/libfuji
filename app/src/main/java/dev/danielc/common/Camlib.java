@@ -1,6 +1,6 @@
 // Basic backend parent class for camlib with JNI
 // Copyright Daniel Cook - Apache License
-package camlib;
+package dev.danielc.common;
 
 import org.json.JSONObject;
 

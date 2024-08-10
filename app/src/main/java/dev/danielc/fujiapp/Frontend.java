@@ -9,8 +9,8 @@ import org.json.JSONObject;
 
 import java.util.Arrays;
 
-import camlib.Camlib;
-import camlib.WiFiComm;
+import dev.danielc.common.Camlib;
+import dev.danielc.common.WiFiComm;
 
 public class Frontend {
     public static String parseErr(int rc) {
