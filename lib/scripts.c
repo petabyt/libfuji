@@ -7,6 +7,7 @@
 #include <camlib.h>
 #include <camlua.h>
 #include <ui.h>
+#include <android.h>
 
 static uiMultilineEntry *script_box = NULL;
 
@@ -30,7 +31,8 @@ uiScroll *fudge_scripts_screen() {
 	uiBox *box = uiNewVerticalBox();
 	uiBoxSetPadded(box, 1);
 
-	char *file = jni_get_txt_file(uiAndroidGetEnv(), uiAndroidGetCtx(), "script.lua");
+	void *jni_get_txt_file(JNIEnv *env, jobject ctx, const char *filename);
+	char *file = jni_get_txt_file(get_jni_env(), jni_get_application_ctx(get_jni_env()), "script.lua");
 
 	script_box = uiNewMultilineEntry();
 	uiMultilineEntrySetText(script_box, file);
@@ -58,6 +60,6 @@ uiScroll *fudge_scripts_screen() {
 
 #include "backend.h"
 JNI_FUNC(jobject, cFujiScriptsScreen)(JNIEnv *env, jobject thiz, jobject ctx) {
-	uiAndroidInit(env, ctx);
+	set_jni_env_ctx(env, ctx);
 	return uiViewFromControl(fudge_scripts_screen());
 }

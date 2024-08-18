@@ -106,8 +106,6 @@ public class MainActivity extends AppCompatActivity {
 
         WiFiComm.setConnectivityManager((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
 
-        // Idea: Show WiFi status on screen?
-        // Show/hide discovery message
         Frontend.discoveryWaitWifi();
         WiFiComm.startNetworkListeners(this);
         Context ctx = this;
@@ -306,11 +304,6 @@ public class MainActivity extends AppCompatActivity {
                 tv.setText(arg);
             }
         });
-    }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
     }
 
     @Override

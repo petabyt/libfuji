@@ -50,8 +50,8 @@ static void on_selected_handler(const char *view_id, const char *setting_id) {
 	JNIEnv *env = get_jni_env();
 	jobject ctx = get_jni_ctx();
 	jobject view = view_get_by_id(env, ctx, view_id);
-	// view_get_checked();
-	jni_set_pref_int(env, setting_id, 1);
+	int x = (int)view_get_checked(env, view);
+	jni_set_pref_int(env, setting_id, x);
 }
 
 SETTINGS_FUNC(void, handleSettingsButtons)(JNIEnv *env, jobject thiz, jobject ctx) {

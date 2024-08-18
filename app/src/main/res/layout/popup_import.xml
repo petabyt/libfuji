@@ -23,6 +23,7 @@
         android:id="@+id/import_switch_jpegs"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:checked="true"
         android:text="JPEGs" />
 
     <Switch
@@ -35,6 +36,7 @@
         android:id="@+id/import_switch_raws"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:checked="true"
         android:text="RAWs" />
 
     <ProgressBar

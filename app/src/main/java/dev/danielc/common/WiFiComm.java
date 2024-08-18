@@ -137,9 +137,8 @@ public class WiFiComm {
 
         NetworkInfo wifiInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
         if (!wifiInfo.isAvailable()) {
+            Log.d("wifi", "WiFi network not available");
             return NOT_AVAILABLE;
-        } else if (!wifiInfo.isConnected()) {
-            return NOT_CONNECTED;
         }
 
         if (wifiDevice != null) {
@@ -147,6 +146,7 @@ public class WiFiComm {
             return wifiDevice.getNetworkHandle();
         }
 
+        Log.d("wifi", "WiFi network not available");
         return NOT_AVAILABLE;
     }
 }

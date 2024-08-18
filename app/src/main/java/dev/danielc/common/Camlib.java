@@ -15,9 +15,6 @@ public class Camlib {
 
     public static final int PTP_OF_JPEG = 0x3801;
 
-    public static final int OPEN_TIMEOUT = 500;
-    public static final int TIMEOUT = 1000;
-
     // camlib error codes
     public static final int PTP_OK = 0;
     public static final int PTP_NO_DEVICE = -1;
@@ -46,4 +43,21 @@ public class Camlib {
         if (x == null) return null;
         return new JSONObject(x);
     }
+
+    /// @brief Initialize object service on ptpruntime
+    public native static void cPtpObjectServiceStart(int[] handles);
+    public native static JSONObject cPtpObjectServiceGet(int handle);
+    public native static JSONObject cPtpObjectServiceGetIndex(int index);
+    public native static JSONObject[] cPtpObjectServiceGetFilled();
+    public native static int cPtpObjectServiceStep();
+    public native static void cPtpObjectServiceAddPriority(int handle);
+
+    public final static int PTP_SELET_JPEG = 1 << 0;
+    public final static int PTP_SELET_RAW = 1 << 1;
+    public final static int PTP_SELET_MOV = 1 << 2;
+    public final static int PTP_SORT_NEWEST = 1 << 3;
+    public final static int PTP_SORT_OLDEST = 1 << 4;
+    public final static int PTP_SORT_LARGEST = 1 << 5;
+    public final static int PTP_SORT_SMALLEST = 1 << 6;
+
 };

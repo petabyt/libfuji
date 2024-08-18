@@ -58,9 +58,7 @@ public class Backend extends Camlib {
             usb.openConnection();
             usb.getInterface();
             usb.getEndpoints();
-
             cUSBConnectNative(usb);
-
             cClearKillSwitch();
         } catch (Exception e) {
             e.printStackTrace();
@@ -102,7 +100,8 @@ public class Backend extends Camlib {
     public native static int[] cGetObjectHandles();
     public native static int cFujiConfigImageGallery();
     public native static byte[] cFujiGetThumb(int handle);
-    public native static int cFujiImportFiles(int[] handles);
+    /// Run mass gallery photo importer based on transport
+    public native static int cFujiImportFiles(int[] handles, int filter_mask);
 
     // For tester only
     public native static int cFujiTestSuite();
@@ -139,6 +138,7 @@ public class Backend extends Camlib {
                     if (rc < 0) break;
                     if (rc == FUJI_D_INVALID_NETWORK || rc == FUJI_D_IO_ERR || rc == FUJI_D_OPEN_DENIED) {
                         Log.d("discovery", "error: " + rc);
+                        Frontend.discoveryFailed();
                         break;
                     }
                     if (rc == FUJI_D_CANCELED || rc == FUJI_D_GO_PTP) {
@@ -169,7 +169,7 @@ public class Backend extends Camlib {
         String fujifilm = mainStorage + File.separator + "fudge";
         File directory = new File(fujifilm);
         if (!directory.exists()) {
-            directory.mkdirs();
+              directory.mkdirs();
         }
         return fujifilm;
     }

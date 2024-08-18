@@ -1,9 +1,13 @@
+// https://www.media.mit.edu/pia/Research/deepview/exif.html
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include "exif.h"
+#ifdef ANDROID
+#include <jni.h>
+#endif
 
 static inline int read_be_u32(void *b, uint32_t *o) {
 	uint32_t x = ((uint32_t *)b)[0];
@@ -34,9 +38,10 @@ static inline int read_u16(void *b, uint16_t *o) {
 static int ensure_size(struct ExifC *c, int length) {
 	if (length > c->length) {
 		length += 1000;
-		c->buf = c->get_more(c->arg, c->buf, length, c->length);
+		uint8_t *buf = c->get_more(c->arg, c->buf, length, c->length);
+		if (buf == NULL) return -1;
+		c->buf = buf;
 		c->length = length;
-		return c->buf != NULL;
 	}
 	return 0;
 }
@@ -46,7 +51,7 @@ int exif_parse_ifd(struct ExifC *c, int of) {
 	of += read_u16(c->buf + of, &entries);
 
 	for (int i = 0; i < entries; i++) {
-		ensure_size(c, of + 12);
+		if (ensure_size(c, of + 12)) return -1;
 		uint16_t tag, format;
 		uint32_t components, value_offset;
 		of += read_u16(c->buf + of, &tag);
@@ -94,7 +99,7 @@ int exif_parse_ifd(struct ExifC *c, int of) {
 	}
 
 	if (c->thumb_of != 0 && c->thumb_size != 0) {
-		ensure_size(c, c->thumb_of + c->thumb_size);
+		if (ensure_size(c, c->thumb_of + c->thumb_size)) return -1;
 	}
 	
 	return of;
@@ -104,27 +109,29 @@ int exif_start_entries(struct ExifC *c, int of) {
 	uint32_t offset;
 	uint16_t order, version, entries;
 	of += read_be_u16(c->buf + of, &order);
-	//printf("Order: %X\n", order);
 
 	of += read_u16(c->buf + of, &version);
 	of += read_u32(c->buf + of, &offset);
-	//printf("Offset: %X\n", offset);
 
 	of += offset - 8;
 
-	of = exif_parse_ifd(c, of);
+	int rc = exif_parse_ifd(c, of);
+	if (rc < 0) return rc;
+	of = rc;
 
 	uint32_t ifd1 = 0;
 	of += read_u32(c->buf + of, &ifd1);
 
 	if (ifd1 != 0) {
-		ensure_size(c, c->exif_start + ifd1);
-		exif_parse_ifd(c, c->exif_start + ifd1);
+		if (ensure_size(c, c->exif_start + ifd1)) return -1;
+		rc = exif_parse_ifd(c, c->exif_start + ifd1);
+		if (rc < 0) return rc;
 	}
 
 	if (c->subifd != 0) {
-		ensure_size(c, c->exif_start + c->subifd);
-		exif_parse_ifd(c, c->exif_start + c->subifd);
+		if (ensure_size(c, c->exif_start + c->subifd)) return -1;
+		rc = exif_parse_ifd(c, c->exif_start + c->subifd);
+		if (rc < 0) return rc;
 	}
 
 	return of;
@@ -147,14 +154,15 @@ int exif_start(struct ExifC *c, int of) {
 int exif_start_raw(struct ExifC *c) {
 	int of = 0;
 
-	ensure_size(c, 100);
+	if (ensure_size(c, 100)) return -1;
 
+	// Handle RAF header
 	const char *fuji_raw = "FUJIFILMCCD-RAW";
 	if (!memcmp(c->buf, fuji_raw, strlen(fuji_raw))) {
 		uint32_t header_len;
 		of = 0x54;
 		read_be_u32(c->buf + of, &header_len);
-		ensure_size(c, header_len);
+		if (ensure_size(c, header_len)) return -1;
 		of = header_len;
 	}
 
@@ -166,14 +174,13 @@ int exif_start_raw(struct ExifC *c) {
 	return of;
 }
 
-static uint8_t *my_add(void *arg, uint8_t *buffer, int new_len, int old_len) {
-	printf("my_add %d\n", new_len);
+static uint8_t *file_add(void *arg, uint8_t *buffer, int new_len, int old_len) {
 	uint8_t *new = realloc(buffer, new_len);
-	fread(new + old_len, 1, new_len - old_len, arg);
+	fread(new + old_len, 1, new_len - old_len, (FILE *)arg);
 	return new;
 }
 
-static int exif_main() {
+static int exif_main(void) {
 	FILE *f = fopen("DSCF5319.RAF", "rb");
 	if (f == NULL) {
 		puts("bad file");
@@ -187,7 +194,7 @@ static int exif_main() {
 	c.length = 1000;
 	c.buf = buffer;
 	c.arg = f;
-	c.get_more = my_add;
+	c.get_more = file_add;
 
 	exif_start_raw(&c);
 
@@ -195,3 +202,44 @@ static int exif_main() {
 
 	return 0;
 }
+
+#ifdef ANDROID
+JNIEXPORT jbyteArray JNICALL Java_dev_danielc_common_Exif_getThumbnail__Ljava_lang_String_2(JNIEnv *env, jobject thiz, jstring filepath) {
+	const char *cfilepath = (*env)->GetStringUTFChars(env, filepath, 0);
+	FILE *f = fopen(cfilepath, "rb");
+	if (f == NULL) {
+		abort();
+	}
+
+	uint8_t *buffer = malloc(100);
+	fread(buffer, 1, 100, f);
+
+	struct ExifC c = {0};
+	c.length = 100;
+	c.buf = buffer;
+	c.arg = f;
+	c.get_more = file_add;
+
+	int rc = exif_start_raw(&c);
+	if (rc < 0) {
+		abort();
+	}
+
+	if (c.thumb_of == 0 || c.thumb_size == 0) {
+		return NULL;
+	}
+
+	jbyteArray result = (*env)->NewByteArray(env, c.thumb_size);
+	(*env)->SetByteArrayRegion(env, result, 0, c.thumb_size, (jbyte *)(c.buf + c.thumb_of));
+
+	free(c.buf);
+	fclose(f);
+	(*env)->ReleaseStringUTFChars(env, filepath, cfilepath);
+
+	return result;
+}
+
+JNIEXPORT jstring JNICALL Java_dev_danielc_common_Exif_getInformationJSON(JNIEnv *env, jobject thiz, jstring path) {
+
+}
+#endif

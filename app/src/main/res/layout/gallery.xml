@@ -11,7 +11,6 @@
         android:id="@+id/gallery_logs"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="..."
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -32,13 +31,23 @@
                 android:layout_height="50dp"
                 android:src="@drawable/baseline_terminal_24" />
 
+            <Space
+                android:layout_width="10dp"
+                android:layout_height="wrap_content" />
+
             <ImageButton
                 android:id="@+id/remote_button"
                 style="@style/GreyButton"
                 android:layout_width="wrap_content"
                 android:layout_height="50dp"
                 android:layout_weight="1"
-                android:src="@drawable/baseline_settings_remote_24" />
+                android:clickable="false"
+                android:src="@drawable/baseline_settings_remote_24"
+                app:tint="#686868" />
+
+            <Space
+                android:layout_width="10dp"
+                android:layout_height="wrap_content" />
 
             <ImageButton
                 android:id="@+id/import_button"
@@ -68,15 +77,15 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-<!--            <androidx.recyclerview.widget.RecyclerView-->
-<!--                android:id="@+id/galleryView"-->
-<!--                android:layout_width="match_parent"-->
-<!--                android:layout_height="match_parent"-->
-<!--                android:background="?android:attr/selectableItemBackground"-->
-<!--                android:clickable="true"-->
-<!--                android:focusable="true">-->
+            <!--            <androidx.recyclerview.widget.RecyclerView-->
+            <!--                android:id="@+id/galleryView"-->
+            <!--                android:layout_width="match_parent"-->
+            <!--                android:layout_height="match_parent"-->
+            <!--                android:background="?android:attr/selectableItemBackground"-->
+            <!--                android:clickable="true"-->
+            <!--                android:focusable="true">-->
 
-<!--            </androidx.recyclerview.widget.RecyclerView>-->
+            <!--            </androidx.recyclerview.widget.RecyclerView>-->
         </LinearLayout>
 
     </LinearLayout>

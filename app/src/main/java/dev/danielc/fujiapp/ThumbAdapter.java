@@ -93,9 +93,9 @@ public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHol
                 @Override
                 public void run() {
                     holder.image.setImageBitmap(bitmap);
+                    holder.isLoaded = true;
                 }
             });
-            holder.isLoaded = true;
         } catch (OutOfMemoryError e) {
             Backend.reportError(Backend.PTP_RUNTIME_ERR, "Out of memory");
         }
@@ -150,12 +150,14 @@ public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHol
         public int handle;
         public String filename;
         public boolean isLoaded;
+        public TextView label;
 
-        public ImageViewHolder(FrameLayout frame, View itemView) {
+        public ImageViewHolder(FrameLayout frame, View itemView, TextView label) {
             super(frame);
-            image = (ImageView)itemView;
-            handle = -1;
-            isLoaded = false;
+            this.image = (ImageView)itemView;
+            this.handle = -1;
+            this.isLoaded = false;
+            this.label = label;
         }
 
         public static ImageViewHolder create(ViewGroup parent) {
@@ -165,9 +167,8 @@ public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHol
             view.setScaleType(ImageView.ScaleType.CENTER_CROP);
             frame.addView(view);
             TextView text = new TextView(parent.getContext());
-            text.setText("Hello");
             frame.addView(text);
-            return new ImageViewHolder(frame, view);
+            return new ImageViewHolder(frame, view, text);
         }
     }
 }

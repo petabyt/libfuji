@@ -43,7 +43,7 @@ public class Frontend {
                 MainActivity.instance.findViewById(R.id.discoveryProgressBar).setVisibility(View.GONE);
                 TextView tv = MainActivity.instance.findViewById(R.id.discoveryMessage);
                 tv.setVisibility(View.VISIBLE);
-                tv.setText("discovery failed...");
+                tv.setText(R.string.discovery_failed);
             }
         });
     }
@@ -55,7 +55,7 @@ public class Frontend {
                 MainActivity.instance.findViewById(R.id.discoveryProgressBar).setVisibility(View.GONE);
                 TextView tv = MainActivity.instance.findViewById(R.id.discoveryMessage);
                 tv.setVisibility(View.VISIBLE);
-                tv.setText("waiting on wifi...");
+                tv.setText(R.string.waiting_on_wifi);
             }
         });
     }

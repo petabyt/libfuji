@@ -9,8 +9,8 @@
 // X-A2 decided to freak out and stall. So, we have to do it the Fuji way :)
 #define FUJI_MAX_PARTIAL_OBJECT 0x100000
 
-const char *app_get_camera_ip();
-int app_do_connect_without_wifi();
+const char *app_get_camera_ip(void);
+int app_do_connect_without_wifi(void);
 
 enum DiscoverRet {
 	FUJI_D_REGISTERED = 1,
@@ -66,7 +66,7 @@ int fuji_setup_remote_mode(struct PtpRuntime *r);
 
 int fuji_setup(struct PtpRuntime *r);
 
-int fuji_import_all(struct PtpRuntime *r, int *object_ids, int length);
+int fuji_import_objects(struct PtpRuntime *r, int *object_ids, int length, int mask);
 
 // Test suite stuff
 int fuji_test_suite(struct PtpRuntime *r);
@@ -110,5 +110,17 @@ int ptp_fuji_parse_object_info(struct PtpRuntime *r, struct PtpFujiObjectInfo *o
 
 /// Download camera settings backup file
 int fujiusb_download_backup(struct PtpRuntime *r, FILE *f);
+
+#define PTP_SELET_JPEG (1 << 0)
+#define PTP_SELET_RAW  (1 << 1)
+#define PTP_SELET_MOV  (1 << 2)
+#define PTP_SORT_NEWEST (1 << 3)
+#define PTP_SORT_OLDEST (1 << 4)
+#define PTP_SORT_LARGEST (1 << 5)
+#define PTP_SORT_SMALLEST (1 << 6)
+
+/// @brief Respects cancel signals.
+/// @note If transport is FUJI_FEATURE_WIRELESS_COMM, compression property will be enabled after download
+int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (handle_add)(void *, void *, int, int), void *arg);
 
 #endif

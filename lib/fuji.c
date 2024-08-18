@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
 #include <camlib.h>
+#include <sys/stat.h>
 #include "app.h"
 #include "fuji.h"
 #include "fujiptp.h"
@@ -205,6 +207,7 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 	if (x < 0) return PTP_IO_ERR;
 
 	if (p->type == PTPIP_INIT_FAIL) {
+		ptp_verbose_log("PTPIP_INIT_FAIL\n");
 		// Caller should resend the packet...
 		return PTP_RUNTIME_ERR;
 	}
@@ -295,7 +298,8 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 	c.arg = &temp;
 	c.get_more = my_add;
 
-	plat_dbg("Exif reader: %d", exif_start_raw(&c));
+	rc = exif_start_raw(&c);
+	ptp_verbose_log("Exif: %d", rc);
 
 	if (c.thumb_of == 0 || c.thumb_size == 0) {
 		rc = PTP_RUNTIME_ERR;
@@ -304,7 +308,7 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 
 	*offset = c.thumb_of;
 	*length = c.thumb_size;
-	plat_dbg("Exif thumb offset: %u size: %u", c.thumb_of, c.thumb_size);
+	ptp_verbose_log("Exif thumb offset: %u size: %u", c.thumb_of, c.thumb_size);
 
 	// Given transfer speed/camera speed 5 event calls is generally enough for the camera
 	// to not stop responding to object-related PTP commands
@@ -628,23 +632,48 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 	return 0;
 }
 
-int fuji_import_all(struct PtpRuntime *r, int *object_ids, int length) {
-	for (int i = 0; i < length; i++) {
-		struct PtpObjectInfo oi;
-		int rc = ptp_get_object_info(r, 1, &oi);
-		if (rc) return rc;
+static inline int do_download(int mask, int format) {
+	if (mask & PTP_SELET_JPEG && format == PTP_OF_JPEG) return 1;
+	if (mask & PTP_SELET_MOV && format == PTP_OF_MOV) return 1;
+	if (mask & PTP_SELET_RAW && format == PTP_OF_RAW) return 1;
+	return 0;
+}
 
-		app_downloading_file(&oi);
+int fuji_import_objects(struct PtpRuntime *r, int *object_ids, int length, int mask) {
+	int rc;
+	for (int i = 0; i < length; i++) {
+		struct PtpObjectInfo *oi = ptp_object_service_get(r, r->oc, object_ids[i]);
+
+		struct PtpObjectInfo temp_oi;
+		if (oi == NULL) {
+			rc = ptp_get_object_info(r, object_ids[i], &temp_oi);
+			if (rc) return rc;
+			oi = &temp_oi;
+		}
+
+		if (!do_download(mask, oi->obj_format)) continue;
+
+		app_downloading_file(oi);
 
 		char path[256];
-		app_get_file_path(path, oi.filename);
-		FILE *f = fopen(path, "wb");
-		if (f == NULL) return PTP_RUNTIME_ERR;
+		app_get_file_path(path, oi->filename);
 
-		rc = ptp_download_object(r, 1, f, 0x100000);
+		struct stat buffer;
+		if (stat(path, &buffer) == 0) {
+			ptp_verbose_log("File already exists");
+			continue;
+		}
+
+		FILE *f = fopen(path, "wb");
+		if (f == NULL) {
+			ptp_verbose_log("fopen(%s) failed", path);
+			return PTP_RUNTIME_ERR;
+		}
+
+		rc = ptp_download_object(r, object_ids[i], f, 0x100000);
 		fclose(f);
 		if (rc) {
-			app_print("Failed to save %s: %s", oi.filename, ptp_perror(rc));
+			app_print("Failed to save %s: %s", oi->filename, ptp_perror(rc));
 			return rc;
 		}
 
@@ -652,12 +681,73 @@ int fuji_import_all(struct PtpRuntime *r, int *object_ids, int length) {
 			return 0;
 		}
 
-		app_downloaded_file(&oi, path);
+		app_downloaded_file(oi, path);
 	}
 
 	return 0;
 }
 
+int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (handle_add)(void *, void *, int, int), void *arg) {
+	int rc = 0;
+
+	ptp_mutex_keep_locked(r);
+
+	float startTime = (float)clock() / CLOCKS_PER_SEC;
+
+	// Makes sure to set the compression prop back to 0 after finished
+	// (extra data won't go through for some reason)
+	int read = 0;
+	while (1) {
+		if (app_check_thread_cancel()) {
+			rc = PTP_CANCELED;
+			goto end;
+		}
+
+		int cur = file_size - read;
+		if (cur > FUJI_MAX_PARTIAL_OBJECT) cur = FUJI_MAX_PARTIAL_OBJECT;
+		rc = ptp_get_partial_object(r, handle, read, cur);
+		if (rc == PTP_CHECK_CODE) {
+			goto end_unlock;
+		} else if (rc) {
+			plat_dbg("Download fail %d", rc);
+			goto end_unlock;
+		}
+
+		size_t payload_size = ptp_get_payload_length(r);
+
+		if (payload_size == 0) {
+			rc = PTP_RUNTIME_ERR;
+			goto end_unlock;
+		}
+
+		handle_add(arg, ptp_get_payload(r), payload_size, read);
+
+		read += payload_size;
+
+		if (read >= file_size) {
+			float endTime = (float)clock() / CLOCKS_PER_SEC;
+			plat_dbg("Took %f seconds", endTime - startTime);
+			rc = 0;
+			goto end;
+		}
+	}
+
+	end:;
+	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
+		fuji_disable_compression(r);
+	}
+	ptp_mutex_unlock(r);
+	return rc;
+
+	end_unlock:;
+	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
+		fuji_disable_compression(r);
+	}
+	ptp_mutex_unlock(r);
+	return rc;
+}
+
+// Functionality of FUJI_MULTIPLE_TRANSFER
 int fuji_download_classic(struct PtpRuntime *r) {
 	while (1) {
 		// This determines whether the connection is terminated or not
@@ -682,7 +772,7 @@ int fuji_download_classic(struct PtpRuntime *r) {
 
 		app_downloaded_file(&oi, path);
 
-		// Fuji's fujisystem will swap out object ID 1 with the next image. If there
+		// Fuji's filesystem will swap out object ID 1 with the next image. If there
 		// are no more images, the camera shuts down the connection and turns off.
 
 		// In other words, the camera is in superposition - it's on and off at the same time.

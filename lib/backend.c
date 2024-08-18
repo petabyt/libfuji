@@ -16,11 +16,28 @@ static inline jclass get_backend_class(JNIEnv *env) {
 	return (*env)->FindClass(env, "dev/danielc/fujiapp/Backend");
 }
 
-static jbyteArray struct_to_bytearr(void *data, int length) {
+jbyteArray jni_struct_to_bytearr(void *data, int length) {
 	JNIEnv *env = get_jni_env();
 	jbyteArray arr = (*env)->NewByteArray(env, length);
 	(*env)->SetByteArrayRegion(env, arr, 0, length, (const jbyte *)data);
 	return arr;
+}
+
+jobject jni_string_to_jsonobject(JNIEnv *env, const char *str) {
+	jclass json_object_class;
+	jmethodID json_object_constructor;
+	jobject json_object;
+	jstring json_string;
+
+	json_object_class = (*env)->FindClass(env, "org/json/JSONObject");
+	json_object_constructor = (*env)->GetMethodID(env, json_object_class, "<init>", "(Ljava/lang/String;)V");
+
+	json_string = (*env)->NewStringUTF(env, str);
+	json_object = (*env)->NewObject(env, json_object_class, json_object_constructor, json_string);
+
+	(*env)->DeleteLocalRef(env, json_string);
+
+	return json_object;
 }
 
 JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz) {
@@ -120,76 +137,37 @@ JNI_FUNC(jint, cFujiDownloadFile)(JNIEnv *env, jobject thiz, jint handle, jstrin
 	return 0;
 }
 
+static int jbytearray_add(void *arg, void *data, int size, int read) {
+	JNIEnv *env = get_jni_env();
+	(*env)->SetByteArrayRegion(
+		env, (jbyteArray)arg,
+		read, size,
+		(const jbyte *)data
+	);
+
+	// Check for java possible buffer overflow
+	if ((*env)->ExceptionCheck(env)) {
+		plat_dbg("SetByteArrayRegion exception");
+		(*env)->ExceptionClear(env);
+		return -1;
+	}
+
+	return 0;
+}
+
 // PTP_IP_USB: Must be called after cFujiGetUncompressedObjectInfo
 JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray array, jint file_size) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
-	int rc = 0;
 
-	// Makes sure to set the compression prop back to 0 after finished
-	// (extra data won't go through for some reason)
-	int read = 0;
-	while (1) {
-		if (app_check_thread_cancel()) {
-			rc = PTP_CANCELED;
-			goto end;
-		}
+	int rc = fuji_download_file(r, handle, file_size, jbytearray_add, array);
+	if (rc) return rc;
 
-		ptp_mutex_keep_locked(&backend.r);
-		int cur = file_size - read;
-		if (cur > FUJI_MAX_PARTIAL_OBJECT) cur = FUJI_MAX_PARTIAL_OBJECT;
-		rc = ptp_get_partial_object(&backend.r, handle, read, cur);
-		if (rc == PTP_CHECK_CODE) {
-			goto end_unlock;
-		} else if (rc) {
-			plat_dbg("Download fail %d", rc);
-			goto end_unlock;
-		}
-
-		size_t payload_size = ptp_get_payload_length(&backend.r);
-
-		if (payload_size == 0) {
-			rc = PTP_RUNTIME_ERR;
-			goto end_unlock;
-		}
-
-		(*env)->SetByteArrayRegion(
-			env, array,
-			read, payload_size,
-			(const jbyte *)(ptp_get_payload(&backend.r))
-		);
-
-		// Check for java possible buffer overflow
-		if ((*env)->ExceptionCheck(env)) {
-			plat_dbg("SetByteArrayRegion exception");
-			(*env)->ExceptionClear(env);
-			rc = PTP_OUT_OF_MEM;
-			goto end_unlock;
-		}
-
-		read += ptp_get_payload_length(&backend.r);
-
-		ptp_mutex_unlock(&backend.r);
-
-		if (read >= file_size) {
-			plat_dbg("Downloaded %d bytes", read);
-			rc = 0;
-			goto end;
-		}
-	}
-
-	end:;
 	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
 		fuji_disable_compression(r);
 	}
-	return rc;
 
-	end_unlock:;
-	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
-		fuji_disable_compression(r);
-	}
-	ptp_mutex_unlock(r);
-	return rc;
+	return 0;
 }
 
 // PTP_IP_USB: Must be called *before* a call to cFujiGetFile
@@ -392,13 +370,13 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 	return rc;
 }
 
-JNI_FUNC(jint, cFujiImportFiles)(JNIEnv *env, jobject thiz, jintArray handles) {
+JNI_FUNC(jint, cFujiImportFiles)(JNIEnv *env, jobject thiz, jintArray handles, int mask) {
 	set_jni_env(env);
 
 	jsize length = (*env)->GetArrayLength(env, handles);
 	jint *handles_n = (*env)->GetIntArrayElements(env, handles, NULL);
 
-	int rc = fuji_import_all(ptp_get(), handles_n, length);
+	int rc = fuji_import_objects(ptp_get(), handles_n, length, mask);
 
 	(*env)->ReleaseIntArrayElements(env, handles, handles_n, 0);
 
@@ -413,9 +391,9 @@ int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 	jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onReceiveCameraInfo",
 											   "(Ljava/lang/String;Ljava/lang/String;[B)V");
 	(*env)->CallVoidMethod(env, ctx, register_m,
-	   (*env)->NewStringUTF(env, info->camera_model),
-	   (*env)->NewStringUTF(env, info->camera_name),
-	   struct_to_bytearr(info, sizeof(struct DiscoverInfo))
+						   (*env)->NewStringUTF(env, info->camera_model),
+						   (*env)->NewStringUTF(env, info->camera_name),
+						   jni_struct_to_bytearr(info, sizeof(struct DiscoverInfo))
 	);
 	return 1;
 }
@@ -470,9 +448,9 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 		jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onCameraWantsToConnect",
 												   "(Ljava/lang/String;Ljava/lang/String;[B)V");
 		(*env)->CallVoidMethod(env, ctx, register_m,
-			(*env)->NewStringUTF(env, info.camera_model),
-			(*env)->NewStringUTF(env, info.camera_name),
-			struct_to_bytearr(&info, sizeof(struct DiscoverInfo))
+							   (*env)->NewStringUTF(env, info.camera_model),
+							   (*env)->NewStringUTF(env, info.camera_name),
+							   jni_struct_to_bytearr(&info, sizeof(struct DiscoverInfo))
 		);
 	} else if (rc < 0) {
 		app_print("Discovery thread err: %d", rc);
@@ -484,7 +462,7 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 	return rc;
 }
 
-static jlong get_handle() {
+static jlong get_handle(void) {
 	JNIEnv *env = get_jni_env();
 	jclass class = (*env)->FindClass(env, "dev/danielc/common/WiFiComm");
 	jmethodID get_handle_m = (*env)->GetStaticMethodID(env, class, "getNetworkHandle", "()J");
@@ -493,9 +471,9 @@ static jlong get_handle() {
 }
 
 int app_bind_socket_wifi(int fd) {
-//	if (app_do_connect_without_wifi()) {
-//		return 0;
-//	}
+	if (app_do_connect_without_wifi()) {
+		return 0;
+	}
 
 	typedef int (*_android_setsocknetwork_td)(jlong handle, int fd);
 

@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.os.StrictMode;
 import android.util.Log;
 import android.view.Gravity;
@@ -28,6 +29,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.media.MediaScannerConnection;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -105,7 +108,8 @@ public class Viewer extends AppCompatActivity {
     }
 
     public void toast(String msg) {
-        handler.post(new Runnable() { // handler null exception here
+        if (handler == null) return;
+        handler.post(new Runnable() {
             @Override
             public void run() {
                 Toast.makeText(Viewer.this, msg, Toast.LENGTH_SHORT).show();

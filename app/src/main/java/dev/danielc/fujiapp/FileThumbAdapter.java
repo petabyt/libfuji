@@ -24,6 +24,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 
+import dev.danielc.common.Exif;
+
 public class FileThumbAdapter extends ThumbAdapter {
     File[] files;
     public FileThumbAdapter(Context context, String directory) {
@@ -52,14 +54,9 @@ public class FileThumbAdapter extends ThumbAdapter {
             @Override
             public void run() {
                 try {
-                    // This is very stupid
-                    // Wait android doesn't have an API to get exif thumb without reading entire file??
-                    // I have to read an entire 20mb raw to get a 15kb thumbnail?!?!?
-                    // TODO: C code to get thumb from file
                     holder.filename = files[position].getPath();
-                    FileInputStream fis = new FileInputStream(files[position]);
-                    byte[] buffer = new byte[(int)files[position].length()];
-                    fis.read(buffer);
+                    byte[] buffer = Exif.getThumbnail(holder.filename);
+                    if (buffer == null) invalidThumb(holder.image.getContext(), holder);
                     loadThumb(holder, buffer);
                     holder.isLoaded = true;
                 } catch (Exception e) {

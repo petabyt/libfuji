@@ -10,13 +10,15 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
+import android.os.Message;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -27,20 +29,34 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.ref.WeakReference;
+
 public class Gallery extends AppCompatActivity {
-    private static Gallery instance;
+    private static WeakReference<Gallery> instance = null;
+    static Gallery getInstance() {
+        if (instance == null) return null;
+        if (instance.get() == null) return null;
+        return instance.get();
+    }
+    private static WeakReference<ImportPopup> importPopup = null;
+    static ImportPopup getImportPopup() {
+        if (importPopup == null) return null;
+        if (importPopup.get() == null) return null;
+        return importPopup.get();
+    }
 
     final int GRID_SIZE = 4;
     private int[] objectHandles;
     private RecyclerView recyclerView;
     private ThumbAdapter imageAdapter;
     private ListView listView;
-    private PTPList list;
+    private ObjectInfoAdapter list;
 
     Handler handler;
 
@@ -51,19 +67,19 @@ public class Gallery extends AppCompatActivity {
         int length;
         Thread thread;
     }
-    static ImportPopup importPopup = null;
 
     static void stopDownloading() {
-        importPopup.thread.interrupt();
+        if (getImportPopup() == null) return;
+        getImportPopup().thread.interrupt();
     }
 
     static void downloadingFile(JSONObject oi) {
-        if (importPopup == null) return;
-        importPopup.box.post(new Runnable() {
+        if (getImportPopup() == null) return;
+        getImportPopup().box.post(new Runnable() {
             @Override
             public void run() {
                 try {
-                    ((TextView)importPopup.box.findViewById(R.id.import_text)).setText(String.format("Downloading %s", oi.getString("filename"), importPopup.length));
+                    ((TextView)getImportPopup().box.findViewById(R.id.import_text)).setText(String.format("Downloading %s", oi.getString("filename"), getImportPopup().length));
                 } catch (JSONException e) {
                     throw new RuntimeException(e);
                 }
@@ -72,57 +88,74 @@ public class Gallery extends AppCompatActivity {
     }
 
     static void downloadedFile(String filepath) {
-        if (importPopup == null) return;
-        importPopup.count++;
-        importPopup.box.post(new Runnable() {
+        ImportPopup ip = getImportPopup();
+        if (ip == null) return;
+        ip.count++;
+        ip.box.post(new Runnable() {
             @Override
             public void run() {
-                ((ProgressBar)importPopup.box.findViewById(R.id.import_progress)).setProgress(importPopup.count * 100 / importPopup.length);
+                ((ProgressBar)ip.box.findViewById(R.id.import_progress)).setProgress(ip.count * 100 / ip.length);
             }
         });
     }
 
     public void importAll() {
-        ((Button)importPopup.box.findViewById(R.id.import_start_stop_button)).setText("Stop");
-        importPopup.box.findViewById(R.id.import_start_stop_button).setOnClickListener(new View.OnClickListener() {
+        ImportPopup ip = getImportPopup();
+        if (ip == null) return;
+        ((Button)ip.box.findViewById(R.id.import_start_stop_button)).setText(R.string.stop_importing);
+        ip.box.findViewById(R.id.import_start_stop_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 stopDownloading();
             }
         });
-        importPopup.thread = new Thread(new Runnable() {
+        int mask = 0;
+        if (((Switch)ip.box.findViewById(R.id.import_switch_raws)).isChecked()) mask |= Backend.PTP_SELET_RAW;
+        if (((Switch)ip.box.findViewById(R.id.import_switch_movs)).isChecked()) mask |= Backend.PTP_SELET_MOV;
+        if (((Switch)ip.box.findViewById(R.id.import_switch_jpegs)).isChecked()) mask |= Backend.PTP_SELET_JPEG;
+        int finalMask = mask;
+        ip.thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                Backend.cFujiImportFiles(objectHandles);
-                importPopup.box.post(new Runnable() {
+                Log.d("TAG", "isChecked: " + finalMask);
+                int rc = Backend.cFujiImportFiles(objectHandles, finalMask);
+                if (rc != 0) {
+                    fail(rc, "Failed to import files");
+                }
+                ip.box.post(new Runnable() {
                     @Override
                     public void run() {
-                        importPopup.window.dismiss();
-                        importPopup.thread = null;
-                        importPopup = null;
+                        ImportPopup ip = getImportPopup();
+                        if (ip == null) return;
+                        ip.window.dismiss();
+                        ip.thread = null;
+                        importPopup.clear();
                     }
                 });
             }
         });
-        importPopup.thread.start();
+        ip.thread.start();
     }
 
     public void importPopup() {
-        importPopup = new ImportPopup();
-        importPopup.count = 0;
-        importPopup.length = objectHandles.length;
+        ImportPopup ip = new ImportPopup();
+        importPopup = new WeakReference<>(ip);
+        ip.count = 0;
+        ip.length = objectHandles.length;
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        importPopup.box = inflater.inflate(R.layout.popup_import, null);
-        PopupWindow popupWindow = new PopupWindow(importPopup.box, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        importPopup.window = popupWindow;
+        ip.box = inflater.inflate(R.layout.popup_import, null);
+        PopupWindow popupWindow = new PopupWindow(ip.box, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        ip.window = popupWindow;
 
-        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        popupWindow.setOutsideTouchable(true);
+        popupWindow.setFocusable(true);
+        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.BLACK));
 
         popupWindow.showAtLocation(getWindow().getDecorView().getRootView(), Gravity.CENTER, 0, 0);
 
-        ((Button)importPopup.box.findViewById(R.id.import_start_stop_button)).setText("Start");
+        ((Button)ip.box.findViewById(R.id.import_start_stop_button)).setText("Start");
 
-        importPopup.box.findViewById(R.id.import_start_stop_button).setOnClickListener(new View.OnClickListener() {
+        ip.box.findViewById(R.id.import_start_stop_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 importAll();
@@ -131,11 +164,11 @@ public class Gallery extends AppCompatActivity {
     }
 
     public static void setLogText(String arg) {
-        if (instance == null) return;
-        instance.handler.post(new Runnable() {
+        if (getInstance() == null) return;
+        getInstance().handler.post(new Runnable() {
             @Override
             public void run() {
-                TextView tv = instance.findViewById(R.id.gallery_logs);
+                TextView tv = getInstance().findViewById(R.id.gallery_logs);
                 if (tv == null) return;
                 tv.setText(arg);
             }
@@ -147,37 +180,39 @@ public class Gallery extends AppCompatActivity {
         finish();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-    }
-
     static void setTitleCamName(String name) {
-        if (instance == null) return;
-        instance.handler.post(new Runnable() {
+        if (getInstance() == null) return;
+        getInstance().handler.post(new Runnable() {
             @Override
             public void run() {
-                ActionBar actionBar = instance.getSupportActionBar();
+                ActionBar actionBar = getInstance().getSupportActionBar();
                 actionBar.setTitle(name);
             }
         });
     }
 
+    // Called by JNI
+    static void objectServiceUpdated(JSONObject[] handles) {
+        if (getInstance() == null) return;
+        getInstance().list.updateList(handles);
+    }
+
     static void pauseAll() {
-        if (instance.imageAdapter != null) {
-            instance.imageAdapter.queue.pause();
+        Gallery ctx = getInstance(); if (ctx == null) return;
+        if (ctx.imageAdapter != null) {
+            ctx.imageAdapter.queue.pause();
         }
-        if (instance.list != null) {
-            instance.list.queue.pause();
+        if (ctx.list != null) {
+            ctx.list.queue.pause();
         }
     }
 
     static void resumeAll() {
-        if (instance == null) return;
-        if (instance.imageAdapter != null)
-            instance.imageAdapter.queue.pause();
-        if (instance.list != null)
-            instance.list.queue.pause();
+        Gallery ctx = getInstance(); if (ctx == null) return;
+        if (ctx.imageAdapter != null)
+            ctx.imageAdapter.queue.start();
+        if (ctx.list != null)
+            ctx.list.queue.start();
     }
 
     void createGallery() {
@@ -212,7 +247,7 @@ public class Gallery extends AppCompatActivity {
     void createList() {
         ViewGroup fileView = findViewById(R.id.fileView);
         listView = new ListView(this);
-        list = new PTPList(objectHandles, listView);
+        list = new ObjectInfoAdapter(objectHandles, listView);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT
@@ -239,19 +274,27 @@ public class Gallery extends AppCompatActivity {
         REMOTE,
     };
 
+    Page current = null;
     void setupPage(Page to) {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                if (to == Page.GALLERY) {
-                    closeList();
+                if (to == Page.GALLERY && current != Page.GALLERY) {
+                    if (current != null) closeList();
                     createGallery();
-                } else if (to == Page.FILE_TABLE) {
-                    closeGallery();
+                    current = Page.GALLERY;
+                } else if (to == Page.FILE_TABLE && current != Page.FILE_TABLE) {
+                    if (current != null) closeGallery();
                     createList();
+                    current = Page.FILE_TABLE;
                 }
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
     }
 
     @Override
@@ -263,7 +306,7 @@ public class Gallery extends AppCompatActivity {
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle(R.string.gallery);
-        instance = this;
+        instance = new WeakReference<>(this);
         handler = new Handler(Looper.getMainLooper());
 
         if (Backend.cGetKillSwitch()) return;
@@ -311,6 +354,7 @@ public class Gallery extends AppCompatActivity {
                 }
 
                 objectHandles = Backend.cGetObjectHandles();
+                Backend.cPtpObjectServiceStart(objectHandles);
 
                 if (objectHandles == null) {
                     Frontend.print(getString(R.string.noImages1));
@@ -320,9 +364,9 @@ public class Gallery extends AppCompatActivity {
                 } else {
                     int f = Backend.cGetTransport();
                     if (f == Backend.FUJI_FEATURE_AUTOSAVE) {
-                        createList();
+                        setupPage(Page.FILE_TABLE);
                     } else {
-                        createGallery();
+                        setupPage(Page.GALLERY);
                     }
                 }
 
@@ -344,6 +388,7 @@ public class Gallery extends AppCompatActivity {
 
     @Override
     public void onDestroy() {
+        importPopup = null;
         listView = null;
         list = null;
         imageAdapter = null;
@@ -365,19 +410,11 @@ public class Gallery extends AppCompatActivity {
             fail(0, "Quitting");
             return true;
         }
-//        else if (item.getTitle() == "scripts") {
-//            Intent intent = new Intent(Gallery.this, Scripts.class);
-//            startActivity(intent);
-//        }
-
         return false;
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-//        MenuItem scripts = menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "scripts");
-//        scripts.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-//        scripts.setIcon(R.drawable.baseline_terminal_24);
         return true;
     }
 }

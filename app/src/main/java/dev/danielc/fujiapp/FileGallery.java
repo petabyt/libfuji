@@ -14,7 +14,7 @@ public class FileGallery extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setTitle(getString(R.string.gallery));
+        actionBar.setTitle("Downloaded Photos");
 
         RecyclerView rv = new RecyclerView(this);
         rv.setLayoutManager(new GridLayoutManager(this, 4));
