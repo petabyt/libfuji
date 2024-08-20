@@ -1,35 +1,44 @@
 #ifndef APP_H
 #define APP_H
 
-/// Send current camera name to UI
+/// @brief Send current camera name to UI
 void app_send_cam_name(const char *name);
 
-/// OS level debug log
+/// @brief OS level debug log
 void plat_dbg(char *fmt, ...);
 
-/// printf to UI
+/// @brief Ping UI with update
 void app_print(char *fmt, ...);
+/// @brief Ping UI with update (accepts localized resource string)
+void app_print_id(int resid);
 
 // Test suite verbose logging
 void tester_log(char *fmt, ...);
 void tester_fail(char *fmt, ...);
 
-/// Bind to default or user-selected wifi device
+/// @brief Bind to default or user-selected wifi device
 int app_bind_socket_wifi(int sockfd);
 
-/// Eventually this will be removed when more than one connection is allowed at once
+/// @brief Get default PTP object
+/// @note Eventually this will be removed when more than one connection is allowed at once
 struct PtpRuntime *ptp_get(void);
 
-/// Call for every chunk/packet read
+/// @brief Called for every chunk/packet read
 void app_increment_progress_bar(int read);
 
-void app_print_id(int resid);
+/// @brief Get string ID from key/ID
 int app_get_string(const char *key);
+
+/// @brief Get download path for a file, for fopen()
 void app_get_file_path(char buffer[256], const char *filename);
 
+/// @brief Check if the current downloader thread has been marked as canceled
 int app_check_thread_cancel(void);
 
+/// @brief Pings the frontned when a file is going to be downloaded
 void app_downloading_file(const struct PtpObjectInfo *oi);
+
+/// @brief Pings the frontend when a file has been downloaded
 void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path);
 
 #endif
