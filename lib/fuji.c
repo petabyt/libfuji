@@ -541,6 +541,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 	} else {
 		// Some cams set from 2000a to 2000b
 		// Others set 20006 to 2000c (?)
+		// X-T20 has 20004
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteVersion, FUJI_CAM_CONNECT_REMOTE_VER);
 	}
 
