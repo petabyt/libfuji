@@ -7,10 +7,15 @@
 #include <app.h>
 #include <camlib.h>
 #include <fujiptp.h>
+#include <fuji.h>
 
 UILabel *log_buffer;
 
-void plat_dbg(char *fmt, ...) {
+void ui_send_text(char *key, char *fmt, ...) {
+	
+}
+
+void app_print(char *fmt, ...) {
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
@@ -24,6 +29,36 @@ void plat_dbg(char *fmt, ...) {
 	dispatch_async(dispatch_get_main_queue(), ^{
 		log_buffer.text = [log_buffer.text stringByAppendingString:msg];
 	});
+}
+
+void plat_dbg(char *fmt, ...) {
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer) - 2, fmt, args);
+	va_end(args);
+
+	app_print(buffer);
+}
+
+void tester_fail(char *fmt, ...) {
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer) - 2, fmt, args);
+	va_end(args);
+
+	app_print(buffer);
+}
+
+void tester_log(char *fmt, ...) {
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer) - 2, fmt, args);
+	va_end(args);
+
+	app_print(buffer);
 }
 
 void uikit_toast(char *fmt, ...) {
@@ -55,16 +90,16 @@ char *get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen) {
 		return s;
 	}
 	switch(sa->sa_family) {
-		case AF_INET:
-			inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
-			s, maxlen);
+	case AF_INET:
+		inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
+		s, maxlen);
+	break;
+	case AF_INET6:
+		inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr), s, maxlen);
 		break;
-		case AF_INET6:
-			inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr), s, maxlen);
-			break;
-		default:
-			strncpy(s, "Unknown AF", maxlen);
-			return NULL;
+	default:
+		strncpy(s, "Unknown AF", maxlen);
+		return NULL;
 	}
 
 	return s;
@@ -86,13 +121,20 @@ int test_net() {
 int test_ptp() {
 	struct PtpRuntime *r = ptp_get();
 	ptp_init(r);
+	r->io_kill_switch = 0;
+	r->connection_type = PTP_IP_USB;
 
-	int rc = ptpip_connect(r, "192.168.1.33", FUJI_CMD_IP_PORT);
+	const char *ip = "192.168.1.39";
+
+	int rc = ptpip_connect(r, ip, FUJI_CMD_IP_PORT);
 	if (rc) {
 		plat_dbg("Failed to connect");
 	} else {
 		plat_dbg("Connected");
 	}
+
+	rc = fuji_test_suite(r, ip);
+	plat_dbg("Return code: %d", rc);
 
 	return 0;
 }
