@@ -191,6 +191,54 @@ int fuji_autosave_thumb(struct PtpRuntime *r, int handle) {
 	return 0;
 }
 
+int bench_exif_thumb(struct PtpRuntime *r) {
+	float startTime = (float)clock()/CLOCKS_PER_SEC;
+
+	int max = fuji_get(r)->num_objects;
+	for (int i = max; i != max - 20; i--) {
+		int rc = fuji_autosave_thumb(r, i);
+		if (rc) {
+			plat_dbg("Failed autosave thumb");
+			return rc;
+		}
+	}
+
+	float endTime = (float)clock()/CLOCKS_PER_SEC;
+	
+	plat_dbg("Took %f seconds", endTime - startTime);
+
+	return 0;
+}
+
+int handle_add(void *arg, void *data, int size) {
+	fwrite(data, size, 1, (FILE *)arg);
+	return 0;
+}
+
+int try_download(struct PtpRuntime *r) {
+	//plat_dbg("%d", fuji_get(r)->num_objects);
+	int id = 1;
+
+	bench_exif_thumb(r);
+
+	struct PtpObjectInfo oi;
+	int rc = ptp_get_object_info(r, id, &oi);
+	if (rc) {
+		return rc;
+	}
+
+	char buffer[1024];
+	ptp_object_info_json(&oi, buffer, sizeof(buffer));
+	app_print(buffer);
+
+	FILE *f = fopen("TEST", "w");
+	fuji_download_file(r, id, oi.compressed_size, handle_add, (void *)f);
+
+	plat_dbg("Done downloading file");
+
+	return 0;
+}
+
 /*
 Fuji Wireless Tether property setting:
 - PtpGetPropValue must be called after PtpSetPropValue
@@ -228,27 +276,13 @@ int fuji_test_discovery(struct PtpRuntime *r) {
 		fuji_reset_ptp(r);
 		r->connection_type = PTP_IP_USB;
 		fuji_get(r)->transport = info.transport;
+		strcpy(fuji_get(ptp_get())->ip_address, info.camera_ip);
 
 		//rc = fujitether_setup(r);
-		rc = fuji_setup(r, info.camera_ip);
+		rc = fuji_setup(r);
 		if (rc) return rc;
 
-		float startTime = (float)clock()/CLOCKS_PER_SEC;
-
-		int max = fuji_get(r)->num_objects;
-		for (int i = max; i != max - 100; i--) {
-			rc = fuji_autosave_thumb(r, i);
-			if (rc) {
-				plat_dbg("Failed autosave thumb");
-				return rc;
-			}
-		}
-
-		float endTime = (float)clock()/CLOCKS_PER_SEC;
-		
-		plat_dbg("Took %f seconds", endTime - startTime);
-
-		int16_t entries[] = {0, 10, 20, 30};
+		try_download(r);
 
 		ptpip_close(r);
 	} else {
