@@ -66,6 +66,8 @@ int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *in
 		plat_dbg("Error connecting to %s:%d\n", info->camera_ip, info->camera_port);
 		return rc;
 	}
+
+	return 0;
 }
 
 // Assumes cmd socket is valid
@@ -245,6 +247,7 @@ int fuji_d228(void) {
 	//	s += ptp_write_u32(buffer + s, 0x0000);
 	//
 	//	ptp_set_prop_value_data(r, 0xd228, buffer, s);
+	return 0;
 }
 
 struct MyAddInfo {

@@ -38,7 +38,7 @@ int jni_setup_usb(JNIEnv *env, jobject obj) {
 	return 0;
 }
 
-JNI_FUNC(jint, cUSBConnectNative)(JNIEnv *env, jobject thiz, jobject usb) {
+JNI_FUNC(jint, cUSBConnectNative)(JNIEnv *env, jclass thiz, jobject usb) {
 	set_jni_env(env);
 
 	jni_setup_usb(env, usb);

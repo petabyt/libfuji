@@ -30,7 +30,7 @@ const char *app_get_wpa2_password() {
 	return jni_get_pref_str(env, "wpa_password", "");
 }
 
-SETTINGS_FUNC(jobject, getWPA2Password)(JNIEnv *env, jobject thiz, jobject ctx) {
+SETTINGS_FUNC(jobject, getWPA2Password)(JNIEnv *env, jclass thiz, jobject ctx) {
 	set_jni_env_ctx(env, ctx);
 	return (*env)->NewStringUTF(env, app_get_wpa2_password());
 }

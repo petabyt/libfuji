@@ -1,12 +1,12 @@
 [submodule "lib/libui"]
-	path = lib/libui
+	path = third_party/libui
 	url = https://github.com/petabyt/libuifw.git
 [submodule "lib/lua"]
-	path = lib/lua
+	path = third_party/lua
 	url = https://github.com/lua/lua/
 	branch = v5.3
 [submodule "lib/android-libjpeg-turbo"]
-	path = lib/android-libjpeg-turbo
+	path = third_party/android-libjpeg-turbo
 	url = git@github.com:petabyt/android-libjpeg-turbo.git
 [submodule "lib/camlib"]
 	path = lib/camlib

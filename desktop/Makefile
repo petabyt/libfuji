@@ -2,7 +2,7 @@ FUDGE = ../lib
 
 OBJ := main.o ui.o jank.o
 
-CAMLIB_CORE := transport.o operations.o packet.o enums.o data.o enum_dump.o lib.o canon.o liveview.o bind.o ml.o conv.o generic.o canon_adv.o
+CAMLIB_CORE := transport.o operations.o packet.o enums.o data.o enum_dump.o lib.o canon.o liveview.o bind.o ml.o conv.o generic.o canon_adv.o object.o
 ifeq ($(TARGET),l)
 CAMLIB_CORE += libusb.o
 endif
