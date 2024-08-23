@@ -25,14 +25,13 @@ Beta builds are published on [Google Play](https://play.google.com/store/apps/de
 - [x] Implement "select multiple / single" mode
 - [x] Implement PTP/USB OTG support
 - [x] Lua scripting
-- [x] AutoSave and tether mode
+- [ ] AutoSave and tether mode
 - [ ] Mass photo import (different folder for each camera?)
 - [x] Camera properties (ISO, white balance, film sim, etc)
-- [ ] Implement Bluetooth communication (use cross-platform lib? [Rust](https://github.com/deviceplug/btleplug)?)
+- [ ] Implement Bluetooth communication
 - [ ] Liveview & Remote capture
 - [ ] Desktop app/utility
 - [ ] iOS port (see ios/)
-- [ ] Delete images?
 - [ ] Translate UI
 - [ ] Support landscape mode
 
