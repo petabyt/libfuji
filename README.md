@@ -27,7 +27,7 @@ Beta builds are published on [Google Play](https://play.google.com/store/apps/de
 - [x] Lua scripting
 - [ ] AutoSave and tether mode
 - [ ] Mass photo import (different folder for each camera?)
-- [x] Camera properties (ISO, white balance, film sim, etc)
+- [ ] Camera properties (ISO, white balance, film sim, etc)
 - [ ] Implement Bluetooth communication
 - [ ] Liveview & Remote capture
 - [ ] Desktop app/utility

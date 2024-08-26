@@ -1,6 +1,6 @@
 site_name: Fudge
 site_url: https://danielc.dev/fudge
-site_description: Fudge app
+site_description: Fudge is an open-source alternative to Fujifilm's camera pairing app
 site_author: Daniel Cook
 
 repo_url: https://github.com/petabyt/fudge
@@ -9,16 +9,14 @@ edit_uri: ""
 theme:
   name: material
   features:
-    - navigation.tabs
-    - navigation.footer
     - content.code.annotate
     - content.code.copy
   palette:
     scheme: slate
-
-nav:
-    - Home: index.md
-    - Help: help.md
+  logo: fastlane/metadata/android/en-US/images/icon.png
+  hide:
+    - navigation
+    - toc
 
 markdown_extensions:
   - pymdownx.tasklist:
