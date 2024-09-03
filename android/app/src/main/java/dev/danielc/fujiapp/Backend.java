@@ -114,7 +114,6 @@ public class Backend extends Camlib {
     public native static int cSetProgressBarObj(Object progressBar, int size);
 
     // For test suite only
-    public native static void cTesterInit(Tester t);
     public native static int cRouteLogs();
     public native static String cEndLogs();
 
@@ -160,7 +159,9 @@ public class Backend extends Camlib {
     }
     public native static int cStartDiscovery(Context ctx);
     public static void cancelDiscoveryThread() {
-        discoveryThread.interrupt();
+        if (discoveryThread != null) {
+            discoveryThread.interrupt();
+        }
     }
 
     // Return directory is guaranteed to exist

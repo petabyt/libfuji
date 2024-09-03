@@ -192,7 +192,7 @@ int fuji_autosave_thumb(struct PtpRuntime *r, int handle) {
 }
 
 int bench_exif_thumb(struct PtpRuntime *r) {
-	float startTime = (float)clock()/CLOCKS_PER_SEC;
+	float startTime = (float)clock() / CLOCKS_PER_SEC;
 
 	int max = fuji_get(r)->num_objects;
 	for (int i = max; i != max - 20; i--) {
@@ -210,7 +210,7 @@ int bench_exif_thumb(struct PtpRuntime *r) {
 	return 0;
 }
 
-int handle_add(void *arg, void *data, int size) {
+int handle_add(void *arg, void *data, int size, int read) {
 	fwrite(data, size, 1, (FILE *)arg);
 	return 0;
 }
@@ -246,6 +246,7 @@ Fuji Wireless Tether property setting:
 - PtpDeviceInfo seems to include some data to indicate what properties have changed
 */
 static int dump_prop(struct PtpRuntime *r) {
+	int x = 0x123;
 	struct PtpPropDesc pd;
 	int rc = ptp_get_prop_desc(r, 0x5015, &pd);
 	if (rc) return rc;

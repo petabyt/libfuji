@@ -357,6 +357,8 @@ enum FujiStates {
 #define PTP_OC_FUJI_FmSendObject			0x9041
 #define PTP_OC_FUJI_FmSendPartialObject			0x9042
 
+#define PTP_OF_FUJI_FFF1 0xFFF1
+
 #pragma pack(push, 1)
 
 struct FujiInitPacket {
@@ -414,6 +416,10 @@ struct PtpFujiObjectInfo {
 	char date_created[32];
 	char settings[32];
 	char meta[32];
+};
+
+struct PtpFujiObjectInfoTag {
+	uint32_t file_sizes[22];
 };
 
 #pragma pack(pop)

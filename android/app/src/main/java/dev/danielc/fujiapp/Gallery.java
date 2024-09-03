@@ -194,6 +194,7 @@ public class Gallery extends AppCompatActivity {
     // Called by JNI
     static void objectServiceUpdated(JSONObject[] handles) {
         if (getInstance() == null) return;
+        if (getInstance().list == null) return;
         getInstance().list.updateList(handles);
     }
 
@@ -354,7 +355,6 @@ public class Gallery extends AppCompatActivity {
                 }
 
                 objectHandles = Backend.cGetObjectHandles();
-                Backend.cPtpObjectServiceStart(objectHandles);
 
                 if (objectHandles == null) {
                     Frontend.print(getString(R.string.noImages1));
@@ -362,6 +362,7 @@ public class Gallery extends AppCompatActivity {
                 } else if (objectHandles.length == 0) {
                     Frontend.print("No images available.");
                 } else {
+                    Backend.cPtpObjectServiceStart(objectHandles);
                     int f = Backend.cGetTransport();
                     if (f == Backend.FUJI_FEATURE_AUTOSAVE) {
                         setupPage(Page.FILE_TABLE);

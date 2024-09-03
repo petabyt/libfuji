@@ -65,7 +65,7 @@ void app_get_file_path(char buffer[256], const char *filename) {
 	sprintf(buffer, "/storage/emulated/0/Pictures/fudge/%s", filename);
 }
 
-#define VERBOSE
+//#define VERBOSE
 
 void ptp_verbose_log(char *fmt, ...) {
 #ifndef VERBOSE
@@ -80,6 +80,7 @@ void ptp_verbose_log(char *fmt, ...) {
 
 	__android_log_write(ANDROID_LOG_ERROR, "ptp_verbose_log", buffer);
 
+	// not thread safe
 #ifdef VERBOSE
 	if (backend.log_buf == NULL) return;
 #endif
@@ -205,7 +206,6 @@ void plat_dbg(char *fmt, ...) {
 }
 
 void tester_log(char *fmt, ...) {
-	if (backend.tester_log == NULL) return;
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
@@ -215,9 +215,11 @@ void tester_log(char *fmt, ...) {
 	ptp_verbose_log("%s\n", buffer);
 
 	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 5);
+	jmethodID method = (*env)->GetStaticMethodID(env, get_tester_class(env), "log", "(Ljava/lang/String;)V");
 	jstring j_str = (*env)->NewStringUTF(env, buffer);
-	(*env)->CallVoidMethod(env, get_tester_class(env), backend.tester_log, j_str);
-	(*env)->DeleteLocalRef(env, j_str);
+	(*env)->CallStaticVoidMethod(env, get_tester_class(env), method, j_str);
+	(*env)->PopLocalFrame(env, NULL);
 }
 
 void tester_fail(char *fmt, ...) {
@@ -231,16 +233,20 @@ void tester_fail(char *fmt, ...) {
 	ptp_verbose_log("%s\n", buffer);
 
 	JNIEnv *env = get_jni_env();
-	(*env)->CallVoidMethod(env, get_tester_class(env), backend.tester_fail, (*env)->NewStringUTF(env, buffer));
+	(*env)->PushLocalFrame(env, 5);
+	jmethodID method = (*env)->GetStaticMethodID(env, get_tester_class(env), "fail", "(Ljava/lang/String;)V");
+	(*env)->CallStaticVoidMethod(env, get_tester_class(env), method, (*env)->NewStringUTF(env, buffer));
+	(*env)->PopLocalFrame(env, NULL);
 }
 
 void app_send_cam_name(const char *name) {
 	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 5);
 	jstring j_str = (*env)->NewStringUTF(env, name);
 	jclass f = get_frontend_class(env);
 	jmethodID id = (*env)->GetStaticMethodID(env, f, "sendCamName", "(Ljava/lang/String;)V");
 	(*env)->CallStaticVoidMethod(env, f, id, j_str);
-	(*env)->DeleteLocalRef(env, j_str);
+	(*env)->PopLocalFrame(env, NULL);
 }
 
 static int last_p = 0;

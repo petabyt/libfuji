@@ -13,6 +13,7 @@ import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -96,6 +97,17 @@ public class MainActivity extends AppCompatActivity {
                 Intent in = new Intent(Settings.ACTION_WIFI_SETTINGS);
                 in.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(in);
+            }
+        });
+
+        findViewById(R.id.discovery_help).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AlertDialog.Builder p = new AlertDialog.Builder(MainActivity.this);
+                p.setTitle(R.string.camera_discovery_title);
+                p.setMessage(R.string.camera_discovery_help);
+                p.setNeutralButton("OK", null);
+                p.show();
             }
         });
 
@@ -242,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
         WiFiComm.onWiFiSelectCancel = new Runnable() {
             @Override
             public void run() {
-                Frontend.print("Selection canceled");
+                Frontend.print("User selection canceled");
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -254,7 +266,7 @@ public class MainActivity extends AppCompatActivity {
         WiFiComm.onWiFiSelectAvailable = new Runnable() {
             @Override
             public void run() {
-                Frontend.print("Selection successful");
+                Log.d("main", "Selection successful");
                 int rc = tryConnect();
                 if (rc != 0) {
                     Frontend.print(R.string.connection_failed);
@@ -271,7 +283,14 @@ public class MainActivity extends AppCompatActivity {
                 if (rc != 0) {
                     Frontend.print(R.string.connection_failed);
                     if (WiFiComm.connectToAccessPoint(ctx, password) != 0) {
+                        // TODO: This message repeats on every connect attempt, annoying
                         Frontend.print("You must manually connect to the WiFi access point");
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
+                            }
+                        });
                     }
                 }
             }

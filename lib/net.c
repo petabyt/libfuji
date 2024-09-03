@@ -92,11 +92,6 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 		ptp_verbose_log("Failed to set reuseaddr: %d\n", errno);
 	}
 
-	if (sockfd < 0) {
-		ptp_verbose_log("Failed to create socket\n");
-		return -1;
-	}
-
 	if (set_nonblocking_io(sockfd, 1) < 0) {
 		close(sockfd);
 		ptp_verbose_log("Failed to set non-blocking IO\n");
@@ -155,6 +150,7 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 		return sockfd;
 	} else {
 		ptp_verbose_log("Failed to connect: %d\n", so_error);
+		// 111: Connection refused, invalid IP
 	}
 
 	close(sockfd);
@@ -170,7 +166,7 @@ static struct PtpIpBackend *init_comm(struct PtpRuntime *r) {
 }
 
 int ptpip_connect(struct PtpRuntime *r, const char *addr, int port) {
-	int fd = ptpip_new_timeout_socket(addr, port, 1);
+	int fd = ptpip_new_timeout_socket(addr, port, 2);
 
 	struct PtpIpBackend *b = init_comm(r);
 
@@ -235,7 +231,7 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *data, int size) {
 	// So... we're just gonna have to put a 5ms delay here. It doesn't hurt anything, it just adds a tiny delay
 	// when sending packets. Download speeds are mostly unaffected.
 	// I don't know what Fuji does internally with their app, but I truly hope they have a better solution than me.
-	usleep(5000);
+	//usleep(5000);
 
 	errno = 0;
 	int result = send(b->fd, data, size, 0);

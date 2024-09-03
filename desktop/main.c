@@ -81,34 +81,6 @@ void *fudge_usb_connect(void *arg) {
 	return NULL;
 }
 
-int fudge_test_wifi(struct PtpRuntime *r) {
-	network_init();
-	int rc = 0;
-	char *ip_addr = "0.0.0.0";
-	
-	r->connection_type = PTP_IP_USB;
-	if (ptpip_connect(r, ip_addr, FUJI_CMD_IP_PORT)) {
-		printf("Error connecting to %s:%d\n", ip_addr, FUJI_CMD_IP_PORT);
-		return 0;
-	}
-	fuji_reset_ptp(r);
-	r->connection_type = PTP_IP_USB;
-	fuji_get(r)->transport = FUJI_FEATURE_WIRELESS_COMM;
-	
-	rc = fuji_test_setup(r);
-	if (rc) return rc;
-	
-	rc = fuji_test_filesystem(r);
-	if (rc) return rc;
-	
-	rc = ptp_close_session(r);
-	if (rc) return rc;
-	
-	ptpip_close(r);
-
-	return 0;
-}
-
 int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 	// Ask if we want to connect?
 	return 1;
@@ -122,13 +94,13 @@ int main(int argc, char **argv) {
 	ptp = ptp_new(PTP_USB);
 
 	for (int i = 0; i < argc; i++) {
-		if (!strcmp(argv[i], "-tw")) {
-			int rc = fudge_test_wifi(ptp);
+		if (!strcmp(argv[i], "--test-wifi")) {
+			int rc = fudge_test_all_cameras(ptp);
 			plat_dbg("Result: %d\n", rc);
 			return rc;
-		} else if (!strcmp(argv[i], "-tu")) {
+		} else if (!strcmp(argv[i], "--test-usb")) {
 			//return fudge_test(ptp);
-		} else if (!strcmp(argv[i], "-d")) {
+		} else if (!strcmp(argv[i], "--test-discovery")) {
 			fuji_test_discovery(ptp);
 			return 1;
 		}

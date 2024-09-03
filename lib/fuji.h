@@ -54,6 +54,7 @@ struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r);
 /// from the exif data. Not reliable. TODO: Move to camlib.c
 int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *length);
 
+/// @brief Shut down a connection with an error code from struct PtpGeneralError. reason can be NULL. code can be zero for intentional disconnect
 /// @note Not a part of camlib
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code);
 

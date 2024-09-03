@@ -27,4 +27,4 @@ jobs:
     - name: Compile desktop
       run: cd desktop && make TARGET=l fudge.out
     - name: Run desktop unit test
-      run: bash .github/workflows/test.sh
+      run: desktop/fudge.out --test-wifi

@@ -124,24 +124,25 @@ public class WiFiComm {
     public static final int NOT_CONNECTED = -102;
     public static final int UNSUPPORTED_SDK = -103;
 
+    public static boolean isNetworkValid(Network net) {
+        NetworkInfo wifiInfo = cm.getNetworkInfo(net);
+        if (net == null) return false;
+        if (wifiInfo == null) return false;
+        return wifiInfo.isAvailable();
+    }
+
     public static long getNetworkHandle() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return UNSUPPORTED_SDK;
         }
 
         // Prefer user-selected network
-        if (foundWiFiDevice != null) {
+        if (isNetworkValid(foundWiFiDevice)) {
             Log.d("wifi", "Returning found wifi device");
             return foundWiFiDevice.getNetworkHandle();
         }
 
-        NetworkInfo wifiInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-        if (!wifiInfo.isAvailable()) {
-            Log.d("wifi", "WiFi network not available");
-            return NOT_AVAILABLE;
-        }
-
-        if (wifiDevice != null) {
+        if (isNetworkValid(wifiDevice)) {
             Log.d("wifi", "Returning default WiFi");
             return wifiDevice.getNetworkHandle();
         }

@@ -115,7 +115,7 @@
                     android:visibility="gone" />
 
                 <ImageButton
-                    android:id="@+id/imageButton"
+                    android:id="@+id/discovery_help"
                     android:layout_width="50dp"
                     android:layout_height="50dp"
                     android:background="@drawable/grey_button"

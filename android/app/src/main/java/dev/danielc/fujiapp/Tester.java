@@ -19,8 +19,11 @@ import android.os.Handler;
 import android.content.ClipboardManager;
 import android.widget.Toast;
 
+import java.lang.ref.WeakReference;
+
 public class Tester extends AppCompatActivity {
     private Handler handler;
+    public static WeakReference<Tester> ctx = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,8 +34,7 @@ public class Tester extends AppCompatActivity {
         actionBar.setTitle(getString(R.string.regressiontesting));
 
         handler = new Handler(Looper.getMainLooper());
-
-        Backend.cTesterInit(this);
+        ctx = new WeakReference<>(this);
 
         if (Backend.cRouteLogs() == 0) {
             log("Routing logs to memory buffer.");
@@ -68,20 +70,22 @@ public class Tester extends AppCompatActivity {
         }).start();
     }
 
-    private String verboseLog = null;
-    private String currentLogs = "";
-    public void log(String str) {
-        handler.post(new Runnable() {
+    private static String verboseLog = null;
+    private static String currentLogs = "";
+    public static void log(String str) {
+        Tester t = ctx.get();
+        if (t == null) return;
+        t.handler.post(new Runnable() {
             @Override
             public void run() {
                 currentLogs += str + "<br>";
-                TextView testerLog = findViewById(R.id.testerLog);
+                TextView testerLog = t.findViewById(R.id.testerLog);
                 testerLog.setText(Html.fromHtml(currentLogs));
             }
         });
     }
 
-    public void fail(String str) {
+    public static void fail(String str) {
         log("<font color='#EE0000'>[FAIL] " + str + "</font>");
     }
 

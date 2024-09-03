@@ -46,10 +46,6 @@ JNI_FUNC(void, cInit)(JNIEnv *env, jobject thiz) {
 	fuji_reset_ptp(&backend.r);
 }
 
-JNI_FUNC(void, cTesterInit)(JNIEnv *env, jobject thiz, jobject tester) {
-	set_jni_env(env);
-}
-
 JNI_FUNC(jint, cRouteLogs)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
 
@@ -215,13 +211,16 @@ JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	} else {
 		ptp_mutex_keep_locked(r);
 		int rc = ptp_get_thumbnail(r, (int)handle);
-		if (rc == PTP_CHECK_CODE || ptp_get_payload_length(r) < 100) {
-			plat_dbg("Thumbnail get failed");
+		if (rc == PTP_CHECK_CODE) {
+			plat_dbg("Thumbnail get failed: %x", ptp_get_return_code(r));
 			ptp_mutex_unlock(r);
 			return (*env)->NewByteArray(env, 0);
 		} else if (rc) {
 			ptp_mutex_unlock(r);
 			return NULL;
+		} else if (ptp_get_payload_length(r) < 100) {
+			ptp_mutex_unlock(r);
+			return (*env)->NewByteArray(env, 0);
 		}
 
 		jbyteArray ret = (*env)->NewByteArray(env, ptp_get_payload_length(r));
@@ -235,6 +234,10 @@ JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
+	if (r->io_kill_switch) {
+		plat_dbg("BUG: cFujiSetup called with kill switch on");
+		return PTP_IO_ERR;
+	}
 
 	if (r->connection_type == PTP_USB) return fujiusb_setup(r);
 
@@ -453,7 +456,6 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 							   jni_struct_to_bytearr(&info, sizeof(struct DiscoverInfo))
 		);
 	} else if (rc < 0) {
-		app_print("Discovery thread err: %d", rc);
 		already_discovering = 0;
 		return rc;
 	}

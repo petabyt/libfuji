@@ -36,6 +36,13 @@
 
         </LinearLayout>
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Developer Settings"
+            android:textColor="@color/white"
+            android:textSize="20sp" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -46,7 +53,7 @@
                 android:id="@+id/connect_without_wifi"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Connect using default network (not WiFi)" />
+                android:text="Connect to this device's hotspot" />
         </LinearLayout>
 
         <LinearLayout

@@ -36,6 +36,10 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 		ptp_close_session(r);
 	}
 
+	// Send Fuji's 'goodbye' packet - we don't care if this fails or not
+	uint8_t goodbye_packet[] = {0x8, 0x0, 0x0, 0x0, 0xff, 0xff, 0xff, 0xff};
+	ptpip_cmd_write(r, goodbye_packet, 8);
+
 	r->io_kill_switch = 1;
 
 	if (r->connection_type == PTP_IP_USB) {
@@ -130,7 +134,6 @@ int fuji_setup(struct PtpRuntime *r) {
 		return 0;
 	}
 
-	// Misnomer, should be config_image_viewer
 	app_print("Setting up image viewer");
 	rc = fuji_config_version(r);
 	if (rc) {
@@ -147,7 +150,7 @@ int fuji_setup(struct PtpRuntime *r) {
 	if (rc) return rc;
 
 	// Setup remote mode
-	if (fuji->remote_version != -1 && fuji->camera_state == FUJI_REMOTE_MODE) {
+	if (fuji->remote_version != -1 && fuji->camera_state == FUJI_REMOTE_ACCESS) {
 		rc = fuji_setup_remote_mode(r);
 		if (rc) return rc;
 	}
@@ -528,8 +531,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 		int code = ptp_parse_prop_value(r);
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_AutoSaveVersion, code);
 		goto end;
-	}
-	if (fuji->remote_version == -1) {
+	} else if (fuji->remote_version == -1) {
 		rc = ptp_get_prop_value(r, PTP_PC_FUJI_GetObjectVersion);
 		if (rc) goto end;
 
@@ -546,6 +548,18 @@ int fuji_config_version(struct PtpRuntime *r) {
 		// Others set 20006 to 2000c (?)
 		// X-T20 has 20004
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteVersion, FUJI_CAM_CONNECT_REMOTE_VER);
+		if (rc) goto end;
+
+		// Don't understand this object yet
+		struct PtpObjectInfo oi;
+		rc = ptp_get_object_info(r, 0xfffffff1, &oi);
+		if (rc == PTP_CHECK_CODE) {
+			rc = 0;
+			goto end;
+		} else if (rc) goto end;
+		char buffer[512];
+		ptp_object_info_json(&oi, buffer, sizeof(buffer));
+		plat_dbg(buffer);
 	}
 
 	end:;

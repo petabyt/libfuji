@@ -33,4 +33,7 @@
     <string name="settings">Settings</string>
     <string name="discovery_failed">discovery failed...</string>
     <string name="stop_importing">Stop</string>
+    <string name="camera_discovery_title">Camera Discovery</string>
+    <string name="camera_discovery_help">In the background, Fudge is looking for a camera that is broadcasting itself to your local network. Use the \'connect to wifi\' button for normal pairing.</string>
+
 </resources>
