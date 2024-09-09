@@ -25,8 +25,8 @@ int jni_setup_usb(JNIEnv *env, jobject obj) {
 	usb_priv.fd = (int)fd;
 
 	// Get endpoints - TODO: get interrupt endpoint
-	jfieldID e_out = (*env)->GetFieldID(env, (*env)->FindClass(env, "camlib/SimpleUSB"), "endpointOut", "Landroid/hardware/usb/UsbEndpoint;");
-	jfieldID e_in = (*env)->GetFieldID(env, (*env)->FindClass(env, "camlib/SimpleUSB"), "endpointIn", "Landroid/hardware/usb/UsbEndpoint;");
+	jfieldID e_out = (*env)->GetFieldID(env, (*env)->FindClass(env, "dev/danielc/common/SimpleUSB"), "endpointOut", "Landroid/hardware/usb/UsbEndpoint;");
+	jfieldID e_in = (*env)->GetFieldID(env, (*env)->FindClass(env, "dev/danielc/common/SimpleUSB"), "endpointIn", "Landroid/hardware/usb/UsbEndpoint;");
 	jobject out = (*env)->GetObjectField(env, obj, e_out);
 	jobject in = (*env)->GetObjectField(env, obj, e_in);
 	jmethodID get_address = (*env)->GetMethodID(env, (*env)->FindClass(env, "android/hardware/usb/UsbEndpoint"), "getAddress", "()I");

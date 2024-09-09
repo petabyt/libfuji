@@ -26,6 +26,12 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 	return 0;
 }
 
+// Calls to SetDevPropValue sometimes have to be guarded by these calls,
+// otherwise no response is returned
+int fuji_set_property_delay(void) {
+	usleep(1000 * 10);
+}
+
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	plat_dbg("Kill switch: %d\n", r->io_kill_switch);
 	if (r->io_kill_switch) return;
@@ -94,7 +100,7 @@ int fuji_setup(struct PtpRuntime *r) {
 
 	app_send_cam_name(resp.cam_name);
 
-	// Fuji cameras require delay after init
+	// Fuji cameras require at least 50ms delay after init
 	if (fuji->transport == FUJI_FEATURE_WIRELESS_COMM) {
 		app_print("The camera is thinking...");
 		usleep(50000);
@@ -172,6 +178,7 @@ int fuji_setup_remote_mode(struct PtpRuntime *r) {
 
 	const char *ip = fuji_get(r)->ip_address;
 
+	// TODO: Do this on another thread
 	rc = ptpip_connect_events(r, ip, FUJI_EVENT_IP_PORT);
 	if (rc) return rc;
 
@@ -185,6 +192,9 @@ int fuji_setup_remote_mode(struct PtpRuntime *r) {
 	} else {
 		app_print("Finished remote setup.");
 	}
+
+	rc = fuji_get_events(r);
+	if (rc) return rc;
 
 	return 0;
 }
@@ -517,6 +527,11 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	rc = ptp_set_prop_value16(r, PTP_PC_FUJI_ClientState, mode);
 	if (rc) return rc;
 
+//	usleep(1000 * 1000);
+
+	rc = fuji_get_events(r);
+	if (rc) return rc;
+
 	return 0;
 }
 
@@ -547,6 +562,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 		// Some cams set from 2000a to 2000b
 		// Others set 20006 to 2000c (?)
 		// X-T20 has 20004
+		// Setting to the highest (supported?) value (2000c) seems to be what Fuji does
 		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteVersion, FUJI_CAM_CONNECT_REMOTE_VER);
 		if (rc) goto end;
 
@@ -617,16 +633,21 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 	if (fuji->transport == FUJI_FEATURE_WIRELESS_TETHER) return 0;
 	plat_dbg("remote_image_view_version: %X", fuji->remote_image_view_version);
 	if (fuji->remote_image_view_version != -1) {
-		// Tell the camera that we actually want that mode
-		int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
+		int rc = fuji_get_events(r);
 		if (rc) return rc;
 
-		// Will confirm CameraState is set
+		// Tell the camera that we actually want that mode
+		rc = ptp_set_prop_value16(r, PTP_PC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
+		if (rc) return rc;
+
+		//usleep(1000 * 10);
+
 		rc = fuji_get_events(r);
 		if (rc) return rc;
 
-		rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion);
-		fuji->remote_image_view_version = ptp_parse_prop_value(r);
+		// Will confirm CameraState is set
+		// This will also update a bunch of other properties
+		rc = fuji_get_events(r);
 		if (rc) return rc;
 
 		// Check SD card slot, not really useful for now
@@ -638,8 +659,15 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		rc = ptp_set_prop_value16(r, PTP_PC_FUJI_ClientState, FUJI_MODE_REMOTE_IMG_VIEW);
 		if (rc) return rc;
 
+		rc = fuji_get_events(r);
+		if (rc) return rc;
+
+		rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion);
+		fuji->remote_image_view_version = ptp_parse_prop_value(r);
+		if (rc) return rc;
+
 		// Set the prop higher - X-S10 and X-H1 want 4
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, 3);
+		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, fuji->remote_image_view_version);
 		if (rc) return rc;
 
 		// The props we set should show up here
@@ -725,17 +753,17 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 		if (cur > FUJI_MAX_PARTIAL_OBJECT) cur = FUJI_MAX_PARTIAL_OBJECT;
 		rc = ptp_get_partial_object(r, handle, read, cur);
 		if (rc == PTP_CHECK_CODE) {
-			goto end_unlock;
+			goto end;
 		} else if (rc) {
 			plat_dbg("Download fail %d", rc);
-			goto end_unlock;
+			goto end;
 		}
 
 		size_t payload_size = ptp_get_payload_length(r);
 
 		if (payload_size == 0) {
 			rc = PTP_RUNTIME_ERR;
-			goto end_unlock;
+			goto end;
 		}
 
 		handle_add(arg, ptp_get_payload(r), payload_size, read);
@@ -752,14 +780,9 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 
 	end:;
 	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
-		fuji_disable_compression(r);
-	}
-	ptp_mutex_unlock(r);
-	return rc;
-
-	end_unlock:;
-	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
-		fuji_disable_compression(r);
+		rc = fuji_get_events(r);
+		if (rc) return rc;
+		rc = fuji_disable_compression(r);
 	}
 	ptp_mutex_unlock(r);
 	return rc;

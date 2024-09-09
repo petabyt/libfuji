@@ -77,7 +77,7 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 
 	int rc = app_bind_socket_wifi(sockfd);
 	if (rc) {
-		ptp_verbose_log("Error binding to wifi network\n");
+		ptp_verbose_log("Error binding to wifi network: %d\n", errno);
 		return rc;
 	}
 
@@ -85,6 +85,11 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	rc = setsockopt(sockfd, IPPROTO_TCP, SO_KEEPALIVE, (char *)&yes, sizeof(int));
 	if (rc < 0) {
 		ptp_verbose_log("Failed to set keepalive: %d\n", errno);
+	}
+
+	rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&yes, sizeof(int));
+	if (rc < 0) {
+		ptp_verbose_log("Failed to set nodelay: %d\n", errno);
 	}
 
 	rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&yes, sizeof(int));

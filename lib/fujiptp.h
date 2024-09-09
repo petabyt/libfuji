@@ -23,12 +23,11 @@ enum FujiTransport {
 #define FUJI_EVENT_IP_PORT 55741
 #define FUJI_LIVEVIEW_IP_PORT 55742
 
-// Fuji USB and IP extensions
+// Fuji USB and IP extensions, available on almost all cameras
 #define PTP_OC_FUJI_SendObjectInfo	0x900c // create file
 #define PTP_OC_FUJI_SendObject2		0x900d // Appears to be the same as 901d
 #define PTP_OC_FUJI_SendObject		0x901d // write to file
 
-// WiFi only codes
 #define PTP_PC_FUJI_EventsList		0xd212
 #define PTP_PC_FUJI_SelectedImgsMode	0xd220
 #define PTP_PC_FUJI_ObjectCount		0xd222
@@ -45,33 +44,38 @@ enum FujiTransport {
 #define PTP_OC_FUJI_Unknown1	0x9054
 #define PTP_OC_FUJI_Unknown2	0x9055
 
-// Device property codes, IP only
-#define PTP_PC_FUJI_Unknown_D21C	0xd21c // TetherVersion
+#define PTP_PC_FUJI_WirelessTetherThing	0xd21c
 #define PTP_PC_FUJI_Unknown_D224	0xd224
-#define PTP_PC_FUJI_Unknown_D228	0xD228
+// Client sets this in PC Autosave, likely for the camera to update it's database of images the client hasn't downloaded?
+// See `struct FujiD228` - structure appears similar to PTP_PC_FUJI_BatteryInfo2
+// Setting this doesn't appear to be necessary for downloading photos
+#define PTP_PC_FUJI_AutoSaveDatabaseStatus	0xD228
 #define PTP_PC_FUJI_Unknown15		0xD22B
 #define PTP_PC_FUJI_CompressionCutOff	0xD235
 #define PTP_PC_FUJI_StorageID		0xd244
-#define PTP_PC_FUJI_DriveMode		0xd246
 #define PTP_PC_FUJI_Unknown_D400	0xd400 // Possibly SelectedImgsMode2
 #define PTP_PC_FUJI_ObjectCount2	0xd401
 #define PTP_PC_FUJI_Unknown2		0xdc04
-#define PTP_PC_FUJI_Unknown1		0xd246
+#define PTP_PC_FUJI_Unknown1		0xd246 //
 #define PTP_PC_FUJI_Unknown7		0xd406
 #define PTP_PC_FUJI_Unknown8		0xd407
-#define PTP_PC_FUJI_Unknown5		0xd500
-#define PTP_PC_FUJI_Unknown_D52F	0xd52f // probably version code
+#define PTP_PC_FUJI_Geolocation		0xd500 // "0000.000000,N00000.000000,E00000.00,M 000.0,K0000:00:0000:00:00.000"
+#define PTP_PC_FUJI_Unknown_D52F	0xd52f
+
+// Xapp properties
+#define PTP_PC_FUJI_Unknown18		0xD620
+#define PTP_PC_FUJI_Unknown17		0xD621
+
+// Most of 0xdfxx appear to be version/revision properties
 #define PTP_PC_FUJI_ImageGetVersion	0xdf21 // Another prop used for image related things
 #define PTP_PC_FUJI_GetObjectVersion	0xdf22 // version for GetObjectInfo and GetObject behavior
 #define PTP_PC_FUJI_AutoSaveVersion		0xdf23
 #define PTP_PC_FUJI_RemoteVersion	0xdf24
 #define PTP_PC_FUJI_RemoteGetObjectVersion	0xdf25 // same as GetObjectVersion, but for cams that support remote mode
-#define PTP_PC_FUJI_ImageGetLimitedVersion	0xdf26 // supports less features
-#define PTP_PC_FUJI_Unknown13		0xdf27
-#define PTP_PC_FUJI_Unknown_DF28	0xdf28
+// 0xdf26 and 0xdf27 appear to be unused
+#define PTP_PC_FUJI_Unknown_DF28	0xdf28 // xapp property, x-s10 sets to 1
 #define PTP_PC_FUJI_GeoTagVersion	0xdf31
 #define PTP_PC_FUJI_Unknown11		0xdf44
-#define PTP_PC_FUJI_Unknown17		0xD621
 
 enum ClientStates {
 	// Set if camera state is FUJI_MULTIPLE_TRANSFER,
@@ -99,7 +103,7 @@ enum ClientStates {
 	// All seem to be new or bluetooth only functionality
 	FUJI_LIMITED_IMG_TRANSMISSION = 18,
 	FUJI_MODE_TRANSFER_FIRMWARE = 19,
-	FUJI_MODE_REMOTE_IMG_VIEW_BLE = 20
+	FUJI_MODE_REMOTE_IMG_VIEW_XAPP = 20
 };
 
 // Modes for SelectedImgsMode
@@ -252,13 +256,6 @@ enum FujiStates {
 #define PTP_PC_FUJI_ProgramShift			0xD205
 #define PTP_PC_FUJI_FocusAreas				0xD206
 #define PTP_PC_FUJI_PriorityMode			0xD207 /* from setprioritymode */
-
-#define PTP_PC_FUJI_CaptureRemaining			0xD229	/* Movie AF Mode? */
-#define PTP_PC_FUJI_MovieRemainingTime			0xD22A	/* Movie Focus Area? */
-#define PTP_PC_FUJI_DeviceError			0xD21B
-#define PTP_PC_FUJI_BatteryLevel			0xD242 /* Movie Sensitivity???? */
-#define PTP_PC_FUJI_ImageAspectRatio			0xD241
-
 #define PTP_PC_FUJI_AFStatus				0xD209
 #define PTP_PC_FUJI_DeviceName				0xD20B
 #define PTP_PC_FUJI_MediaRecord			0xD20C /* from capmediarecord */
@@ -359,6 +356,7 @@ enum FujiStates {
 
 #define PTP_OF_FUJI_FFF1 0xFFF1
 
+// Packed structs mostly for reference
 #pragma pack(push, 1)
 
 struct FujiInitPacket {
@@ -420,6 +418,14 @@ struct PtpFujiObjectInfo {
 
 struct PtpFujiObjectInfoTag {
 	uint32_t file_sizes[22];
+};
+
+struct FujiD228 {
+	// @note Max length is 64.
+	uint8_t length;
+	// @note Last item must be 0x0
+	// @note I think entries are object IDs
+	uint16_t data[];
 };
 
 #pragma pack(pop)

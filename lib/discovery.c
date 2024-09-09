@@ -505,6 +505,7 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 		}
 
 		if (FD_ISSET(reg_fd, &fdset)) {
+			ptp_verbose_log("AutoSave register\n");
 			info->transport = FUJI_FEATURE_AUTOSAVE;
 			int len = recvfrom(reg_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
 			if (len <= 0) {
@@ -518,12 +519,14 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 			break;
 		}
 		if (FD_ISSET(tether_fd, &fdset)) {
+			ptp_verbose_log("Tether connect\n");
 			info->transport = FUJI_FEATURE_WIRELESS_TETHER;
 			rc = fuji_tether_accept(info, tether_fd, arg);
 			if (rc == 0) rc = FUJI_D_GO_PTP;
 			break;
 		}
 		if (FD_ISSET(con_fd, &fdset)) {
+			ptp_verbose_log("AutoSave connect\n");
 			info->transport = FUJI_FEATURE_AUTOSAVE;
 			int len = recvfrom(con_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
 			if (len <= 0) {

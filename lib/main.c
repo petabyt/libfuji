@@ -65,7 +65,7 @@ void app_get_file_path(char buffer[256], const char *filename) {
 	sprintf(buffer, "/storage/emulated/0/Pictures/fudge/%s", filename);
 }
 
-//#define VERBOSE
+#define VERBOSE
 
 void ptp_verbose_log(char *fmt, ...) {
 #ifndef VERBOSE

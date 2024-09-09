@@ -45,7 +45,6 @@ int fuji_test_get_props(struct PtpRuntime *r) {
 		PTP_PC_FUJI_GetObjectVersion,
 		PTP_PC_FUJI_RemoteVersion,
 		PTP_PC_FUJI_RemoteGetObjectVersion,
-		PTP_PC_FUJI_ImageGetLimitedVersion,
 		PTP_PC_FUJI_Unknown_D400,
 		PTP_PC_FUJI_Unknown_D52F,
 		PTP_PC_FUJI_Unknown_DF28,

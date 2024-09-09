@@ -437,6 +437,8 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 	}
 	already_discovering = 1;
 
+	(*env)->PushLocalFrame(env, 10);
+
 	struct DiscoverInfo info;
 	int rc = fuji_discover_thread(&info, "Fudge", fuji_get(ptp_get()));
 	if (rc == FUJI_D_REGISTERED) {
@@ -457,10 +459,12 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 		);
 	} else if (rc < 0) {
 		already_discovering = 0;
+		(*env)->PopLocalFrame(env, NULL);
 		return rc;
 	}
 
 	already_discovering = 0;
+	(*env)->PopLocalFrame(env, NULL);
 	return rc;
 }
 
