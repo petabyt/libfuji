@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">Fudge</string>
-    <string name="url">https://github.com/petabyt/fudge</string>
-    <string name="motd_thing">Fudge open beta-testing release</string>
+    <string name="app_name" translatable="false">Fudge</string>
+    <string name="url" translatable="false">https://github.com/petabyt/fudge</string>
+    <string name="motd_thing" translatable="false">Fudge open beta-testing release</string>
     <string name="connect_to_usb">Connect to USB</string>
     <string name="plugins">Plugins</string>
     <string name="help">Help</string>

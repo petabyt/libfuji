@@ -46,7 +46,7 @@ public class Backend extends Camlib {
                 break;
             }
             try {
-                Thread.sleep(50);
+                Thread.sleep(50); // ???
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -65,8 +65,8 @@ public class Backend extends Camlib {
         }
     }
 
-    public static int fujiConnectToCmd() {
-        return cTryConnectWiFi();
+    public static int fujiConnectToCmd(int extraTmout) {
+        return cTryConnectWiFi(extraTmout);
     }
 
     // Block all communication in UsbComm and WiFiComm
@@ -92,7 +92,7 @@ public class Backend extends Camlib {
     public native static boolean cGetKillSwitch();
     public native static int cGetTransport();
     public native static int cUSBConnectNative(SimpleUSB usb);
-    public native static int cTryConnectWiFi();
+    public native static int cTryConnectWiFi(int extraTmout);
     public native static int cConnectFromDiscovery(byte[] struct);
     public native static void cInit();
     public native static int cFujiSetup();

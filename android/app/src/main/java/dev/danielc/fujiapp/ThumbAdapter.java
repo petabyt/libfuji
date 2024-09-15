@@ -104,6 +104,7 @@ public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHol
     class Queue extends DownloadQueue {
         @Override
         void perform(Object request) {
+            if (Backend.cGetKillSwitch()) return;
             Request req = (Request)request;
             int id = req.object_id;
             byte[] jpegByteArray = Backend.cFujiGetThumb(id);

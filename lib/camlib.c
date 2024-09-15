@@ -58,7 +58,7 @@ PTP_FUNC(jint, cPtpCloseSession)(JNIEnv *env, jobject thiz) {
 	return ptp_close_session(r);
 }
 
-PTP_FUNC(jstring, cGetObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
+PTP_FUNC(jobject, cGetObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env_ctx(env, NULL);
 	struct PtpRuntime *r = ptp_get();
 
@@ -71,8 +71,7 @@ PTP_FUNC(jstring, cGetObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
 	char buffer[1024];
 	ptp_object_info_json(&oi, buffer, sizeof(buffer));
 
-	jstring ret = (*env)->NewStringUTF(env, buffer);
-	return ret;
+	return jni_string_to_jsonobject(env, buffer);
 }
 
 static void object_discovered_callback(struct PtpRuntime *r, struct PtpObjectInfo *oi, void *arg) {
@@ -91,24 +90,24 @@ PTP_FUNC(void, cPtpObjectServiceStart)(JNIEnv *env, jclass clazz, jintArray hand
 	r->oc = ptp_create_object_service(handles_n, length, object_discovered_callback, NULL);
 }
 
-jobjectArray jni_string_array_to_json_object_array(JNIEnv *env, const char **strArray, int count) {
-	set_jni_env_ctx(env, NULL);
-	jclass json_object_class = (*env)->FindClass(env, "org/json/JSONObject");
-	jmethodID json_object_constructor = (*env)->GetMethodID(env, json_object_class, "<init>", "(Ljava/lang/String;)V");
-
-	jobjectArray json_object_array = (*env)->NewObjectArray(env, count, json_object_class, NULL);
-
-	for (int i = 0; i < count; i++) {
-		jstring json_string = (*env)->NewStringUTF(env, strArray[i]);
-		jobject json_object = (*env)->NewObject(env, json_object_class, json_object_constructor, json_string);
-		(*env)->SetObjectArrayElement(env, json_object_array, i, json_object);
-
-		(*env)->DeleteLocalRef(env, json_string);
-		(*env)->DeleteLocalRef(env, json_object);
-	}
-
-	return json_object_array;
-}
+//jobjectArray jni_string_array_to_json_object_array(JNIEnv *env, const char **strArray, int count) {
+//	set_jni_env_ctx(env, NULL);
+//	jclass json_object_class = (*env)->FindClass(env, "org/json/JSONObject");
+//	jmethodID json_object_constructor = (*env)->GetMethodID(env, json_object_class, "<init>", "(Ljava/lang/String;)V");
+//
+//	jobjectArray json_object_array = (*env)->NewObjectArray(env, count, json_object_class, NULL);
+//
+//	for (int i = 0; i < count; i++) {
+//		jstring json_string = (*env)->NewStringUTF(env, strArray[i]);
+//		jobject json_object = (*env)->NewObject(env, json_object_class, json_object_constructor, json_string);
+//		(*env)->SetObjectArrayElement(env, json_object_array, i, json_object);
+//
+//		(*env)->DeleteLocalRef(env, json_string);
+//		(*env)->DeleteLocalRef(env, json_object);
+//	}
+//
+//	return json_object_array;
+//}
 
 PTP_FUNC(jobject, cPtpObjectServiceGetFilled)(JNIEnv *env, jclass clazz) {
 	set_jni_env_ctx(env, NULL);
@@ -129,6 +128,7 @@ PTP_FUNC(jobject, cPtpObjectServiceGetFilled)(JNIEnv *env, jclass clazz) {
 		jobject jo = jni_string_to_jsonobject(env, buffer);
 
 		(*env)->SetObjectArrayElement(env, json_object_array, i, jo);
+		(*env)->DeleteLocalRef(env, jo);
 	}
 
 	return json_object_array;

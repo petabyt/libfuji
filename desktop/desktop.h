@@ -1,8 +1,6 @@
 #ifndef DESKTOP_H
 #define DESKTOP_H
 
-#include <camlib.h>
-
 int fudge_test_all_cameras(struct PtpRuntime *r);
 
 /// @brief Setup a thread for networking

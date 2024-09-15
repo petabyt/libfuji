@@ -15,7 +15,7 @@ public class Camlib {
 
     public static final int PTP_OF_JPEG = 0x3801;
 
-    // camlib error codes
+    // ptp_ error codes
     public static final int PTP_OK = 0;
     public static final int PTP_NO_DEVICE = -1;
     public static final int PTP_NO_PERM = -2;
@@ -27,7 +27,7 @@ public class Camlib {
     public static final int PTP_CHECK_CODE = -8;
     public static final int PTP_CANCELED = -9;
 
-    // camlib supported lv types
+    // Supported lv types
     public static final int PTP_LV_NONE = 0;
     public static final int PTP_LV_EOS = 1;
     public static final int PTP_LV_CANON = 2;
@@ -37,21 +37,22 @@ public class Camlib {
     public native static int cPtpGetPropValue(int code);
     public native static int cPtpOpenSession();
     public native static int cPtpCloseSession();
-    public native static String cGetObjectInfo(int handle);
-    public static JSONObject getObjectInfo(int handle) throws Exception {
-        String x = cGetObjectInfo(handle);
-        if (x == null) return null;
-        return new JSONObject(x);
-    }
+    public native static JSONObject cGetObjectInfo(int handle);
 
     /// @brief Initialize object service on ptpruntime
     public native static void cPtpObjectServiceStart(int[] handles);
+    /// @brief Get objectinfo from object handle
     public native static JSONObject cPtpObjectServiceGet(int handle);
+    /// @brief Get objectinfo (after being sorted) in the array given to cPtpObjectServiceStart
     public native static JSONObject cPtpObjectServiceGetIndex(int index);
+    /// @brief Get an array of all known objectinfos
     public native static JSONObject[] cPtpObjectServiceGetFilled();
+    /// @brief Step the object info service once, perform one operation
     public native static int cPtpObjectServiceStep();
+    /// @brief Bump an object handle to a higher priority - so it will be handled immediately by cPtpObjectServiceStep
     public native static void cPtpObjectServiceAddPriority(int handle);
 
+    // Object service bitmask options
     public final static int PTP_SELET_JPEG = 1 << 0;
     public final static int PTP_SELET_RAW = 1 << 1;
     public final static int PTP_SELET_MOV = 1 << 2;

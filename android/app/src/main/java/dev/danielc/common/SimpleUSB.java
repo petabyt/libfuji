@@ -37,8 +37,7 @@ public class SimpleUSB {
 
     public void waitPermission(Context ctx) throws Exception {
         Frontend.print("Trying to get permission...");
-        PendingIntent permissionIntent = PendingIntent.getBroadcast(
-                ctx, 0, new Intent(ctx.getPackageName() + ".USB_PERMISSION"), PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent permissionIntent = PendingIntent.getBroadcast(ctx, 0, new Intent(ctx.getPackageName() + ".USB_PERMISSION"), PendingIntent.FLAG_IMMUTABLE);
 
         if (permissionIntent == null) {
             throw new Exception("USB permissions denied!");
@@ -133,7 +132,7 @@ public class SimpleUSB {
         connection = null;
     }
 
-    public int reqMessage(int type, int id, byte data[]) {
+    public int reqMessage(int type, int id, byte[] data) {
         return connection.controlTransfer(type, id, 0, 0, data, data.length, timeout);
     }
 

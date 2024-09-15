@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -35,6 +36,8 @@ public class MainActivity extends AppCompatActivity {
     public static MainActivity instance;
     public Handler handler;
 
+    public static boolean blockConnect = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.connect_wifi).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (blockConnect) return;
                 Frontend.clearPrint();
                 connectClick();
             }
@@ -60,15 +64,25 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.connect_wifi).setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
+                if (blockConnect) return false;
                 Intent intent = new Intent(MainActivity.this, Tester.class);
                 startActivity(intent);
                 return false;
             }
         });
 
+        findViewById(R.id.feedback_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://discord.gg/DfRptGxGFS"));
+                startActivity(browserIntent);
+            }
+        });
+
         findViewById(R.id.connect_usb).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (blockConnect) return;
                 Frontend.clearPrint();
                 connectUSB();
             }
@@ -211,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
     // called by backend
     void onCameraWantsToConnect(String model, String name, byte[] struct) {
         try {
-            Thread.sleep(1000);
+            //Thread.sleep(500); // Time for network to configure - this can probably be removed
             Backend.cConnectFromDiscovery(struct);
             Backend.cClearKillSwitch();
             handler.post(new Runnable() {
@@ -233,9 +247,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public int tryConnect() {
+    public int tryConnect(int extraTmout) {
+        blockConnect = true;
         Frontend.print(getString(R.string.connecting));
-        int rc = Backend.fujiConnectToCmd();
+        int rc = Backend.fujiConnectToCmd(extraTmout);
+        blockConnect = false;
         if (rc != 0) return rc;
         Backend.cancelDiscoveryThread();
         Frontend.print("Connection established");
@@ -254,7 +270,7 @@ public class MainActivity extends AppCompatActivity {
         WiFiComm.onWiFiSelectCancel = new Runnable() {
             @Override
             public void run() {
-                Frontend.print("User selection canceled");
+                Frontend.print("Canceled");
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -267,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 Log.d("main", "Selection successful");
-                int rc = tryConnect();
+                int rc = tryConnect(3);
                 if (rc != 0) {
                     Frontend.print(R.string.connection_failed);
                 }
@@ -279,7 +295,7 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 String password = SettingsActivity.getWPA2Password(ctx);
                 if (password.length() == 0) password = null;
-                int rc = tryConnect();
+                int rc = tryConnect(0);
                 if (rc != 0) {
                     Frontend.print(R.string.connection_failed);
                     if (WiFiComm.connectToAccessPoint(ctx, password) != 0) {

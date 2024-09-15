@@ -170,8 +170,9 @@ static struct PtpIpBackend *init_comm(struct PtpRuntime *r) {
 	return (struct PtpIpBackend *)r->comm_backend;
 }
 
-int ptpip_connect(struct PtpRuntime *r, const char *addr, int port) {
-	int fd = ptpip_new_timeout_socket(addr, port, 2);
+int ptpip_connect(struct PtpRuntime *r, const char *addr, int port, int extra_tmout) {
+	ptp_verbose_log("Extra tmout: %d\n", extra_tmout);
+	int fd = ptpip_new_timeout_socket(addr, port, 2 + extra_tmout);
 
 	struct PtpIpBackend *b = init_comm(r);
 

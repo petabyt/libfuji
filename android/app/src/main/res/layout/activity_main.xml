@@ -153,6 +153,7 @@
             android:text="@string/help" />
 
         <Button
+            android:id="@+id/feedback_button"
             style="@style/GoButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

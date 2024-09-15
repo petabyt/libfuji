@@ -240,6 +240,6 @@ JNIEXPORT jbyteArray JNICALL Java_dev_danielc_common_Exif_getThumbnail__Ljava_la
 }
 
 JNIEXPORT jstring JNICALL Java_dev_danielc_common_Exif_getInformationJSON(JNIEnv *env, jobject thiz, jstring path) {
-
+	return NULL;
 }
 #endif

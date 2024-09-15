@@ -26,12 +26,6 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 	return 0;
 }
 
-// Calls to SetDevPropValue sometimes have to be guarded by these calls,
-// otherwise no response is returned
-int fuji_set_property_delay(void) {
-	usleep(1000 * 10);
-}
-
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	plat_dbg("Kill switch: %d\n", r->io_kill_switch);
 	if (r->io_kill_switch) return;
@@ -71,7 +65,7 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info) {
 	fuji_reset_ptp(r);
 	fuji_get(r)->transport = info->transport;
-	int rc = ptpip_connect(r, info->camera_ip, info->camera_port);
+	int rc = ptpip_connect(r, info->camera_ip, info->camera_port, 0);
 	if (rc) {
 		plat_dbg("Error connecting to %s:%d\n", info->camera_ip, info->camera_port);
 		return rc;
@@ -87,11 +81,18 @@ int fuji_setup(struct PtpRuntime *r) {
 	app_print("Waiting on the camera...");
 	app_print("Make sure you pressed OK.");
 
+	char *device_name = app_get_client_name();
+
 	struct PtpFujiInitResp resp;
-	int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+	int rc = ptpip_fuji_init_req(r, device_name, &resp);
 	if (rc == PTP_RUNTIME_ERR) {
-		rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+		rc = ptpip_fuji_init_req(r, device_name, &resp);
+	} else if (rc) {
+		usleep(1000); // One last chance...
+		rc = ptpip_fuji_init_req(r, device_name, &resp);
 	}
+
+	free(device_name);
 	if (rc) {
 		app_print("Failed to initialize connection");
 		return rc;
@@ -100,10 +101,10 @@ int fuji_setup(struct PtpRuntime *r) {
 
 	app_send_cam_name(resp.cam_name);
 
-	// Fuji cameras require at least 50ms delay after init
+
 	if (fuji->transport == FUJI_FEATURE_WIRELESS_COMM) {
 		app_print("The camera is thinking...");
-		usleep(50000);
+		usleep(50000); // Fuji cameras require at least 50ms delay after init
 	}
 
 	rc = ptp_open_session(r);
@@ -116,6 +117,7 @@ int fuji_setup(struct PtpRuntime *r) {
 		return 0;
 	}
 
+	app_print("Press OK to allow access.");
 	rc = fuji_wait_for_access(r);
 	if (rc) {
 		app_print("Failed to get access to the camera.");
@@ -132,6 +134,7 @@ int fuji_setup(struct PtpRuntime *r) {
 	// If not, it will break up the connection and destroy packets for any file operation.
 	rc = fuji_config_init_mode(r);
 	if (rc) {
+		ptp_verbose_log("fuji_config_init_mode: %d\n", rc);
 		app_print("Failed to setup the camera's mode");
 		return rc;
 	}
@@ -527,8 +530,6 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	rc = ptp_set_prop_value16(r, PTP_PC_FUJI_ClientState, mode);
 	if (rc) return rc;
 
-//	usleep(1000 * 1000);
-
 	rc = fuji_get_events(r);
 	if (rc) return rc;
 
@@ -640,8 +641,6 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		rc = ptp_set_prop_value16(r, PTP_PC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
 		if (rc) return rc;
 
-		//usleep(1000 * 10);
-
 		rc = fuji_get_events(r);
 		if (rc) return rc;
 
@@ -733,12 +732,18 @@ int fuji_import_objects(struct PtpRuntime *r, int *object_ids, int length, int m
 	return 0;
 }
 
+static long get_ms(void) {
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (long)(ts.tv_sec * 1000000L + ts.tv_nsec / 1000L);
+}
+
 int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (handle_add)(void *, void *, int, int), void *arg) {
 	int rc = 0;
 
 	ptp_mutex_keep_locked(r);
 
-	float startTime = (float)clock() / CLOCKS_PER_SEC;
+	long then = get_ms();
 
 	// Makes sure to set the compression prop back to 0 after finished
 	// (extra data won't go through for some reason)
@@ -771,8 +776,8 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 		read += payload_size;
 
 		if (read >= file_size) {
-			float endTime = (float)clock() / CLOCKS_PER_SEC;
-			plat_dbg("Took %f seconds", endTime - startTime);
+			long now = get_ms();
+			plat_dbg("Took %ld seconds", (now - then) / 1000 / 1000);
 			rc = 0;
 			goto end;
 		}

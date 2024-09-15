@@ -9,8 +9,15 @@
 // X-A2 decided to freak out and stall. So, we have to do it the Fuji way :)
 #define FUJI_MAX_PARTIAL_OBJECT 0x100000
 
-const char *app_get_camera_ip(void);
+/// @brief IP address used for all PTP connections
+char *app_get_camera_ip(void);
+
+/// @brief If 1, then do not try to bind to any network. Leave the OS to decide. This is mainly for
+/// listening to the device's own hotspot.
 int app_do_connect_without_wifi(void);
+
+/// @brief Get friendly client name
+char *app_get_client_name(void);
 
 enum DiscoverRet {
 	FUJI_D_REGISTERED = 1,
@@ -22,6 +29,7 @@ enum DiscoverRet {
 	FUJI_D_INVALID_NETWORK = 6,
 };
 
+/// @brief Holds all information about a camera that has been detected (through any means)
 struct DiscoverInfo {
 	char camera_ip[64];
 	char camera_name[64];
@@ -31,11 +39,13 @@ struct DiscoverInfo {
 	enum FujiTransport transport;
 };
 
-// Holds runtime info about the camera
+/// @brief Holds runtime info about the camera
 struct FujiDeviceKnowledge {
+	/// @note applied from struct DiscoverInfo
 	char ip_address[64];
-	int camera_state;
+	/// @note applied from struct DiscoverInfo
 	enum FujiTransport transport;
+	int camera_state;
 	int selected_imgs_mode;
 
 	int get_object_version;

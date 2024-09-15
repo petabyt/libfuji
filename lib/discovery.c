@@ -449,12 +449,12 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 
 	int reg_fd = open_dgram_socket(FUJI_AUTOSAVE_REGISTER);
 	if (reg_fd <= 0) {
-		plat_dbg("Error connect register");
+		plat_dbg("Error connect register: %d", reg_fd);
 		return -reg_fd;
 	}
 	int con_fd = open_dgram_socket(FUJI_AUTOSAVE_CONNECT);
 	if (con_fd <= 0) {
-		plat_dbg("Error connect svr");
+		plat_dbg("Error connect svr: %d", con_fd);
 		return -con_fd;
 	}
 

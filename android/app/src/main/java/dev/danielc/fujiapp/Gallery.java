@@ -168,6 +168,7 @@ public class Gallery extends AppCompatActivity {
         getInstance().handler.post(new Runnable() {
             @Override
             public void run() {
+                if (getInstance() == null) return;
                 TextView tv = getInstance().findViewById(R.id.gallery_logs);
                 if (tv == null) return;
                 tv.setText(arg);
@@ -185,6 +186,7 @@ public class Gallery extends AppCompatActivity {
         getInstance().handler.post(new Runnable() {
             @Override
             public void run() {
+                if (getInstance() == null) return;
                 ActionBar actionBar = getInstance().getSupportActionBar();
                 actionBar.setTitle(name);
             }

@@ -15,7 +15,6 @@ struct AndroidBackend backend = {0};
 __thread struct AndroidLocal local = {0, 0};
 
 void set_jni_env_ctx(JNIEnv *env, jobject ctx) {
-	//plat_dbg("Setting env/ctx %d, %d: %d", local.env, local.ctx, gettid());
 	local.env = env;
 	local.ctx = ctx;
 }
@@ -24,7 +23,6 @@ struct AndroidLocal push_jni_env_ctx(JNIEnv *env, jobject ctx) {
 	struct AndroidLocal l;
 	l.env = local.env;
 	l.ctx = local.ctx;
-	//plat_dbg("env: %u, ctx: %u, tid: %d", local.env, local.ctx, gettid());
 	local.env = env;
 	local.ctx = ctx;
 	return l;
@@ -120,6 +118,7 @@ static inline jclass get_tester_class(JNIEnv *env) {
 }
 
 static jobject jni_to_json(JNIEnv *env, const char *string) {
+	(*env)->PushLocalFrame(env, 10);
 	jclass json_class = (*env)->FindClass(env, "org/json/JSONObject");
 	jmethodID constructor = (*env)->GetMethodID(env, json_class, "<init>", "(Ljava/lang/String;)V");
 
@@ -130,19 +129,19 @@ static jobject jni_to_json(JNIEnv *env, const char *string) {
 
 	jobject json_object = (*env)->NewObject(env, json_class, constructor, jstring_arg);
 
-	(*env)->DeleteLocalRef(env, jstring_arg);
-	(*env)->DeleteLocalRef(env, json_class);
-
-	return json_object;
+	return (*env)->PopLocalFrame(env, json_object);
 }
 
 int app_check_thread_cancel(void) {
 	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 10);
 	jclass thread_class = (*env)->FindClass(env, "java/lang/Thread");
 	jmethodID current_thread_id = (*env)->GetStaticMethodID(env, thread_class, "currentThread", "()Ljava/lang/Thread;");
 	jobject current_thread = (*env)->CallStaticObjectMethod(env, thread_class, current_thread_id);
 	jmethodID is_interrupted_id = (*env)->GetMethodID(env, thread_class, "isInterrupted", "()Z");
-	return (int)(*env)->CallBooleanMethod(env, current_thread, is_interrupted_id);
+	int sts = (int)(*env)->CallBooleanMethod(env, current_thread, is_interrupted_id);
+	(*env)->PopLocalFrame(env, NULL);
+	return sts;
 }
 
 void app_downloading_file(const struct PtpObjectInfo *oi) {
@@ -176,8 +175,10 @@ void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path) {
 
 void app_print_id(int resid) {
 	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 5);
 	jmethodID id = (*env)->GetStaticMethodID(env, get_frontend_class(env), "print", "(I)V");
 	(*env)->CallStaticVoidMethod(env, get_frontend_class(env), id, resid);
+	(*env)->PopLocalFrame(env, NULL);
 }
 
 void app_print(char *fmt, ...) {
@@ -188,11 +189,11 @@ void app_print(char *fmt, ...) {
 	va_end(args);
 
 	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 5);
 	jmethodID id = (*env)->GetStaticMethodID(env, get_frontend_class(env), "print", "(Ljava/lang/String;)V");
-
 	jstring j_str = (*env)->NewStringUTF(env, buffer);
 	(*env)->CallStaticVoidMethod(env, get_frontend_class(env), id, j_str);
-	(*env)->DeleteLocalRef(env, j_str);
+	(*env)->PopLocalFrame(env, NULL);
 }
 
 void plat_dbg(char *fmt, ...) {
@@ -263,22 +264,20 @@ void app_increment_progress_bar(int read) {
 		if (n > 100) return;
 
 		JNIEnv *env = get_jni_env();
-
+		(*env)->PushLocalFrame(env, 3);
 		jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, backend.progress_bar), "setProgress", "(I)V");
 		(*env)->CallVoidMethod(env, backend.progress_bar, method, n);
+		(*env)->PopLocalFrame(env, NULL);
 	}
 	last_p = n;
 }
 
 JNI_FUNC(jboolean, cSetProgressBarObj)(JNIEnv *env, jobject thiz, jobject pg, jint size) {
-	static clock_t tm;
 	if (pg == NULL) {
-		plat_dbg("Time taken to download: %f", (double)(clock() - tm) / CLOCKS_PER_SEC);
 		(*env)->DeleteGlobalRef(env, backend.progress_bar);
 		backend.progress_bar = NULL;
 		return 0;
 	}
-	tm = clock();
 	last_p = 0;
 	backend.download_size = size;
 	backend.download_progress = 0;

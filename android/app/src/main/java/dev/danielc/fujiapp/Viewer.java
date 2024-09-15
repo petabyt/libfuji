@@ -83,6 +83,7 @@ public class Viewer extends AppCompatActivity {
 
     // Must be ran on UI thread
     public void writeFile() {
+        if (fileByteData == null) return;
         String saveDir = Backend.getDownloads();
         String path = saveDir + File.separator + filename;
         File file = new File(path);
@@ -263,17 +264,19 @@ public class Viewer extends AppCompatActivity {
 
             BitmapFactory.Options options = new BitmapFactory.Options();
             if (imgX > GL10.GL_MAX_TEXTURE_SIZE) {
+                Log.d("viewer", "Scaling image 2/2/2");
                 options.inSampleSize = 2;
                 options.inDensity = 2;
                 options.inTargetDensity = 2;
                 options.inScaled = true;
             }
-            if (size > 15000000) {
-                options.inSampleSize = 8;
-                options.inDensity = 8;
-                options.inTargetDensity = 4;
-                options.inScaled = true;
-            }
+//            if (size > 15000000) {
+//                Log.d("viewer", "Scaling image 8/8/4");
+//                options.inSampleSize = 8;
+//                options.inDensity = 8;
+//                options.inTargetDensity = 4;
+//                options.inScaled = true;
+//            }
 
             if (Thread.interrupted()) { return; }
 
@@ -281,6 +284,7 @@ public class Viewer extends AppCompatActivity {
 
             // Resizing didn't go as expected, we need to scale the bitmap again
             if (bitmap.getWidth() > GL10.GL_MAX_TEXTURE_SIZE) {
+                Log.d("viewer", "Image is still too large, downsizing");
                 float ratio = ((float) bitmap.getHeight()) / ((float) bitmap.getWidth());
                 Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, (int)(2048), (int)(2048 * ratio), false);
                 bitmap.recycle();

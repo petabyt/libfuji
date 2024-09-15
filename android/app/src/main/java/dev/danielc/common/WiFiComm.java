@@ -20,7 +20,7 @@ import android.provider.Settings;
 import android.util.Log;
 
 public class WiFiComm {
-    public static final String TAG = "camlib";
+    public static final String TAG = "wifi";
 
     private static ConnectivityManager cm = null;
     public static void setConnectivityManager(ConnectivityManager cm) {

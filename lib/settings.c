@@ -10,22 +10,27 @@
 
 #define SETTINGS_FUNC(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_fujiapp_SettingsActivity_##name
 
-int app_do_connect_without_wifi() {
+int app_do_connect_without_wifi(void) {
 	JNIEnv *env = get_jni_env();
 	return jni_get_pref_int(env, "connect_without_wifi", 0);
 }
 
-const char *app_get_client_name() {
+char *app_get_client_name(void) {
 	JNIEnv *env = get_jni_env();
-	return jni_get_pref_str(env, "client_name", "Fudge");
+	char *s = jni_get_pref_str(env, "client_name", "Fudge");
+	int l = strlen(s);
+	if (l == 0 || l > 25) {
+		return "Fudge";
+	}
+	return s;
 }
 
-const char *app_get_camera_ip() {
+char *app_get_camera_ip(void) {
 	JNIEnv *env = get_jni_env();
 	return jni_get_pref_str(env, "ip_address", "192.168.0.1");
 }
 
-const char *app_get_wpa2_password() {
+char *app_get_wpa2_password(void) {
 	JNIEnv *env = get_jni_env();
 	return jni_get_pref_str(env, "wpa_password", "");
 }
@@ -72,5 +77,5 @@ SETTINGS_FUNC(void, handleSettingsButtons)(JNIEnv *env, jobject thiz, jobject ct
 
 	view = view_get_by_id(env, ctx, "client_name");
 	view_add_native_input_listener(env, view, (void *) input_handler, 2, "client_name", "client_name");
-	view_set_text(env, view, app_get_wpa2_password());
+	view_set_text(env, view, app_get_client_name());
 }

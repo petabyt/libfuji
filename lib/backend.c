@@ -325,16 +325,19 @@ JNI_FUNC(jint, cGetTransport)(JNIEnv *env, jobject thiz) {
 	return fuji_get(ptp_get())->transport;
 }
 
-JNI_FUNC(jint, cTryConnectWiFi)(JNIEnv *env, jobject thiz) {
+JNI_FUNC(jint, cTryConnectWiFi)(JNIEnv *env, jobject thiz, jint extra_tmout) {
 	set_jni_env(env);
-	const char *c_ip = app_get_camera_ip();
+	char *c_ip = app_get_camera_ip();
 
-	int rc = ptpip_connect(&backend.r, c_ip, FUJI_CMD_IP_PORT);
+	int rc = ptpip_connect(&backend.r, c_ip, FUJI_CMD_IP_PORT, (int)extra_tmout);
+
 	if (rc == 0) {
 		fuji_reset_ptp(ptp_get());
 		strcpy(fuji_get(ptp_get())->ip_address, c_ip);
 		fuji_get(ptp_get())->transport = FUJI_FEATURE_WIRELESS_COMM;
 	}
+
+	free(c_ip);
 
 	return rc;
 }
@@ -344,7 +347,13 @@ JNI_FUNC(jint, cConnectFromDiscovery)(JNIEnv *env, jobject thiz, jbyteArray disc
 
 	struct DiscoverInfo *info = (struct DiscoverInfo *)(*env)->GetByteArrayElements(env, discovery, 0);
 
-	int rc = ptpip_connect(&backend.r, info->camera_ip, info->camera_port);
+	int rc = ptpip_connect(&backend.r, info->camera_ip, info->camera_port, 5);
+
+	// If camera ignored the TCP connect, try again
+	if (rc) {
+		rc = ptpip_connect(&backend.r, info->camera_ip, info->camera_port, 5);
+	}
+
 	if (rc == 0) {
 		fuji_reset_ptp(ptp_get());
 		strcpy(fuji_get(ptp_get())->ip_address, info->camera_ip);
@@ -360,7 +369,7 @@ JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port)
 	set_jni_env(env);
 	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
 
-	int rc = ptpip_connect(&backend.r, c_ip, (int)port);
+	int rc = ptpip_connect(&backend.r, c_ip, (int)port, 0);
 
 	if (rc == 0) {
 		//fuji_reset_ptp(ptp_get()); // ???
@@ -440,7 +449,7 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 	(*env)->PushLocalFrame(env, 10);
 
 	struct DiscoverInfo info;
-	int rc = fuji_discover_thread(&info, "Fudge", fuji_get(ptp_get()));
+	int rc = fuji_discover_thread(&info, app_get_client_name(), fuji_get(ptp_get()));
 	if (rc == FUJI_D_REGISTERED) {
 		jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onCameraRegistered",
 			"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
@@ -488,16 +497,25 @@ int app_bind_socket_wifi(int fd) {
 	_android_setsocknetwork_td _android_setsocknetwork = (_android_setsocknetwork_td)dlsym(lib, "android_setsocknetwork");
 
 	if (_android_setsocknetwork == NULL) {
-		ptp_verbose_log("android_setsocknetwork not found");
+		plat_dbg("android_setsocknetwork not found");
 		return -1;
 	}
 
 	jlong handle = get_handle();
 	if (handle < 0) {
+		plat_dbg("handle is %d", handle);
 		return handle;
 	}
 
 	int rc = _android_setsocknetwork(handle, fd);
+	if (rc == -1) {
+		plat_dbg("android_setsocknetwork failed: %d", errno);
+	}
+
+	// TODO: Better error message
+	if (errno == 1) {
+		app_print("Is VPN enabled?");
+	}
 
 	dlclose(lib);
 

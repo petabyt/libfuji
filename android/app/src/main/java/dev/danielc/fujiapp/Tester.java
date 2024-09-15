@@ -46,7 +46,7 @@ public class Tester extends AppCompatActivity {
             @Override
             public void run() {
                 Frontend.print(getString(R.string.connecting));
-                int rc = Backend.fujiConnectToCmd();
+                int rc = Backend.fujiConnectToCmd(0);
                 if (rc != 0) {
                     fail("WIFI: " + Frontend.parseErr(rc));
 
