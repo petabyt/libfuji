@@ -21,8 +21,8 @@
             android:id="@+id/background_credit"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="right"
-            android:text="Courtesy of thevibrantmachine" />
+            android:gravity="end"
+            android:text="@string/img_credits" />
 
     </FrameLayout>
 
@@ -30,7 +30,7 @@
         android:id="@+id/boxLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#43000000"
+        android:background="@color/dark_gray_card"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="16dp"
@@ -43,20 +43,9 @@
             style="@style/GoButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/go_button"
             android:drawableRight="@drawable/baseline_wifi_tethering_24"
             android:padding="10dp"
             android:text="@string/connect_to_wifi" />
-
-        <!--        <Button-->
-        <!--            android:id="@+id/connect_autosave"-->
-        <!--            style="@style/GoButton"-->
-        <!--            android:layout_width="match_parent"-->
-        <!--            android:layout_height="wrap_content"-->
-        <!--            android:background="@drawable/go_button2"-->
-        <!--            android:drawableRight="@drawable/baseline_wifi_tethering_24"-->
-        <!--            android:padding="10dp"-->
-        <!--            android:text="Connect to PC AUTOSAVE" />-->
 
         <Button
             android:id="@+id/connect_usb"
@@ -90,18 +79,18 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Looking for a camera..."
+                        android:text="@string/looking_for_a_camera"
                         android:textSize="20sp" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="\u2022 PC AutoSave" />
+                        android:text="@string/bullet_pc_autosave" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="\u2022 Wireless Tether Shooting" />
+                        android:text="@string/bullet_wireless_tether_shooting" />
                 </LinearLayout>
 
                 <Button
@@ -111,7 +100,7 @@
                     android:layout_weight="1"
                     android:drawableRight="@drawable/baseline_help_24"
                     android:padding="10dp"
-                    android:text="Learn more"
+                    android:text="@string/learn_more"
                     android:visibility="gone" />
 
                 <ImageButton
@@ -146,7 +135,7 @@
             android:id="@+id/help_button"
             style="@style/GreyButton"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
             android:layout_weight="1"
             android:drawableRight="@drawable/baseline_help_24"
             android:padding="10dp"
@@ -160,7 +149,7 @@
             android:background="@drawable/light_button"
             android:drawableRight="@drawable/baseline_bug_report_24"
             android:padding="10dp"
-            android:text="Send feedback" />
+            android:text="@string/send_feedback" />
 
     </LinearLayout>
 
@@ -188,7 +177,7 @@
             android:drawablePadding="10dp"
             android:gravity="center"
             android:padding="10dp"
-            android:text="Open WiFi Settings"
+            android:text="@string/open_wifi_settings"
             android:visibility="gone" />
 
     </LinearLayout>

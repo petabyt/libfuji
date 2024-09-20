@@ -16,3 +16,4 @@ rootProject.name = "Fudge"
 include ':app'
 include ':libui'
 project(":libui").projectDir = file("../third_party/libui")
+//include ':simpleble'

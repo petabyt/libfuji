@@ -9,6 +9,7 @@ import android.content.ClipData;
 import android.text.Html;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 import android.os.Looper;
 import android.os.Bundle;
@@ -41,6 +42,13 @@ public class Tester extends AppCompatActivity {
         }
 
         Context ctx = this;
+
+        findViewById(R.id.open_wifi).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // TODO: Take over WiFi handler from MainActivity, switch back when this activity exits
+            }
+        });
 
         new Thread(new Runnable() {
             @Override

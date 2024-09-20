@@ -336,7 +336,12 @@ public class Gallery extends AppCompatActivity {
         });
 
         findViewById(R.id.remote_button).setEnabled(false);
+        if (savedInstanceState == null) {
+            startGalleryThread();
+        }
+    }
 
+    void startGalleryThread() {
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {

@@ -1,10 +1,38 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
     tools:context=".Tester">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/open_wifi"
+            style="@style/GoButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/go_button"
+            android:drawableRight="@drawable/baseline_wifi_tethering_24"
+            android:padding="10dp"
+            android:text="WiFi" />
+
+        <Button
+            android:id="@+id/try_usb"
+            style="@style/GoButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/go_button2"
+            android:drawableRight="@drawable/baseline_usb_24"
+            android:padding="10dp"
+            android:text="USB" />
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
@@ -17,4 +45,4 @@
             android:text="Logs go here" />
     </ScrollView>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

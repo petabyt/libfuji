@@ -23,7 +23,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:gravity="center_vertical"
-                android:text="Device name"
+                android:text="@string/this_device_name"
                 android:textColor="@color/white" />
 
             <EditText
@@ -39,7 +39,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Developer Settings"
+            android:text="@string/adv_developer_settings"
             android:textColor="@color/white"
             android:textSize="20sp" />
 
@@ -53,7 +53,7 @@
                 android:id="@+id/connect_without_wifi"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Connect to this device's hotspot" />
+                android:text="@string/connect_to_this_device" />
         </LinearLayout>
 
         <LinearLayout
@@ -67,7 +67,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:gravity="center_vertical"
-                android:text="IP Address"
+                android:text="@string/ip_address"
                 android:textColor="@color/white" />
 
             <EditText
@@ -91,7 +91,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:gravity="center_vertical"
-                android:text="WPA2 Password"
+                android:text="@string/wpa2_password"
                 android:textColor="@color/white" />
 
             <EditText
@@ -109,7 +109,7 @@
             style="@style/GreyButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Start camera discovery" />
+            android:text="@string/start_camera_discovery" />
 
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

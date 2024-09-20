@@ -1,4 +1,5 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/border"
@@ -9,14 +10,14 @@
         android:id="@+id/downloadingText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Import All"
+        android:text="@string/import_all_files"
         android:textSize="24sp" />
 
     <TextView
         android:id="@+id/import_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Will download any photos that you haven't already downloaded."
+        android:text="@string/will_download_whats_left"
         android:textSize="15sp" />
 
     <Switch
@@ -24,20 +25,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:checked="true"
-        android:text="JPEGs" />
+        android:text="@string/jpegs" />
 
     <Switch
         android:id="@+id/import_switch_movs"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="MOVs" />
+        android:text="@string/movs" />
 
     <Switch
         android:id="@+id/import_switch_raws"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:checked="true"
-        android:text="RAWs" />
+        android:text="@string/raws" />
 
     <ProgressBar
         android:id="@+id/import_progress"
@@ -47,10 +48,9 @@
 
     <Button
         android:id="@+id/import_start_stop_button"
-        style="@style/GoButton"
+        style="@style/GreyButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/grey_button"
-        android:text="cancel" />
+        android:text="@string/cancel" />
 
 </LinearLayout>

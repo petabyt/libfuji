@@ -35,5 +35,24 @@
     <string name="stop_importing">Stop</string>
     <string name="camera_discovery_title">Camera Discovery</string>
     <string name="camera_discovery_help">In the background, Fudge is looking for a camera that is broadcasting itself to your local network. Use the \'connect to wifi\' button for normal pairing.</string>
+    <string name="img_credits">Courtesy of thevibrantmachine</string>
+    <string name="looking_for_a_camera">Looking for a camera...</string>
+    <string name="bullet_pc_autosave">• PC AutoSave</string>
+    <string name="bullet_wireless_tether_shooting">• Wireless Tether Shooting</string>
+    <string name="learn_more">Learn more</string>
+    <string name="send_feedback">Send feedback</string>
+    <string name="open_wifi_settings">Open WiFi Settings</string>
+    <string name="this_device_name">Device name</string>
+    <string name="adv_developer_settings">Developer Settings</string>
+    <string name="connect_to_this_device">Connect to this device\'s hotspot</string>
+    <string name="ip_address">IP Address</string>
+    <string name="wpa2_password">WPA2 Password</string>
+    <string name="start_camera_discovery">Start camera discovery</string>
+    <string name="cancel">cancel</string>
+    <string name="raws">RAWs</string>
+    <string name="movs">MOVs</string>
+    <string name="jpegs">JPEGs</string>
+    <string name="will_download_whats_left">Will download any photos that you haven\'t already downloaded.</string>
+    <string name="import_all_files">Import All</string>
 
 </resources>

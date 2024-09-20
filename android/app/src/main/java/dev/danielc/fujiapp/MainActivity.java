@@ -39,18 +39,19 @@ public class MainActivity extends AppCompatActivity {
     public static boolean blockConnect = false;
 
     @Override
+    public void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        LibUI.buttonBackgroundResource = R.drawable.grey_button;
-        LibUI.popupDrawableResource = R.drawable.border;
+
         setContentView(R.layout.activity_main);
+        getSupportActionBar().setTitle(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
+        Frontend.updateLog();
         instance = this;
         handler = new Handler(Looper.getMainLooper());
-
-        getSupportActionBar().setTitle(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
-
-        Backend.init();
-        Frontend.updateLog();
 
         findViewById(R.id.connect_wifi).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -125,24 +126,30 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Require legacy Android write permissions
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-        }
-
-        WiFiComm.setConnectivityManager((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
-
         Frontend.discoveryWaitWifi();
-        WiFiComm.startNetworkListeners(this);
-        Context ctx = this;
+
         WiFiComm.onAvailable = new Runnable() {
             @Override
             public void run() {
-                Backend.discoveryThread(ctx);
+                Backend.discoveryThread(MainActivity.this);
             }
         };
 
-        discoveryPopup = new AlertDialog.Builder(MainActivity.this);
+        if (savedInstanceState == null) {
+            // Require legacy Android write permissions
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+            }
+
+            LibUI.buttonBackgroundResource = R.drawable.grey_button;
+            LibUI.popupDrawableResource = R.drawable.border;
+            Backend.init();
+
+            WiFiComm.setConnectivityManager((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
+            WiFiComm.startNetworkListeners(this);
+        }
+
+        discoveryPopup = new AlertDialog.Builder(this);
 
         ViewTreeObserver viewTreeObserver = this.getWindow().getDecorView().getViewTreeObserver();
         viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
