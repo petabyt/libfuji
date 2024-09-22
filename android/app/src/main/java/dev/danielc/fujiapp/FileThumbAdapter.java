@@ -65,4 +65,7 @@ public class FileThumbAdapter extends ThumbAdapter {
             }
         });
     }
+
+    @Override
+    void cancelRequest(ImageViewHolder holder) {}
 }

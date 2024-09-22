@@ -287,7 +287,7 @@ static uint8_t *my_add(void *arg, uint8_t *buffer, int new_len, int old_len) {
 }
 
 int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *length) {
-	ptp_mutex_keep_locked(r);
+	ptp_mutex_lock(r);
 
 	int rc = fuji_get_events(r);
 	if (rc) return rc;
@@ -399,7 +399,7 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 
 int fuji_get_events(struct PtpRuntime *r) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
-	ptp_mutex_keep_locked(r);
+	ptp_mutex_lock(r);
 	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_EventsList);
 	if (rc == PTP_CHECK_CODE) {
 		return 0;
@@ -741,7 +741,9 @@ static long get_ms(void) {
 int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (handle_add)(void *, void *, int, int), void *arg) {
 	int rc = 0;
 
-	ptp_mutex_keep_locked(r);
+	ptp_verbose_log("Going to download object #%d\n", handle);
+
+	ptp_mutex_lock(r);
 
 	long then = get_ms();
 

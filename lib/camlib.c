@@ -74,12 +74,12 @@ PTP_FUNC(jobject, cGetObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
 	return jni_string_to_jsonobject(env, buffer);
 }
 
-static void object_discovered_callback(struct PtpRuntime *r, struct PtpObjectInfo *oi, void *arg) {
-	JNIEnv *env = get_jni_env();
-	jclass gallery_c = (*env)->FindClass(env, "dev/danielc/fujiapp/Gallery");
-	jmethodID id = (*env)->GetStaticMethodID(env, gallery_c, "objectServiceUpdated", "([Lorg/json/JSONObject;)V");
-	(*env)->CallStaticVoidMethod(env, gallery_c, id, NULL);
-}
+//static void object_discovered_callback(struct PtpRuntime *r, struct PtpObjectInfo *oi, void *arg) {
+//	JNIEnv *env = get_jni_env();
+//	jclass gallery_c = (*env)->FindClass(env, "dev/danielc/fujiapp/Gallery");
+//	jmethodID id = (*env)->GetStaticMethodID(env, gallery_c, "objectServiceUpdated", "([Lorg/json/JSONObject;)V");
+//	(*env)->CallStaticVoidMethod(env, gallery_c, id, NULL);
+//}
 
 PTP_FUNC(void, cPtpObjectServiceStart)(JNIEnv *env, jclass clazz, jintArray handles) {
 	set_jni_env_ctx(env, NULL);
@@ -87,27 +87,8 @@ PTP_FUNC(void, cPtpObjectServiceStart)(JNIEnv *env, jclass clazz, jintArray hand
 	jsize length = (*env)->GetArrayLength(env, handles);
 	jint *handles_n = (*env)->GetIntArrayElements(env, handles, NULL);
 
-	r->oc = ptp_create_object_service(handles_n, length, object_discovered_callback, NULL);
+	r->oc = ptp_create_object_service(handles_n, length, NULL, NULL);
 }
-
-//jobjectArray jni_string_array_to_json_object_array(JNIEnv *env, const char **strArray, int count) {
-//	set_jni_env_ctx(env, NULL);
-//	jclass json_object_class = (*env)->FindClass(env, "org/json/JSONObject");
-//	jmethodID json_object_constructor = (*env)->GetMethodID(env, json_object_class, "<init>", "(Ljava/lang/String;)V");
-//
-//	jobjectArray json_object_array = (*env)->NewObjectArray(env, count, json_object_class, NULL);
-//
-//	for (int i = 0; i < count; i++) {
-//		jstring json_string = (*env)->NewStringUTF(env, strArray[i]);
-//		jobject json_object = (*env)->NewObject(env, json_object_class, json_object_constructor, json_string);
-//		(*env)->SetObjectArrayElement(env, json_object_array, i, json_object);
-//
-//		(*env)->DeleteLocalRef(env, json_string);
-//		(*env)->DeleteLocalRef(env, json_object);
-//	}
-//
-//	return json_object_array;
-//}
 
 PTP_FUNC(jobject, cPtpObjectServiceGetFilled)(JNIEnv *env, jclass clazz) {
 	set_jni_env_ctx(env, NULL);

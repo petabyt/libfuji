@@ -43,9 +43,9 @@ static void set_receive_timeout(int fd, int sec) {
 	}
 }
 #else
-static void set_receive_timeout(int fd, int sec) {
+	static void set_receive_timeout(int fd, int sec) {
 	struct timeval tv_rcv;
-	tv_rcv.tv_sec = 5;
+	tv_rcv.tv_sec = sec;
 	tv_rcv.tv_usec = 0;
 	int rc = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv_rcv, sizeof(tv_rcv));
 	if (rc < 0) {

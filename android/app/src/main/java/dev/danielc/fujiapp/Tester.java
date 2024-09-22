@@ -26,6 +26,8 @@ public class Tester extends AppCompatActivity {
     private Handler handler;
     public static WeakReference<Tester> ctx = null;
 
+    WiFiComm
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

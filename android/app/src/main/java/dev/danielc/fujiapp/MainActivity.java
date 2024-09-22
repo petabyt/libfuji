@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.StrictMode;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -31,6 +32,7 @@ import java.io.InputStream;
 
 import dev.danielc.common.WiFiComm;
 import dev.danielc.libui.*;
+import 	java.util.concurrent.Semaphore;
 
 public class MainActivity extends AppCompatActivity {
     public static MainActivity instance;
@@ -46,6 +48,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+        StrictMode.setVmPolicy(builder.build());
 
         setContentView(R.layout.activity_main);
         getSupportActionBar().setTitle(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
@@ -134,6 +139,28 @@ public class MainActivity extends AppCompatActivity {
                 Backend.discoveryThread(MainActivity.this);
             }
         };
+        WiFiComm.onWiFiSelectCancel = new Runnable() {
+            @Override
+            public void run() {
+                Frontend.print("Canceled");
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
+                    }
+                });
+            }
+        };
+        WiFiComm.onWiFiSelectAvailable = new Runnable() {
+            @Override
+            public void run() {
+                Log.d("main", "Selection successful");
+                int rc = tryConnect(3);
+                if (rc != 0) {
+                    Frontend.print(R.string.connection_failed);
+                }
+            }
+        };
 
         if (savedInstanceState == null) {
             // Require legacy Android write permissions
@@ -217,22 +244,46 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /// Called by backend
-    void onReceiveCameraInfo(String model, String name, byte[] struct) {
+    boolean onReceiveCameraInfo(String model, String name, byte[] struct) {
+        Semaphore sem = new Semaphore(1);
+        final boolean[] connect = {true};
         handler.post(new Runnable() {
             @Override
             public void run() {
                 discoveryPopup.setTitle("Found a camera! (" + model + ")");
                 discoveryPopup.setMessage("Do you want to connect?");
                 discoveryPopup.show();
+                discoveryPopup.setNeutralButton("Yes!", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        try {
+                            sem.release();
+                        } catch (Exception ignored) {}
+                    }
+                });
+                discoveryPopup.setNegativeButton("No!", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        try {
+                            connect[0] = false;
+                            sem.release();
+                        } catch (Exception ignored) {}
+                    }
+                });
             }
         });
+        try {
+            sem.acquire();
+        } catch (Exception ignored) {}
         // TODO: return user accepts connection or not
+        return connect[0];
     }
 
     // called by backend
     void onCameraWantsToConnect(String model, String name, byte[] struct) {
         try {
-            //Thread.sleep(500); // Time for network to configure - this can probably be removed
+            Frontend.print("Waiting on network...");
+            Thread.sleep(500); // Time for network to configure - this can probably be removed
             Backend.cConnectFromDiscovery(struct);
             Backend.cClearKillSwitch();
             handler.post(new Runnable() {
@@ -274,28 +325,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void connectClick() {
-        WiFiComm.onWiFiSelectCancel = new Runnable() {
-            @Override
-            public void run() {
-                Frontend.print("Canceled");
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        findViewById(R.id.wifi_settings).setVisibility(View.VISIBLE);
-                    }
-                });
-            }
-        };
-        WiFiComm.onWiFiSelectAvailable = new Runnable() {
-            @Override
-            public void run() {
-                Log.d("main", "Selection successful");
-                int rc = tryConnect(3);
-                if (rc != 0) {
-                    Frontend.print(R.string.connection_failed);
-                }
-            }
-        };
         Context ctx = this;
         new Thread(new Runnable() {
             @Override

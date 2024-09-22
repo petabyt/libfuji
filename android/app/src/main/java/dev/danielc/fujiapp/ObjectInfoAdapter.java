@@ -2,6 +2,7 @@ package dev.danielc.fujiapp;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,7 +24,7 @@ public class ObjectInfoAdapter extends BaseAdapter {
     JSONObject[] list;
 
     ObjectInfoAdapter(int[] objectIDs, ListView lv) {
-        this.list = new JSONObject[0];
+        this.list = Backend.cPtpObjectServiceGetFilled();
         this.lv = lv;
         this.objectIDs = objectIDs;
         this.queue = new Queue();
@@ -53,24 +54,26 @@ public class ObjectInfoAdapter extends BaseAdapter {
         return i;
     }
 
-    public void updateList(JSONObject[] handles) {
-        list = Backend.cPtpObjectServiceGetFilled();
-        lv.post(new Runnable() {
-            @Override
-            public void run() {
-                notifyDataSetChanged();
-            }
-        });
-    }
-
-    static class Queue extends DownloadQueue {
+    class Queue extends Idler {
         @Override
-        void idle() {
+        boolean idle() {
             int rc = Backend.cPtpObjectServiceStep();
-            if (rc != 0) {
+            if (rc < 0) {
                 stopRequestThread();
-                Backend.reportError(Backend.PTP_IO_ERR, "Failed to download image");
+                Backend.reportError(Backend.PTP_IO_ERR, "Failed to get object info");
             }
+            if (rc > 0) {
+                JSONObject[] newList = Backend.cPtpObjectServiceGetFilled();
+                lv.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        list = newList;
+                        notifyDataSetChanged();
+                    }
+                });
+                return false;
+            }
+            return true;
         }
     }
 

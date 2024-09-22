@@ -1,56 +1,36 @@
 package dev.danielc.fujiapp;
 import java.util.ArrayList;
 
-public class DownloadQueue {
-    private final ArrayList<Object> requests = new ArrayList<>();
+abstract public class DownloadQueue<T> extends Idler {
+    public final ArrayList<T> requests = new ArrayList<>();
 
-    private volatile boolean stopDownloading = false;
-    private volatile boolean pauseDownloading = false;
+    abstract void perform(T request);
 
-    void perform(Object request) {
-
-    }
-
-    public void enqueue(Object req) {
+    public void enqueue(T req) {
         synchronized (requests) {
             requests.add(req);
             requests.notifyAll();
         }
     }
 
-    public synchronized void stopRequestThread() {
-        stopDownloading = true;
-        notifyAll();
-    }
-
-    public synchronized void pause() {
-        pauseDownloading = true;
-        notifyAll();
-    }
-
-    public synchronized void start() {
-        stopDownloading = false;
-        pauseDownloading = false;
-        notifyAll();
-    }
-
-    void idle() {
-        Object req = null;
+    boolean idle() {
+        T req = null;
         synchronized (requests) {
             while (requests.isEmpty()) {
                 try {
                     requests.wait();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    return;
+                    return false;
                 }
-                if (stopDownloading) return;
+                if (stopDownloading) return false;
             }
             req = requests.remove(requests.size() - 1);
         }
         if (req != null) {
             perform(req);
         }
+        return false;
     }
 
     public void startRequestThread() {

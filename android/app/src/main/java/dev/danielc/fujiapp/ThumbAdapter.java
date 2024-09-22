@@ -1,6 +1,4 @@
 // recyclerview image adapter to load images LIFO style
-// Android has an awful archaic system of doing everything so I either have to improvise
-// or use the last bloat frameworks.
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
@@ -20,28 +18,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
-public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHolder> {
-    private final Context context;
-    private final int[] object_ids;
-    final Queue queue;
-
-    public ThumbAdapter(Context ctx, int[] object_ids) {
-        this.context = ctx;
-        this.object_ids = object_ids;
-        queue = new Queue();
-    }
-
+public abstract class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHolder> {
+    Context context;
     public ThumbAdapter(Context ctx) {
-        this(ctx, null);
+        this.context = ctx;
     }
 
-    void imageClickHandler(ImageViewHolder holder) {
-        if (holder.isLoaded) {
-            Intent intent = new Intent(holder.image.getContext(), Viewer.class);
-            intent.putExtra("handle", holder.handle);
-            holder.image.getContext().startActivity(intent);
-        }
-    }
+    abstract void imageClickHandler(ImageViewHolder holder);
 
     // Set up click event - navigate to viewer and send object handle
     @Override
@@ -55,13 +38,6 @@ public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHol
         });
         return holder;
     }
-
-    public static class Request {
-        Context ctx;
-        ImageViewHolder holder;
-        int position;
-        int object_id;
-    };
 
     void invalidThumb(Context ctx, ImageViewHolder holder) {
         holder.isLoaded = false;
@@ -101,48 +77,18 @@ public class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHol
         }
     }
 
-    class Queue extends DownloadQueue {
-        @Override
-        void perform(Object request) {
-            if (Backend.cGetKillSwitch()) return;
-            Request req = (Request)request;
-            int id = req.object_id;
-            byte[] jpegByteArray = Backend.cFujiGetThumb(id);
-            if (jpegByteArray == null) {
-                Backend.reportError(Backend.PTP_IO_ERR, "Failed to get thumbnail");
-                return;
-            } else if (jpegByteArray.length == 0) {
-                // Unable to find thumbnail - assume it's a folder or non-jpeg
-                invalidThumb(req.holder.image.getContext(), req.holder);
-                return;
-            }
+    abstract void queueImage(ImageViewHolder holder, int position);
+    abstract void cancelRequest(ImageViewHolder holder);
 
-            loadThumb(req.holder, jpegByteArray);
-        }
-    }
-
-    void queueImage(ImageViewHolder holder, int position) {
-        Request req = new Request();
-        req.ctx = context;
-        req.holder = holder;
-        req.position = position;
-        req.object_id = object_ids[position];
-        holder.handle = req.object_id;
-        queue.enqueue(req);
-    }
-
+    @SuppressLint("UseCompatLoadingForDrawables")
     @Override
     public void onBindViewHolder(ImageViewHolder holder, int position) {
+        cancelRequest(holder); // Cancel any queued requests on this holder
         holder.image.setForeground(context.getDrawable(R.drawable.ripple));
         holder.image.setBackground(context.getDrawable(R.drawable.light_button));
         holder.image.setImageBitmap(null);
         position = holder.getAdapterPosition();
         queueImage(holder, position);
-    }
-
-    @Override
-    public int getItemCount() {
-        return object_ids.length;
     }
 
     public static class ImageViewHolder extends RecyclerView.ViewHolder {

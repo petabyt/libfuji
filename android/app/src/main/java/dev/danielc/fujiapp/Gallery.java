@@ -54,7 +54,7 @@ public class Gallery extends AppCompatActivity {
     final int GRID_SIZE = 4;
     private int[] objectHandles;
     private RecyclerView recyclerView;
-    private ThumbAdapter imageAdapter;
+    private PtpThumbAdapter imageAdapter;
     private ListView listView;
     private ObjectInfoAdapter list;
 
@@ -193,13 +193,6 @@ public class Gallery extends AppCompatActivity {
         });
     }
 
-    // Called by JNI
-    static void objectServiceUpdated(JSONObject[] handles) {
-        if (getInstance() == null) return;
-        if (getInstance().list == null) return;
-        getInstance().list.updateList(handles);
-    }
-
     static void pauseAll() {
         Gallery ctx = getInstance(); if (ctx == null) return;
         if (ctx.imageAdapter != null) {
@@ -222,7 +215,7 @@ public class Gallery extends AppCompatActivity {
         recyclerView = new RecyclerView(this);
         recyclerView.setLayoutManager(new GridLayoutManager(this, GRID_SIZE));
 
-        imageAdapter = new ThumbAdapter(this, objectHandles);
+        imageAdapter = new PtpThumbAdapter(this, objectHandles);
 
         handler.post(new Runnable() {
             @Override
@@ -231,7 +224,7 @@ public class Gallery extends AppCompatActivity {
                 fileView.addView(recyclerView);
 
                 recyclerView.setAdapter(imageAdapter);
-                recyclerView.setItemViewCacheSize(50);
+                recyclerView.setItemViewCacheSize(60);
                 recyclerView.setNestedScrollingEnabled(false);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     recyclerView.setFocusable(View.FOCUSABLE);
@@ -262,6 +255,7 @@ public class Gallery extends AppCompatActivity {
                 fileView.addView(listView);
                 listView.setAdapter(list);
                 list.queue.startRequestThread();
+                listView.invalidate();
             }
         });
     }

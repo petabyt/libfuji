@@ -398,23 +398,16 @@ JNI_FUNC(jint, cFujiImportFiles)(JNIEnv *env, jobject thiz, jintArray handles, i
 int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 	JNIEnv *env = get_jni_env();
 	jobject ctx = get_jni_ctx();
-	// Ask if we want to connect?
-	// onReceiveCameraInfo
-	jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onReceiveCameraInfo",
-											   "(Ljava/lang/String;Ljava/lang/String;[B)V");
-	(*env)->CallVoidMethod(env, ctx, register_m,
-						   (*env)->NewStringUTF(env, info->camera_model),
-						   (*env)->NewStringUTF(env, info->camera_name),
-						   jni_struct_to_bytearr(info, sizeof(struct DiscoverInfo))
+	jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onReceiveCameraInfo", "(Ljava/lang/String;Ljava/lang/String;[B)Z");
+	return (*env)->CallBooleanMethod(env, ctx, register_m,
+		(*env)->NewStringUTF(env, info->camera_model),
+		(*env)->NewStringUTF(env, info->camera_name),
+		jni_struct_to_bytearr(info, sizeof(struct DiscoverInfo))
 	);
-	return 1;
 }
 
 int fuji_discovery_check_cancel(void *arg) {
-	if (app_check_thread_cancel()) {
-		return 1;
-	}
-	return 0;
+	return app_check_thread_cancel();
 }
 
 void fuji_discovery_update_progress(void *arg, int progress) {
