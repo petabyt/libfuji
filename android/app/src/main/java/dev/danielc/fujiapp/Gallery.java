@@ -224,7 +224,7 @@ public class Gallery extends AppCompatActivity {
                 fileView.addView(recyclerView);
 
                 recyclerView.setAdapter(imageAdapter);
-                recyclerView.setItemViewCacheSize(60);
+                recyclerView.setItemViewCacheSize(150);
                 recyclerView.setNestedScrollingEnabled(false);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     recyclerView.setFocusable(View.FOCUSABLE);

@@ -42,12 +42,9 @@
 
 struct AndroidBackend {
 	jobject progress_bar;
+	int do_download;
 	int download_progress;
 	int download_size;
-
-	jobject tester;
-	jmethodID tester_log;
-	jmethodID tester_fail;
 
 	// Only a single PTP connection supported
 	struct PtpRuntime r;
@@ -55,6 +52,7 @@ struct AndroidBackend {
 	void *log_buf;
 	size_t log_size;
 	size_t log_pos;
+	int last_percent;
 };
 
 extern struct AndroidBackend backend;

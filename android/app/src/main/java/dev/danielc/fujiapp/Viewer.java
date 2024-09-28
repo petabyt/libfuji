@@ -14,7 +14,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 import android.os.StrictMode;
 import android.util.Log;
 import android.view.Gravity;
@@ -30,7 +29,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.media.MediaScannerConnection;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -41,14 +39,14 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 
 import javax.microedition.khronos.opengles.GL10;
 
 public class Viewer extends AppCompatActivity {
     public static final String TAG = "viewer";
     public Handler handler = null;
-    public PopupWindow popupWindow = null;
-    public ProgressBar progressBar = null;
+    static WeakReference<PopupWindow> popupWindowInstance = null;
 
     public Bitmap bitmap = null;
     public String filename = null;
@@ -57,22 +55,37 @@ public class Viewer extends AppCompatActivity {
     public boolean fileIsDownloaded = false;
     public boolean threadIsDone = false;
 
+    private static PopupWindow getPopup() {
+        if (popupWindowInstance == null) return null;
+        if (popupWindowInstance.get() == null) return null;
+        return popupWindowInstance.get();
+    }
+
+    static void notifyDownloadSpeed(int mbps) {
+        PopupWindow popupWindow = getPopup();
+        if (popupWindow == null) return;
+        ((TextView)popupWindow.getContentView().findViewById(R.id.download_speed)).setText(String.format("%dmbps", mbps));
+    }
+
+    static void notifyDownloadProgress(int percent) {
+        PopupWindow popupWindow = getPopup();
+        if (popupWindow == null) return;
+        ((ProgressBar)popupWindow.getContentView().findViewById(R.id.progress_bar)).setProgress(percent);
+    }
+
     void fail(int code, String reason) {
         Backend.reportError(code, reason);
         finish();
     }
 
     // Create a popup - will set popupWindow, will be closed when finished
-    public ProgressBar downloadPopup(Activity activity) {
+    public void downloadPopup(Activity activity) {
         LayoutInflater inflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View popupView = inflater.inflate(R.layout.popup_download, null);
-        popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-
+        PopupWindow popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-
         popupWindow.showAtLocation(getWindow().getDecorView().getRootView(), Gravity.CENTER, 0, 0);
-
-        return popupView.findViewById(R.id.progress_bar);
+        popupWindowInstance = new WeakReference<>(popupWindow);
     }
 
     // Notify gallery app that there is a new image
@@ -135,15 +148,11 @@ public class Viewer extends AppCompatActivity {
     void downloadFileManually(int handle, int size) {
         String saveDir = Backend.getDownloads();
 
-        Backend.cSetProgressBarObj(progressBar, size);
-
         String path = saveDir + File.separator + filename;
         int rc = Backend.cFujiDownloadFile(handle, path);
         if (rc != 0) {
             fail(rc, "Failed to download file to storage.");
         }
-
-        Backend.cSetProgressBarObj(null, 0);
 
         fileIsDownloaded = true;
         scanImage(path);
@@ -178,7 +187,7 @@ public class Viewer extends AppCompatActivity {
             @Override
             public void onGlobalLayout() {
                 getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                progressBar = downloadPopup(Viewer.this);
+                downloadPopup(Viewer.this);
                 thread = new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -231,6 +240,8 @@ public class Viewer extends AppCompatActivity {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
+                        PopupWindow popupWindow = getPopup();
+                        if (popupWindow == null) return;
                         popupWindow.dismiss();
                         threadIsDone = true;
                     }
@@ -240,7 +251,6 @@ public class Viewer extends AppCompatActivity {
 
             if (Thread.interrupted()) { return; }
 
-            Backend.cSetProgressBarObj(progressBar, size);
             int rc = Backend.cFujiGetFile(handle, fileByteData, size);
             if (rc == Backend.PTP_CHECK_CODE) {
                 toast("Can't download this file");
@@ -257,8 +267,6 @@ public class Viewer extends AppCompatActivity {
                 threadIsDone = true;
                 return;
             }
-
-            Backend.cSetProgressBarObj(null, 0);
 
             if (Thread.interrupted()) { return; }
 
@@ -296,6 +304,8 @@ public class Viewer extends AppCompatActivity {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
+                    PopupWindow popupWindow = getPopup();
+                    if (popupWindow == null) return;
                     popupWindow.dismiss();
                     ZoomageView zoomageView = findViewById(R.id.zoom_view);
                     zoomageView.setImageBitmap(bitmap);
@@ -315,13 +325,12 @@ public class Viewer extends AppCompatActivity {
             bitmap.recycle();
             bitmap = null;
         }
-        if (popupWindow != null) {
-            popupWindow.dismiss();
-            popupWindow = null;
-        }
-        Runtime.getRuntime().gc();
+        PopupWindow popupWindow = getPopup();
+        if (popupWindow == null) return;
+        popupWindow.dismiss();
+        popupWindowInstance.clear();
+        //Runtime.getRuntime().gc();
         handler = null;
-        progressBar = null;
         super.onDestroy();
     }
 

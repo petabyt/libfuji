@@ -23,19 +23,21 @@ public class WiFiComm {
     public static final String TAG = "wifi";
 
     private static ConnectivityManager cm = null;
-    public static void setConnectivityManager(ConnectivityManager cm) {
+    public void setConnectivityManager(ConnectivityManager cm) {
         WiFiComm.cm = cm;
     }
 
     static Network wifiDevice = null;
     static Network foundWiFiDevice = null;
 
-    public static Handler handler = null;
-    public static Runnable onAvailable = null;
-    public static Runnable onWiFiSelectAvailable = null;
-    public static Runnable onWiFiSelectCancel = null;
+    public Handler handler = null;
+    public Runnable onAvailable = null;
+    public Runnable onWiFiSelectAvailable = null;
+    public Runnable onWiFiSelectCancel = null;
+    public boolean blockEvents = false;
 
-    static void run(Runnable r) {
+    void run(Runnable r) {
+        if (blockEvents) return;
         if (r != null) {
             if (handler == null) {
                 r.run();
@@ -45,11 +47,12 @@ public class WiFiComm {
         }
     }
 
-    public static int connectToAccessPoint(Context ctx, String password) {
+    public int connectToAccessPoint(Context ctx, String password) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             Log.d("wifi", "Connecting: " + password);
             WifiNetworkSpecifier.Builder builder = new WifiNetworkSpecifier.Builder();
             builder.setSsidPattern(new PatternMatcher("FUJIFILM", PatternMatcher.PATTERN_PREFIX));
+
             if (password != null) {
                 builder.setWpa2Passphrase(password);
             }
@@ -84,15 +87,17 @@ public class WiFiComm {
         return 0;
     }
 
-    public static void startNetworkListeners(Context ctx) {
+    public void startNetworkListeners(Context ctx) {
         ConnectivityManager m = (ConnectivityManager)ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
         requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
+        //requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR);
         ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
             Intent settings = null;
             @Override
             public void onAvailable(Network network) {
-                Log.d(TAG, "Wifi network is available");
+//                if (m.getNetworkCapabilities(network).hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                Log.d(TAG, "Wifi network is available: " + network.getNetworkHandle());
                 if (settings != null) {
                     ((Activity)ctx).finish();
                 }
@@ -125,6 +130,7 @@ public class WiFiComm {
     public static final int UNSUPPORTED_SDK = -103;
 
     public static boolean isNetworkValid(Network net) {
+        if (cm == null) return false;
         NetworkInfo wifiInfo = cm.getNetworkInfo(net);
         if (net == null) return false;
         if (wifiInfo == null) return false;

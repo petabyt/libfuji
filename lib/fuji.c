@@ -83,6 +83,7 @@ int fuji_setup(struct PtpRuntime *r) {
 
 	char *device_name = app_get_client_name();
 
+	// TODO: possibly more robust handling here
 	struct PtpFujiInitResp resp;
 	int rc = ptpip_fuji_init_req(r, device_name, &resp);
 	if (rc == PTP_RUNTIME_ERR) {
@@ -216,17 +217,20 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 
 	ptp_write_unicode_string(p->device_name, device_name);
 
-	if (ptpip_cmd_write(r, r->data, p->length) != p->length) return PTP_IO_ERR;
+	ptp_mutex_lock(r);
+
+	if (ptpip_cmd_write(r, r->data, (int)p->length) != p->length) goto io_err;
 
 	// Read the packet size, then receive the rest
 	int x = ptpip_cmd_read(r, r->data, 4);
-	if (x < 0) return PTP_IO_ERR;
-	x = ptpip_cmd_read(r, r->data + 4, p->length - 4);
-	if (x < 0) return PTP_IO_ERR;
+	if (x < 0) goto io_err;
+	x = ptpip_cmd_read(r, r->data + 4, (int)p->length - 4);
+	if (x < 0) goto io_err;
 
 	if (p->type == PTPIP_INIT_FAIL) {
 		ptp_verbose_log("PTPIP_INIT_FAIL\n");
 		// Caller should resend the packet...
+		ptp_mutex_unlock(r);
 		return PTP_RUNTIME_ERR;
 	}
 
@@ -234,9 +238,13 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 	ptp_verbose_log("Connected to %s\n", resp->cam_name);
 
 	if (ptp_get_return_code(r) != 0) {
-		return PTP_IO_ERR;
+		goto io_err;
 	}
+	ptp_mutex_unlock(r);
 	return 0;
+	io_err:;
+	ptp_mutex_unlock(r);
+	return PTP_IO_ERR;
 }
 
 int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
@@ -272,6 +280,8 @@ struct MyAddInfo {
 	uint8_t *buffer;
 	int size;
 };
+
+void app_report_download_speed(long i, size_t size);
 
 static uint8_t *my_add(void *arg, uint8_t *buffer, int new_len, int old_len) {
 	// Needs to be a new buffer
@@ -666,7 +676,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		if (rc) return rc;
 
 		// Set the prop higher - X-S10 and X-H1 want 4
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, fuji->remote_image_view_version);
+		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, 5);
 		if (rc) return rc;
 
 		// The props we set should show up here
@@ -756,6 +766,8 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 			goto end;
 		}
 
+		long then_c = get_ms();
+
 		int cur = file_size - read;
 		if (cur > FUJI_MAX_PARTIAL_OBJECT) cur = FUJI_MAX_PARTIAL_OBJECT;
 		rc = ptp_get_partial_object(r, handle, read, cur);
@@ -768,14 +780,16 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 
 		size_t payload_size = ptp_get_payload_length(r);
 
+		app_report_download_speed(get_ms() - then_c, payload_size);
+
 		if (payload_size == 0) {
 			rc = PTP_RUNTIME_ERR;
 			goto end;
 		}
 
-		handle_add(arg, ptp_get_payload(r), payload_size, read);
+		handle_add(arg, ptp_get_payload(r), (int)payload_size, read);
 
-		read += payload_size;
+		read += (int)payload_size;
 
 		if (read >= file_size) {
 			long now = get_ms();

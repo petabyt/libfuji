@@ -37,7 +37,7 @@ import 	java.util.concurrent.Semaphore;
 public class MainActivity extends AppCompatActivity {
     public static MainActivity instance;
     public Handler handler;
-
+    static WiFiComm wifi;
     public static boolean blockConnect = false;
 
     @Override
@@ -131,15 +131,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Frontend.discoveryWaitWifi();
+        wifi = new WiFiComm();
 
-        WiFiComm.onAvailable = new Runnable() {
-            @Override
-            public void run() {
-                Backend.discoveryThread(MainActivity.this);
-            }
-        };
-        WiFiComm.onWiFiSelectCancel = new Runnable() {
+        wifi.onWiFiSelectCancel = new Runnable() {
             @Override
             public void run() {
                 Frontend.print("Canceled");
@@ -151,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         };
-        WiFiComm.onWiFiSelectAvailable = new Runnable() {
+        wifi.onWiFiSelectAvailable = new Runnable() {
             @Override
             public void run() {
                 Log.d("main", "Selection successful");
@@ -172,8 +166,8 @@ public class MainActivity extends AppCompatActivity {
             LibUI.popupDrawableResource = R.drawable.border;
             Backend.init();
 
-            WiFiComm.setConnectivityManager((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
-            WiFiComm.startNetworkListeners(this);
+            wifi.setConnectivityManager((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
+            wifi.startNetworkListeners(this);
         }
 
         discoveryPopup = new AlertDialog.Builder(this);
@@ -186,6 +180,16 @@ public class MainActivity extends AppCompatActivity {
                 backgroundImage();
             }
         });
+
+        // Needs to be improved
+        Frontend.discoveryWaitWifi();
+        Backend.discoveryThread(MainActivity.this);
+        wifi.onAvailable = new Runnable() {
+            @Override
+            public void run() {
+                Backend.discoveryThread(MainActivity.this);
+            }
+        };
     }
 
     void backgroundImage() {
@@ -334,7 +338,7 @@ public class MainActivity extends AppCompatActivity {
                 int rc = tryConnect(0);
                 if (rc != 0) {
                     Frontend.print(R.string.connection_failed);
-                    if (WiFiComm.connectToAccessPoint(ctx, password) != 0) {
+                    if (wifi.connectToAccessPoint(ctx, password) != 0) {
                         // TODO: This message repeats on every connect attempt, annoying
                         Frontend.print("You must manually connect to the WiFi access point");
                         handler.post(new Runnable() {

@@ -5,6 +5,9 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import androidx.annotation.IdRes;
+import androidx.annotation.StringRes;
+
 import org.json.JSONObject;
 
 import java.util.Arrays;
@@ -69,7 +72,7 @@ public class Frontend {
     // debug function for both Java frontend and JNI backend
     private static String basicLog = "";
 
-    public static String getString(int res) {
+    public static String getString(@StringRes int res) {
         return MainActivity.instance.getString(res);
     }
 
@@ -100,7 +103,7 @@ public class Frontend {
         MediaScannerConnection.scanFile(MainActivity.instance, new String[] {path}, null, null);
     }
 
-    public static void print(int resID) {
+    public static void print(@StringRes int resID) {
         print(getString(resID));
     }
 
@@ -112,4 +115,6 @@ public class Frontend {
     public static void sendCamName(String value) {
         Gallery.setTitleCamName(value);
     }
+    public static void notifyDownloadProgress(int percent) {Viewer.notifyDownloadProgress(percent);}
+    public static void notifyDownloadSpeed(int mbps) {Viewer.notifyDownloadSpeed(mbps);}
 }

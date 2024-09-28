@@ -25,7 +25,7 @@ static void on_click(uiButton *b, void *dat) {
 	uiFreeText(file);
 }
 
-uiScroll *fudge_scripts_screen() {
+uiScroll *fudge_scripts_screen(void) {
 	uiScroll *scroll = uiNewScroll();
 
 	uiBox *box = uiNewVerticalBox();

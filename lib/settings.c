@@ -18,7 +18,7 @@ int app_do_connect_without_wifi(void) {
 char *app_get_client_name(void) {
 	JNIEnv *env = get_jni_env();
 	char *s = jni_get_pref_str(env, "client_name", "Fudge");
-	int l = strlen(s);
+	size_t l = strlen(s);
 	if (l == 0 || l > 25) {
 		return "Fudge";
 	}

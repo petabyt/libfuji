@@ -10,11 +10,11 @@ import android.text.Html;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.os.Looper;
 import android.os.Bundle;
 import android.content.Context;
-import android.net.ConnectivityManager;
 import android.os.Handler;
 
 import android.content.ClipboardManager;
@@ -22,16 +22,27 @@ import android.widget.Toast;
 
 import java.lang.ref.WeakReference;
 
+import dev.danielc.common.WiFiComm;
+
 public class Tester extends AppCompatActivity {
     private Handler handler;
     public static WeakReference<Tester> ctx = null;
+    private static String verboseLog = null;
+    private static String currentLogs = "";
 
-    WiFiComm
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        MainActivity.wifi.blockEvents = false;
+        ctx.clear();
+        handler = null;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test);
+        currentLogs = "";
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle(getString(R.string.regressiontesting));
@@ -39,32 +50,52 @@ public class Tester extends AppCompatActivity {
         handler = new Handler(Looper.getMainLooper());
         ctx = new WeakReference<>(this);
 
+        MainActivity.wifi.blockEvents = true;
+        WiFiComm wifi = new WiFiComm();
+        wifi.onWiFiSelectAvailable = new Runnable() {
+            @Override
+            public void run() {
+                tryConnect();
+            }
+        };
+
+        log("(The tester is only designed for WiFi pairing. PC AutoSave or Wireless Tether Shoot is not working here.)");
+
         if (Backend.cRouteLogs() == 0) {
             log("Routing logs to memory buffer.");
         }
 
-        Context ctx = this;
-
-        findViewById(R.id.open_wifi).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.tester_select_wifi).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO: Take over WiFi handler from MainActivity, switch back when this activity exits
+                String password = SettingsActivity.getWPA2Password(Tester.this);
+                if (password.length() == 0) password = null;
+                if (wifi.connectToAccessPoint(Tester.this, password) != 0) {
+                    fail("Didn't select access point.");
+                }
             }
         });
+        findViewById(R.id.tester_connect).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                tryConnect();
+            }
+        });
+    }
 
+    void tryConnect() {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                Frontend.print(getString(R.string.connecting));
+                log(getString(R.string.connecting));
                 int rc = Backend.fujiConnectToCmd(0);
                 if (rc != 0) {
-                    fail("WIFI: " + Frontend.parseErr(rc));
+                    fail("Failed to connect to cmd: " + Frontend.parseErr(rc));
 
                     try {
-                        Backend.connectUSB(ctx);
+                        Backend.connectUSB(Tester.this);
                     } catch (Exception e2) {
                         fail("USB: " + e2.toString());
-
                         verboseLog = Backend.cEndLogs();
                         return;
                     }
@@ -80,8 +111,6 @@ public class Tester extends AppCompatActivity {
         }).start();
     }
 
-    private static String verboseLog = null;
-    private static String currentLogs = "";
     public static void log(String str) {
         Tester t = ctx.get();
         if (t == null) return;
@@ -91,6 +120,8 @@ public class Tester extends AppCompatActivity {
                 currentLogs += str + "<br>";
                 TextView testerLog = t.findViewById(R.id.testerLog);
                 testerLog.setText(Html.fromHtml(currentLogs));
+                ScrollView scroll = t.findViewById(R.id.tester_scroll);
+                scroll.fullScroll(View.FOCUS_DOWN);
             }
         });
     }

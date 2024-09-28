@@ -26,6 +26,10 @@ struct PtpRuntime *ptp_get(void);
 /// @brief Called for every chunk/packet read
 void app_increment_progress_bar(int read);
 
+void app_set_progress_bar(int status, int size);
+
+void app_report_download_speed(long time, size_t size);
+
 /// @brief Get string ID from key/ID
 int app_get_string(const char *key);
 

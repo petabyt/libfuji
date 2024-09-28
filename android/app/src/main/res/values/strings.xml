@@ -54,5 +54,7 @@
     <string name="jpegs">JPEGs</string>
     <string name="will_download_whats_left">Will download any photos that you haven\'t already downloaded.</string>
     <string name="import_all_files">Import All</string>
+    <string name="select_wifi_network">Select WiFi</string>
+    <string name="try_to_connect_to_anything">Connect</string>
 
 </resources>

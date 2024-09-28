@@ -26,7 +26,10 @@ struct PtpIpBackend {
 	int fd;
 	int evfd;
 	int vidfd;
+	FILE *dump;
 };
+
+//#define DUMP_COMM
 
 #ifdef WIN32
 static int set_nonblocking_io(int fd, int enable) {
@@ -43,7 +46,7 @@ static void set_receive_timeout(int fd, int sec) {
 	}
 }
 #else
-	static void set_receive_timeout(int fd, int sec) {
+static void set_receive_timeout(int fd, int sec) {
 	struct timeval tv_rcv;
 	tv_rcv.tv_sec = sec;
 	tv_rcv.tv_usec = 0;
@@ -87,11 +90,11 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 		ptp_verbose_log("Failed to set keepalive: %d\n", errno);
 	}
 
-	rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&yes, sizeof(int));
-	if (rc < 0) {
-		ptp_verbose_log("Failed to set nodelay: %d\n", errno);
-	}
-
+//	rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&yes, sizeof(int));
+//	if (rc < 0) {
+//		ptp_verbose_log("Failed to set nodelay: %d\n", errno);
+//	}
+//
 	rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&yes, sizeof(int));
 	if (rc < 0) {
 		ptp_verbose_log("Failed to set reuseaddr: %d\n", errno);
@@ -165,6 +168,14 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 static struct PtpIpBackend *init_comm(struct PtpRuntime *r) {
 	if (r->comm_backend == NULL) {
 		r->comm_backend = calloc(1, sizeof(struct PtpIpBackend));
+
+#ifdef DUMP_COMM
+#warning "Dumping all comms"
+		char filepath[256];
+		app_get_file_path(filepath, "dump3.jpeg");
+		((struct PtpIpBackend *)r->comm_backend)->dump = fopen(filepath, "wb");
+		if (((struct PtpIpBackend *)r->comm_backend)->dump == NULL) abort();
+#endif
 	}
 
 	return (struct PtpIpBackend *)r->comm_backend;
@@ -228,6 +239,10 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *data, int size) {
 	}
 	struct PtpIpBackend *b = init_comm(r);
 
+	#ifdef DUMP_COMM
+	fwrite(data, 1, size, b->dump);
+	#endif
+
 	// This is here because of the most bizarre timing issue I've ever seen. With TCP_NODELAY on, on my X-H1,
 	// the connection will hang in a very specific place (after setting RemoteVersion). This only happens on my
 	// LG VS501 with Android 7. It works perfectly fine on my Google Pixel 6. A bug report was made with the same issue on a sony xperia 5 IV.
@@ -254,8 +269,14 @@ int ptpip_cmd_read(struct PtpRuntime *r, void *data, int size) {
 		return -1;
 	}
 	struct PtpIpBackend *b = init_comm(r);
-	int result = recv(b->fd, data, size, 0);
+	int result = read(b->fd, data, size);
+
+#ifdef DUMP_COMM
+	fwrite(data, 1, result, b->dump);
+#endif
+
 	if (result < 0) {
+		ptp_verbose_log("read(): %d %d\n", result, errno);
 		return -1;
 	} else {
 		// TODO: Slow

@@ -120,7 +120,9 @@ JNI_FUNC(jint, cFujiDownloadFile)(JNIEnv *env, jobject thiz, jint handle, jstrin
 	FILE *f = fopen(c_path, "wb");
 	if (f == NULL) return PTP_RUNTIME_ERR;
 
+	app_set_progress_bar(1, 1000000);
 	int rc = ptp_download_object(&backend.r, handle, f, FUJI_MAX_PARTIAL_OBJECT);
+	app_set_progress_bar(0, 0);
 	fclose(f);
 	if (rc) {
 		app_print("Failed to save %s: %s", c_path, ptp_perror(rc));
@@ -156,7 +158,9 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
 
+	app_set_progress_bar(1, file_size);
 	int rc = fuji_download_file(r, handle, file_size, jbytearray_add, array);
+	app_set_progress_bar(0, 0);
 	if (rc) return rc;
 
 	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
@@ -195,7 +199,7 @@ JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
 	if (fuji_get(r)->transport == FUJI_FEATURE_AUTOSAVE) {
-		ptp_mutex_keep_locked(r);
+		ptp_mutex_lock(r);
 		int length, offset;
 		int rc = ptp_get_partial_exif(r, handle, &offset, &length);
 		if (rc) {
@@ -209,7 +213,7 @@ JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 
 		return ret;
 	} else {
-		ptp_mutex_keep_locked(r);
+		ptp_mutex_lock(r);
 		int rc = ptp_get_thumbnail(r, (int)handle);
 		if (rc == PTP_CHECK_CODE) {
 			plat_dbg("Thumbnail get failed: %x", ptp_get_return_code(r));
@@ -272,7 +276,7 @@ jintArray ptpusb_get_object_handles(JNIEnv *env, struct PtpRuntime *r) {
 		return result;
 	}
 
-	int id = arr->data[0];
+	int id = (int)arr->data[0];
 
 	free(arr);
 
@@ -280,8 +284,8 @@ jintArray ptpusb_get_object_handles(JNIEnv *env, struct PtpRuntime *r) {
 	rc = ptp_get_object_handles(r, id, 0, 0, &arr);
 	if (rc) return NULL;
 
-	jintArray result = (*env)->NewIntArray(env, arr->length);
-	(*env)->SetIntArrayRegion(env, result, 0, arr->length, (const int *)arr->data);
+	jintArray result = (*env)->NewIntArray(env, (jsize)arr->length);
+	(*env)->SetIntArrayRegion(env, result, 0, (jsize)arr->length, (const int *)arr->data);
 
 	free(arr);
 
@@ -430,7 +434,7 @@ void fuji_discovery_update_progress(void *arg, int progress) {
 volatile static int already_discovering = 0;
 JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 	struct PtpRuntime *r = ptp_get();
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	//struct FujiDeviceKnowledge *fuji = fuji_get(r);
 
 	set_jni_env_ctx(env, ctx);
 	if (already_discovering) {
@@ -497,7 +501,7 @@ int app_bind_socket_wifi(int fd) {
 	jlong handle = get_handle();
 	if (handle < 0) {
 		plat_dbg("handle is %d", handle);
-		return handle;
+		return (int)handle;
 	}
 
 	int rc = _android_setsocknetwork(handle, fd);

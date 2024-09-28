@@ -88,6 +88,7 @@ void ptp_verbose_log(char *fmt, ...) {
 
 	if (strlen(buffer2) + backend.log_pos + 1 > backend.log_size) {
 		backend.log_buf = realloc(backend.log_buf, strlen(buffer2) + backend.log_pos + 1);
+		if (backend.log_buf == NULL) abort();
 	}
 
 	strcpy(((char *)backend.log_buf) + backend.log_pos, buffer2);
@@ -224,7 +225,6 @@ void tester_log(char *fmt, ...) {
 }
 
 void tester_fail(char *fmt, ...) {
-	if (backend.tester_fail == NULL) return;
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
@@ -252,35 +252,38 @@ void app_send_cam_name(const char *name) {
 
 static int last_p = 0;
 
+void app_set_progress_bar(int status, int size) {
+	backend.do_download = status;
+	backend.download_size = size;
+	backend.download_progress = 0;
+	backend.last_percent = 0;
+}
+
 void app_increment_progress_bar(int read) {
-	if (backend.progress_bar == NULL) {
-		return;
-	}
+	if (backend.do_download == 0) { return; }
 
 	backend.download_progress += read;
 
-	int n = (((double)backend.download_progress) / (double)backend.download_size * 100.0);
-	if (last_p != n) {
+	int n = (int)(((double)backend.download_progress) / (double)backend.download_size * 100.0);
+	if (backend.last_percent != n) {
 		if (n > 100) return;
-
 		JNIEnv *env = get_jni_env();
-		(*env)->PushLocalFrame(env, 3);
-		jmethodID method = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, backend.progress_bar), "setProgress", "(I)V");
-		(*env)->CallVoidMethod(env, backend.progress_bar, method, n);
+		(*env)->PushLocalFrame(env, 5);
+		jclass f = get_frontend_class(env);
+		jmethodID id = (*env)->GetStaticMethodID(env, f, "notifyDownloadProgress", "(I)V");
+		(*env)->CallStaticVoidMethod(env, f, id, n);
 		(*env)->PopLocalFrame(env, NULL);
 	}
-	last_p = n;
+	backend.last_percent = n;
 }
 
-JNI_FUNC(jboolean, cSetProgressBarObj)(JNIEnv *env, jobject thiz, jobject pg, jint size) {
-	if (pg == NULL) {
-		(*env)->DeleteGlobalRef(env, backend.progress_bar);
-		backend.progress_bar = NULL;
-		return 0;
-	}
-	last_p = 0;
-	backend.download_size = size;
-	backend.download_progress = 0;
-	backend.progress_bar = (*env)->NewGlobalRef(env, pg);
-	return 0;
+void app_report_download_speed(long time, size_t size) {
+	plat_dbg("Downloaded %lu in %lums", size, time);
+	int mbps = (int)((size * 8) / (time));
+	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 5);
+	jclass f = get_frontend_class(env);
+	jmethodID id = (*env)->GetStaticMethodID(env, f, "notifyDownloadSpeed", "(I)V");
+	(*env)->CallStaticVoidMethod(env, f, id, mbps);
+	(*env)->PopLocalFrame(env, NULL);
 }

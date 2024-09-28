@@ -283,15 +283,15 @@ static int open_dgram_socket(int port) {
 		return -1;
 	}
 
-	int rc = app_bind_socket_wifi(fd);
-	if (rc) return -FUJI_D_INVALID_NETWORK;
+	//int rc = app_bind_socket_wifi(fd);
+	//if (rc) return -FUJI_D_INVALID_NETWORK;
 
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	addr.sin_port = htons(port);
 	plat_dbg("Binding to %d", port);
-	rc = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+	int rc = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
 	if (rc < 0) {
 		plat_dbg("bind: %d", errno);
 		close(fd);
@@ -398,7 +398,7 @@ static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *ar
 	return 0;
 }
 
-static int open_pcss() {
+static int open_pcss(void) {
 	int sock;
 
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -493,6 +493,7 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 			max = tether_fd;
 		}
 
+		// TODO: this is triggered when a socket disconnect happens, not only when it's connected.
 		int n = select(max + 1, &fdset, NULL, NULL, &tv);
 		if (n < 0) {
 			plat_dbg("select: %d", n);

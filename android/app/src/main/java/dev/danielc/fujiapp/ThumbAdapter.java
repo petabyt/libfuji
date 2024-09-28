@@ -83,10 +83,10 @@ public abstract class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.Ima
     @SuppressLint("UseCompatLoadingForDrawables")
     @Override
     public void onBindViewHolder(ImageViewHolder holder, int position) {
-        cancelRequest(holder); // Cancel any queued requests on this holder
         holder.image.setForeground(context.getDrawable(R.drawable.ripple));
         holder.image.setBackground(context.getDrawable(R.drawable.light_button));
         holder.image.setImageBitmap(null);
+        cancelRequest(holder); // Cancel any queued requests on this holder
         position = holder.getAdapterPosition();
         queueImage(holder, position);
     }

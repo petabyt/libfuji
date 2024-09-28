@@ -110,6 +110,11 @@ int fuji_init_setup(struct PtpRuntime *r) {
 	return 0;
 }
 
+int temp_file_handle(void *arg, void *buffer, int size, int read) {
+	tester_log("Read %d bytes", size);
+	return 0;
+}
+
 int fuji_test_filesystem(struct PtpRuntime *r) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 	if (fuji->num_objects == 0) {
@@ -120,15 +125,13 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 	if (fuji->remote_version == -1) {
 		if (fuji->selected_imgs_mode == FUJI_FULL_ACCESS) {
 			if (fuji->num_objects == -1) {
-				tester_fail(
-						"The camera return didn't want to give access to num_objects property!");
+				tester_fail("The camera didn't report the number of objects on the card!");
 				return 1;
 			}
 
 			tester_log("There are %d images on the SD card.", fuji->num_objects);
 		} else if (fuji->selected_imgs_mode == FUJI_MULTIPLE_TRANSFER) {
-			tester_log(
-					"Camera is in multiple transfer mode. Doesn't tell us how many images there are.");
+			tester_log("Camera is in multiple transfer mode. Doesn't tell us how many images there are.");
 		} else if (fuji->selected_imgs_mode == -1) {
 			tester_log("Camera is not in multiple transfer mode.");
 		}
@@ -159,12 +162,77 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 			tester_log("Got thumbnail: %u bytes", ptp_get_payload_length(r));
 		}
 
+		tester_log("Trying to get extract an EXIF thumbnail...");
+
 		int offset, length;
 		rc = ptp_get_partial_exif(r, 1, &offset, &length);
 		if (rc) {
 			tester_fail("Failed to get dirty rotten thumb");
 		} else {
 			tester_log("Found EXIF thumb at %d %d", offset, length);
+		}
+
+		rc = fuji_enable_compression(r);
+		if (rc) {
+			return rc;
+		}
+
+		rc = ptp_get_object_info(r, 4, &oi);
+		if (rc) {
+			return rc;
+		}
+
+		rc = fuji_download_file(r, 4, (int)oi.compressed_size, temp_file_handle, NULL);
+		if (rc) {
+			return rc;
+		}
+
+		rc = fuji_disable_compression(r);
+		if (rc) {
+			return rc;
+		}
+	}
+
+	return 0;
+}
+
+int fuji_simulate_app(struct PtpRuntime *r) {
+	for (int i = 0; i < 100; i++) {
+		int handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
+
+		tester_log("Trying to get thumbnail for %d...", handle);
+		int rc = ptp_get_thumbnail(r, 1);
+		if (rc) {
+			tester_fail("Failed to get thumbnail: %d", rc);
+			return rc;
+		} else {
+			tester_log("Got thumbnail: %u bytes", ptp_get_payload_length(r));
+		}
+
+		handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
+
+		rc = fuji_enable_compression(r);
+		if (rc) {
+			return rc;
+		}
+
+		struct PtpObjectInfo oi;
+		rc = ptp_get_object_info(r, handle, &oi);
+		if (rc == PTP_CHECK_CODE) {
+			goto end;
+		} else if (rc) {
+			return rc;
+		}
+
+		rc = fuji_download_file(r, handle, (int)oi.compressed_size, temp_file_handle, NULL);
+		if (rc) {
+			return rc;
+		}
+
+		end:;
+		rc = fuji_disable_compression(r);
+		if (rc) {
+			return rc;
 		}
 	}
 
@@ -228,7 +296,7 @@ int fuji_test_usb(struct PtpRuntime *r) {
 		tester_log("Camera has no SD card. It's okay.");
 		return 0;
 	}
-	int id = arr->data[0];
+	int id = (int)arr->data[0];
 
 	rc = ptp_get_object_handles(r, id, PTP_OF_JPEG, 0, &arr);
 	if (rc) return rc;
@@ -237,7 +305,7 @@ int fuji_test_usb(struct PtpRuntime *r) {
 	// Check size
 
 	tester_log("Downloading object of ID %X", arr->data[1]);
-	rc = ptp_get_object(r, arr->data[1]);
+	rc = ptp_get_object(r, (int)arr->data[1]);
 	tester_fail("Return code: %x, %d", ptp_get_return_code(r), ptp_get_payload_length(r));
 	if (rc) return rc;
 
@@ -273,6 +341,8 @@ int fuji_test_suite(struct PtpRuntime *r) {
 
 	rc = fuji_test_filesystem(r);
 	if (rc) return rc;
+
+	ptp_report_error(r, "Finished testing", 0);
 
 	return 0;
 }

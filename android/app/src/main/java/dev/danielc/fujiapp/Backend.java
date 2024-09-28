@@ -111,7 +111,6 @@ public class Backend extends Camlib {
     public native static String cFujiGetUncompressedObjectInfo(int handle);
     public native static int cFujiGetFile(int handle, byte[] array, int fileSize);
     public native static int cFujiDownloadFile(int handle, String path);
-    public native static int cSetProgressBarObj(Object progressBar, int size);
 
     // For test suite only
     public native static int cRouteLogs();
