@@ -402,14 +402,14 @@ public class Gallery extends AppCompatActivity {
     // When back pressed in gallery, do nothing
     @Override
     public void onBackPressed() {
-        Backend.reportError(0, "Quitting");
+        Backend.reportErrorNonBlock(0, "Quitting");
         super.onBackPressed();
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            fail(0, "Quitting");
+            Backend.reportErrorNonBlock(0, "Quitting");
             return true;
         }
         return false;

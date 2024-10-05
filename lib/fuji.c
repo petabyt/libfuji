@@ -102,14 +102,17 @@ int fuji_setup(struct PtpRuntime *r) {
 
 	app_send_cam_name(resp.cam_name);
 
-
 	if (fuji->transport == FUJI_FEATURE_WIRELESS_COMM) {
 		app_print("The camera is thinking...");
 		usleep(50000); // Fuji cameras require at least 50ms delay after init
 	}
 
 	rc = ptp_open_session(r);
-	if (rc) {
+	if (rc == PTP_CHECK_CODE) {
+		if (ptp_get_return_code(r) != PTP_RC_SessionAlreadyOpened) {
+			return rc;
+		}
+	} else if (rc) {
 		app_print("Failed to open session.");
 		return rc;
 	}

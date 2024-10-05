@@ -74,9 +74,18 @@ public class Backend extends Camlib {
     public native static void cReportError(int code, String reason);
     public static void reportError(int code, String reason) {
         if (Backend.cGetKillSwitch()) return;
-        discoveryThread(MainActivity.instance);
         Log.d("fudge", reason);
         cReportError(code, reason);
+        discoveryThread(MainActivity.instance);
+    }
+
+    public static void reportErrorNonBlock(int code, String reason) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                reportError(code, reason);
+            }
+        }).start();
     }
 
     private static boolean haveInited = false;

@@ -18,7 +18,7 @@ import android.os.Handler;
 import android.os.PatternMatcher;
 import android.provider.Settings;
 import android.util.Log;
-
+import 	android.net.wifi.WifiManager;
 public class WiFiComm {
     public static final String TAG = "wifi";
 
@@ -47,6 +47,8 @@ public class WiFiComm {
         }
     }
 
+    // This will cause 2x slowdown for concurrent connections:
+    // https://source.android.com/docs/core/connect/wifi-sta-sta-concurrency#local-only
     public int connectToAccessPoint(Context ctx, String password) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             Log.d("wifi", "Connecting: " + password);
@@ -81,6 +83,8 @@ public class WiFiComm {
                 }
             };
             connectivityManager.requestNetwork(request, networkCallback);
+            // Disconnect after inactive?
+            // connectivityManager.unregisterNetworkCallback(this);
         } else {
             return 1;
         }
@@ -92,6 +96,15 @@ public class WiFiComm {
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
         requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
         //requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR);
+
+        WifiManager wm = (WifiManager)ctx.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            wm.isMakeBeforeBreakWifiSwitchingSupported();
+            wm.isStaConcurrencyForLocalOnlyConnectionsSupported();
+            //wm.isStaConcurrencyForRestrictedConnectionsSupported();
+        }
+
         ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
             Intent settings = null;
             @Override
@@ -101,6 +114,7 @@ public class WiFiComm {
                 if (settings != null) {
                     ((Activity)ctx).finish();
                 }
+
                 wifiDevice = network;
                 run(onAvailable);
             }
@@ -113,6 +127,10 @@ public class WiFiComm {
             public void onUnavailable() {
                 Log.e(TAG, "Network unavailable\n");
                 wifiDevice = null;
+            }
+            @Override
+            public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
+                Log.e(TAG, "capabilities changed");
             }
         };
 
@@ -135,6 +153,16 @@ public class WiFiComm {
         if (net == null) return false;
         if (wifiInfo == null) return false;
         return wifiInfo.isAvailable();
+    }
+
+    public static long getInternalNetworkHandle() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return UNSUPPORTED_SDK;
+        }
+
+        Network n = cm.getActiveNetwork();
+        if (n == null) return NOT_AVAILABLE;
+        return n.getNetworkHandle();
     }
 
     public static long getNetworkHandle() {

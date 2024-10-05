@@ -96,6 +96,6 @@ int ptp_read_int(struct PtpRuntime *r, void *to, int length) {
 	return -1;
 }
 
-int reset_int() {
+int reset_int(void) {
 	return -1;
 }

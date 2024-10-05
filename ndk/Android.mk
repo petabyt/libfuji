@@ -1,20 +1,22 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
-CAMLIB := camlib
 LUA := $(LOCAL_PATH)/../third_party/lua
 LIBUI := $(LOCAL_PATH)/../third_party//libui/lib
 LIBJPEG := $(LOCAL_PATH)/../third_party//android-libjpeg-turbo
+LIB := $(LOCAL_PATH)/../lib
+CAMLIB := $(LIB)/camlib
 
 CAMLIB_CORE := $(addprefix $(CAMLIB)/src/,transport.c data.c enum_dump.c enums.c canon.c operations.c packet.c lib.c conv.c generic.c object.c)
 CAMLIB_CORE += $(addprefix $(CAMLIB)/src/,lua/lua-cjson/strbuf.c lua/lua-cjson/lua_cjson.c lua/lua.c lua/runtime.c)
 
-FUDGE_CORE := main.c backend.c fuji.c fuji_usb.c tester.c net.c scripts.c camlib.c usb.c data.c liveview.c discovery.c exif.c uilua.c
-FUDGE_CORE += settings.c
+LIBFUDGE_CORE := $(CAMLIB_CORE) $(addprefix $(LIB)/,fuji.c fuji_usb.c tester.c net.c data.c discovery.c exif.c)
+LIB_FILES := main.c backend.c scripts.c camlib.c usb.c liveview.c uilua.c settings.c
+
 LOCAL_MODULE := fudge
 LOCAL_CFLAGS := -D ANDROID -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations -g
-LOCAL_SRC_FILES := $(FUDGE_CORE) $(CAMLIB_CORE)
-LOCAL_C_INCLUDES += $(LOCAL_PATH) $(LOCAL_PATH)/$(CAMLIB)/src $(LOCAL_PATH)/$(CAMLIB)/src/lua $(LUA)
+LOCAL_SRC_FILES := $(LIBFUDGE_CORE) $(LIB_FILES)
+LOCAL_C_INCLUDES += $(LOCAL_PATH) $(CAMLIB)/src $(CAMLIB)/src/lua $(LIB) $(LUA)
 LOCAL_LDLIBS += -llog -landroid -lEGL -lGLESv2 -lGLESv1_CM
 
 LOCAL_C_INCLUDES += $(LIBUI)

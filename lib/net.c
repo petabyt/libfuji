@@ -85,10 +85,10 @@ int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
 	}
 
 	int yes = 1;
-	rc = setsockopt(sockfd, IPPROTO_TCP, SO_KEEPALIVE, (char *)&yes, sizeof(int));
-	if (rc < 0) {
-		ptp_verbose_log("Failed to set keepalive: %d\n", errno);
-	}
+//	rc = setsockopt(sockfd, IPPROTO_TCP, SO_KEEPALIVE, (char *)&yes, sizeof(int));
+//	if (rc < 0) {
+//		ptp_verbose_log("Failed to set keepalive: %d\n", errno);
+//	}
 
 //	rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&yes, sizeof(int));
 //	if (rc < 0) {

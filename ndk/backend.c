@@ -482,6 +482,10 @@ static jlong get_handle(void) {
 	return handle;
 }
 
+/// @brief Check if the user's chosen WiFi network is available
+/// If this network is not available, then calling `app_bind_socket_wifi` can be skipped.
+int app_is_alternative_network_available(void);
+
 int app_bind_socket_wifi(int fd) {
 	if (app_do_connect_without_wifi()) {
 		return 0;

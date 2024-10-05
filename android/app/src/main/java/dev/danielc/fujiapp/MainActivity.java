@@ -148,7 +148,13 @@ public class MainActivity extends AppCompatActivity {
         wifi.onWiFiSelectAvailable = new Runnable() {
             @Override
             public void run() {
+                if (blockConnect) return;
                 Log.d("main", "Selection successful");
+                try {
+                    Thread.sleep(1000);
+                } catch (Exception e) {
+
+                }
                 int rc = tryConnect(3);
                 if (rc != 0) {
                     Frontend.print(R.string.connection_failed);
@@ -181,15 +187,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Needs to be improved
+        // TODO: Needs to be improved
+        // Connect to internet network, cellular, and never a user-selected network
         Frontend.discoveryWaitWifi();
-        Backend.discoveryThread(MainActivity.this);
-        wifi.onAvailable = new Runnable() {
-            @Override
-            public void run() {
-                Backend.discoveryThread(MainActivity.this);
-            }
-        };
+//        Backend.discoveryThread(MainActivity.this);
+//        wifi.onAvailable = new Runnable() {
+//            @Override
+//            public void run() {
+//                Backend.discoveryThread(MainActivity.this);
+//            }
+//        };
     }
 
     void backgroundImage() {

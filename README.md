@@ -3,15 +3,14 @@ This is a cross-platform open-source alternative to Fujifilm's official camera a
 
 <img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20240305-104928.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20240305-104948.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20240305-105032.png' width='250'>
 
+This app isn't finished yet, so don't set high expectations. Fuji's implementation of PTP/IP has many different quirks and bugs, so it's not easy to create a stable client that works for all cameras.
+
 ## Improvements over XApp / Camera Connect
 - Location and notification permissions are *not* required
 - *Much* more responsive native UI
 - Performance improvements
 - USB-OTG connectivity support
 - Lua plugins API
-
-This app isn't finished yet, so don't set high expectations. Fuji's version of PTP/IP has many different quirks and features, so it's not easy to implement them all from
-a single camera. Currently, it's only been tested on a few older cameras, but functionality for newer cameras will slowly be implemented (as well as bluetooth) over time.
 
 Beta builds are published on [Google Play](https://play.google.com/store/apps/details?id=dev.danielc.fujiapp). The latest builds are also available on [F-Droid](https://apt.izzysoft.de/fdroid/index/apk/dev.danielc.fujiapp).
 
