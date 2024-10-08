@@ -4,7 +4,9 @@ package dev.danielc.fujiapp;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
+import android.Manifest;
 import android.content.ClipData;
 import android.text.Html;
 import android.view.Menu;
@@ -21,6 +23,7 @@ import android.content.ClipboardManager;
 import android.widget.Toast;
 
 import java.lang.ref.WeakReference;
+import java.util.Locale;
 
 import dev.danielc.common.WiFiComm;
 
@@ -59,7 +62,10 @@ public class Tester extends AppCompatActivity {
             }
         };
 
-        log("(The tester is only designed for WiFi pairing. PC AutoSave or Wireless Tether Shoot is not working here.)");
+        log(String.format(Locale.getDefault(), "WiFi hotspot: %b", WiFiComm.isHotSpotEnabled(this)));
+        log(String.format(Locale.getDefault(), "WiFi Concurrency?: %s",  WiFiComm.isWiFiModuleHandlingTwoConnections(this) ? "Yes" : "No"));
+
+        log("(The tester is only designed for WiFi pairing. PC AutoSave or Wireless Tether Shoot is not working here yet.)");
 
         if (Backend.cRouteLogs() == 0) {
             log("Routing logs to memory buffer.");

@@ -17,7 +17,7 @@ void tester_log(char *fmt, ...);
 void tester_fail(char *fmt, ...);
 
 /// @brief Bind to default or user-selected wifi device
-int app_bind_socket_wifi(int sockfd);
+//int app_bind_socket_wifi(int sockfd);
 
 /// @brief Get default PTP object
 /// @note Eventually this will be removed when more than one connection is allowed at once
@@ -44,5 +44,14 @@ void app_downloading_file(const struct PtpObjectInfo *oi);
 
 /// @brief Pings the frontend when a file has been downloaded
 void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path);
+
+struct NetworkHandle {
+	long long android_fd;
+	int ignore;
+};
+
+int app_get_os_network_handle(struct NetworkHandle *h);
+int app_get_wifi_network_handle(struct NetworkHandle *h);
+int app_bind_socket_to_network(int fd, struct NetworkHandle *h);
 
 #endif

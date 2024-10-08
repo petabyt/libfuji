@@ -1,5 +1,6 @@
-// Generic portable 
-// Copyright 2023 by Daniel C (https://github.com/petabyt/camlib)
+// Generic portable camlib PTP/IP backend
+// There shouldn't be any Fuji-specific code here, so this file can be copied to a different project.
+// Copyright 2024 by Daniel C (https://github.com/petabyt/camlib)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,14 +72,14 @@ static int set_nonblocking_io(int fd, int enable) {
 }
 #endif
 
-int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec) {
+static int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec, struct NetworkHandle *handle) {
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd <= 0) {
 		ptp_verbose_log("Bad socket fd: %d %d\n", sockfd, errno);
 		return -1;
 	}
 
-	int rc = app_bind_socket_wifi(sockfd);
+	int rc = app_bind_socket_to_network(sockfd, handle);
 	if (rc) {
 		ptp_verbose_log("Error binding to wifi network: %d\n", errno);
 		return rc;
@@ -183,7 +184,8 @@ static struct PtpIpBackend *init_comm(struct PtpRuntime *r) {
 
 int ptpip_connect(struct PtpRuntime *r, const char *addr, int port, int extra_tmout) {
 	ptp_verbose_log("Extra tmout: %d\n", extra_tmout);
-	int fd = ptpip_new_timeout_socket(addr, port, 2 + extra_tmout);
+
+	int fd = ptpip_new_timeout_socket(addr, port, 2 + extra_tmout, ptp_get_network_info(r));
 
 	struct PtpIpBackend *b = init_comm(r);
 
@@ -198,7 +200,7 @@ int ptpip_connect(struct PtpRuntime *r, const char *addr, int port, int extra_tm
 }
 
 int ptpip_connect_events(struct PtpRuntime *r, const char *addr, int port) {
-	int fd = ptpip_new_timeout_socket(addr, port, 3);
+	int fd = ptpip_new_timeout_socket(addr, port, 3, ptp_get_network_info(r));
 	struct PtpIpBackend *b = init_comm(r);
 	if (fd > 0) {
 		b->evfd = fd;
@@ -210,7 +212,7 @@ int ptpip_connect_events(struct PtpRuntime *r, const char *addr, int port) {
 }
 
 int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port) {
-	int fd = ptpip_new_timeout_socket(addr, port, 3);
+	int fd = ptpip_new_timeout_socket(addr, port, 3, ptp_get_network_info(r));
 	struct PtpIpBackend *b = init_comm(r);
 	if (fd > 0) {
 		b->vidfd = fd;
@@ -253,6 +255,12 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *data, int size) {
 	// when sending packets. Download speeds are mostly unaffected.
 	// I don't know what Fuji does internally with their app, but I truly hope they have a better solution than me.
 	//usleep(5000);
+
+	// Update Oct 2024:
+	// 5ms delay had to be removed due to possible download speed issues. Instead, more robust handling
+	// has been added to transport functions and some padding GetEvent calls (those do not seem to be affected at all)
+	// The delay only helped certain operations (specifically after GetPartialObject and SetPropValue). The solution may be
+	// handling those calls with extra caution.
 
 	errno = 0;
 	int result = send(b->fd, data, size, 0);

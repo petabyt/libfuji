@@ -187,16 +187,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // TODO: Needs to be improved
-        // Connect to internet network, cellular, and never a user-selected network
-        Frontend.discoveryWaitWifi();
-//        Backend.discoveryThread(MainActivity.this);
-//        wifi.onAvailable = new Runnable() {
-//            @Override
-//            public void run() {
-//                Backend.discoveryThread(MainActivity.this);
-//            }
-//        };
+        Backend.discoveryThread(MainActivity.this);
     }
 
     void backgroundImage() {

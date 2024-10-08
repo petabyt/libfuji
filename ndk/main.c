@@ -114,6 +114,8 @@ static inline jclass get_frontend_class(JNIEnv *env) {
 	return (*env)->FindClass(env, "dev/danielc/fujiapp/Frontend");
 }
 
+#define get_frontend_class(env) (*env)->FindClass(env, "dev/danielc/fujiapp/Frontend")
+
 static inline jclass get_tester_class(JNIEnv *env) {
 	return (*env)->FindClass(env, "dev/danielc/fujiapp/Tester");
 }
@@ -249,8 +251,6 @@ void app_send_cam_name(const char *name) {
 	(*env)->CallStaticVoidMethod(env, f, id, j_str);
 	(*env)->PopLocalFrame(env, NULL);
 }
-
-static int last_p = 0;
 
 void app_set_progress_bar(int status, int size) {
 	backend.do_download = status;

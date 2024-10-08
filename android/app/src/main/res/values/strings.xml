@@ -20,7 +20,7 @@
     <string name="dimensions">Image size</string>
     <string name="filesize">File size</string>
     <string name="alreadydownloaded">File is already downloaded.</string>
-    <string name="regressiontesting">Regression Testing</string>
+    <string name="regressiontesting">Developer Testing</string>
     <string name="gallery">Gallery</string>
     <string name="waiting_on_wifi">Waiting for WiFi</string>
     <string name="getImages2">Maybe you only have RAW files? Fuji doesn\'t let us view RAW over WiFi :(</string>

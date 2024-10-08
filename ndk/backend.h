@@ -55,6 +55,7 @@ struct AndroidBackend {
 	int last_percent;
 };
 
+// Must be {0}
 extern struct AndroidBackend backend;
 
 // Thread safe JNIEnv storage

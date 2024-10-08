@@ -13,11 +13,24 @@
 #include "app.h"
 #include "fuji.h"
 
+// Note: This code was previously refactored to support multiple instances of DiscoveryState
+struct DiscoveryState {
+	int reg_fd;
+	int con_fd;
+	int tether_fd;
+	int pcss_fd;
+};
+
+
+// Main tether handshake port
 #define FUJI_TETHER 51560
+// Tether client must advertise itself on this port
+#define FUJI_PCSS_BROADCAST 51562
+// Register and connect events are sent over two different ports.
 #define FUJI_AUTOSAVE_REGISTER 51542
 #define FUJI_AUTOSAVE_CONNECT 51541
+// A TCP port used for PC AutoSave handshake process
 #define FUJI_AUTOSAVE_NOTIFY 51540
-#define FUJI_PCSS_BROADCAST 51562
 
 static int get_local_ip(char buffer[64]) {
 	struct sockaddr_in serv;
@@ -39,12 +52,12 @@ static int get_local_ip(char buffer[64]) {
 	return 0;
 }
 
-static int connect_to_notify_server(char *ip, int port) {
+static int connect_to_notify_server(struct DiscoveryState *s, char *ip, int port) {
 	int server_fd;
 
+	plat_dbg("Connecting to %s:%d\n", ip, port);
+
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
-	int rc = app_bind_socket_wifi(server_fd);
-	if (rc) return -1;
 	if (server_fd < 0) {
 		plat_dbg("Failed to create TCP socket");
 		return -1;
@@ -94,13 +107,12 @@ static int connect_to_notify_server(char *ip, int port) {
 	return 0;
 }
 
-static int start_invite_server(struct DiscoverInfo *info, int port) {
+static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *info, int port) {
 	int server_fd, client_fd;
 	struct sockaddr_in server_addr, client_addr;
 	socklen_t client_addr_len = sizeof(client_addr);
 
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
-	app_bind_socket_wifi(server_fd);
 	if (server_fd < 0) {
 		plat_dbg("Failed to create TCP socket");
 		return -1;
@@ -190,7 +202,7 @@ static int start_invite_server(struct DiscoverInfo *info, int port) {
 }
 
 // TODO: Respond to any connection
-static int respond_to_datagram(char *greeting, struct DiscoverInfo *info) {
+static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct DiscoverInfo *info) {
 	memset(info, 0, sizeof(struct DiscoverInfo));
 
 	char *saveptr;
@@ -200,6 +212,7 @@ static int respond_to_datagram(char *greeting, struct DiscoverInfo *info) {
 		if (!strcmp(cur, "DISCOVER")) {
 			cur = strtok_r(NULL, delim, &saveptr);
 			if (cur == NULL) return -1;
+			plat_dbg("Client name: %s\n", cur);
 			strcpy(info->client_name, cur);
 		} else if (!strcmp(cur, "DSCADDR")) {
 			cur = strtok_r(NULL, delim, &saveptr);
@@ -212,7 +225,7 @@ static int respond_to_datagram(char *greeting, struct DiscoverInfo *info) {
 
 	fuji_discovery_update_progress(NULL, 1);
 
-	char *client_name = "desktop";
+	char *client_name = "Fudgey";
 
 	char response[] =
 		"NOTIFY * HTTP/1.1\r\n"
@@ -222,7 +235,7 @@ static int respond_to_datagram(char *greeting, struct DiscoverInfo *info) {
 	char notify[512];
 	sprintf(notify, response, info->camera_ip, FUJI_AUTOSAVE_NOTIFY, client_name);
 
-	int fd = connect_to_notify_server(info->camera_ip, FUJI_AUTOSAVE_NOTIFY);
+	int fd = connect_to_notify_server(s, info->camera_ip, FUJI_AUTOSAVE_NOTIFY);
 	if (fd <= 0) {
 		plat_dbg("Failed to connect to notify server: %d", fd);
 		return -1;
@@ -240,13 +253,13 @@ static int respond_to_datagram(char *greeting, struct DiscoverInfo *info) {
 	return 0;
 }
 
-static int accept_register(struct DiscoverInfo *info, char *greeting) {
-	int rc = respond_to_datagram(greeting, info);
+static int accept_register(struct DiscoveryState *s, struct DiscoverInfo *info, char *greeting) {
+	int rc = respond_to_datagram(s, greeting, info);
 	if (rc) return rc;
 
 	fuji_discovery_update_progress(NULL, 2);
 
-	rc = start_invite_server(info, FUJI_AUTOSAVE_REGISTER);
+	rc = start_invite_server(s, info, FUJI_AUTOSAVE_REGISTER);
 	if (rc) return rc;
 
 	plat_dbg("Finished registering");
@@ -256,13 +269,13 @@ static int accept_register(struct DiscoverInfo *info, char *greeting) {
 	return 0;
 }
 
-static int accept_connect(struct DiscoverInfo *info, char *greeting) {
-	int rc = respond_to_datagram(greeting, info);
+static int accept_connect(struct DiscoveryState *s, struct DiscoverInfo *info, char *greeting) {
+	int rc = respond_to_datagram(s, greeting, info);
 	if (rc) return rc;
 
 	fuji_discovery_update_progress(NULL, 2);
 
-	rc = start_invite_server(info, FUJI_AUTOSAVE_CONNECT);
+	rc = start_invite_server(s, info, FUJI_AUTOSAVE_CONNECT);
 	if (rc) return rc;
 
 	plat_dbg("Finished connecting");
@@ -274,7 +287,7 @@ static int accept_connect(struct DiscoverInfo *info, char *greeting) {
 	return 0;
 }
 
-static int open_dgram_socket(int port) {
+static int open_dgram_socket(struct DiscoveryState *s, int port) {
 	struct sockaddr_in addr;
 
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -282,9 +295,6 @@ static int open_dgram_socket(int port) {
 		plat_dbg("socket");
 		return -1;
 	}
-
-	//int rc = app_bind_socket_wifi(fd);
-	//if (rc) return -FUJI_D_INVALID_NETWORK;
 
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
@@ -301,12 +311,11 @@ static int open_dgram_socket(int port) {
 	return fd;
 }
 
-int fuji_open_tether_server(char *local_ip) {
+int fuji_open_tether_server(struct DiscoveryState *s, const char *local_ip) {
 	int server_fd;
 	struct sockaddr_in server_addr;
 
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
-	app_bind_socket_wifi(server_fd);
 	if (server_fd < 0) {
 		plat_dbg("Failed to create TCP socket");
 		return -1;
@@ -341,7 +350,6 @@ int fuji_open_tether_server(char *local_ip) {
 }
 
 static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *arg) {
-	// TODO: needs to be better
 	struct sockaddr_in client_addr;
 	socklen_t client_addr_len = sizeof(client_addr);
 	int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
@@ -350,6 +358,8 @@ static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *ar
 		plat_dbg("invite server: Accepting connection failed");
 		return -1;
 	}
+
+	fuji_discovery_update_progress(arg, 0);
 
 	plat_dbg("invite server: Connection accepted from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
@@ -398,11 +408,8 @@ static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *ar
 	return 0;
 }
 
-static int open_pcss(void) {
-	int sock;
-
-	sock = socket(AF_INET, SOCK_DGRAM, 0);
-	app_bind_socket_wifi(sock);
+static int open_pcss(struct DiscoveryState *s) {
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
 	int b = 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &b, sizeof(b)) < 0) {
@@ -436,8 +443,144 @@ static int send_pcss_datagram(int sock, const char *local_ip) {
 	return 0;
 }
 
+static void close_all_sockets(struct DiscoveryState *s) {
+	if (s->con_fd > 0) {
+		close(s->con_fd);
+	}
+	if (s->reg_fd > 0) {
+		close(s->reg_fd);
+	}
+	if (s->tether_fd > 0) {
+		close(s->tether_fd);
+	}
+	if (s->pcss_fd > 0) {
+		close(s->pcss_fd);
+	}
+}
+
+static int try_connect_all_sockets(struct DiscoveryState *s, const char *local_ip) {
+	if (s->reg_fd == 0) {
+		s->reg_fd = open_dgram_socket(s, FUJI_AUTOSAVE_REGISTER);
+		if (s->reg_fd <= 0) {
+			plat_dbg("Error connect register: %d", s->reg_fd);
+			return -1;
+		}
+	}
+
+	if (s->con_fd == 0) {
+		s->con_fd = open_dgram_socket(s, FUJI_AUTOSAVE_CONNECT);
+		if (s->con_fd <= 0) {
+			plat_dbg("Error connect svr: %d", s->con_fd);
+			return -1;
+		}
+	}
+
+	if (s->tether_fd == 0) {
+		s->tether_fd = fuji_open_tether_server(s, local_ip);
+		if (s->tether_fd < 0) {
+			perror("socket");
+			return -1;
+		}
+	}
+
+	if (s->pcss_fd == 0) {
+		s->pcss_fd = open_pcss(s);
+		if (s->pcss_fd < 0) {
+			plat_dbg("Failed to open pcss port");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const char *local_ip, void *arg) {
+	if (s->pcss_fd != 0) {
+		if (send_pcss_datagram(s->pcss_fd, local_ip)) {
+			plat_dbg("Failed to send datagram: %d", errno);
+			return -1;
+		}
+	}
+
+	char greeting[1024];
+	struct timeval tv;
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+
+	int max = 0;
+
+	fd_set fdset;
+	FD_ZERO(&fdset);
+	if (s->reg_fd > 0) {
+		FD_SET(s->reg_fd, &fdset);
+		if (s->reg_fd > max) max = s->reg_fd;
+	}
+	if (s->con_fd > 0) {
+		FD_SET(s->con_fd, &fdset);
+		if (s->con_fd > max) max = s->con_fd;
+	}
+	if (s->tether_fd > 0) {
+		FD_SET(s->tether_fd, &fdset);
+		if (s->tether_fd > max) max = s->tether_fd;
+	}
+
+	// TODO: this is triggered when a socket disconnect happens, not only when it's connected.
+	int n = select(max + 1, &fdset, NULL, NULL, &tv);
+	if (n < 0) {
+		plat_dbg("select: %d", n);
+		return -1;
+	}
+
+	if (s->reg_fd > 0) {
+		if (FD_ISSET(s->reg_fd, &fdset)) {
+			ptp_verbose_log("AutoSave register\n");
+			info->transport = FUJI_FEATURE_AUTOSAVE;
+			int len = recvfrom(s->reg_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
+			if (len <= 0) {
+				plat_dbg("recvfrom: %d", len);
+				return -1;
+			}
+			greeting[len] = '\0';
+			fuji_discovery_update_progress(arg, 0);
+			int rc = accept_register(s, info, greeting);
+			if (rc) return -1;
+			return FUJI_D_REGISTERED;
+		}
+	}
+	if (s->con_fd > 0) {
+		if (FD_ISSET(s->con_fd, &fdset)) {
+			ptp_verbose_log("AutoSave connect\n");
+			info->transport = FUJI_FEATURE_AUTOSAVE;
+			int len = recvfrom(s->con_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
+			if (len <= 0) {
+				plat_dbg("recvfrom: %d", len);
+				return -1;
+			}
+			greeting[len] = '\0';
+			fuji_discovery_update_progress(arg, 0);
+			int rc = accept_connect(s, info, greeting);
+			if (rc) return -1;
+			return FUJI_D_GO_PTP;
+		}
+	}
+	if (s->tether_fd > 0) {
+		if (FD_ISSET(s->tether_fd, &fdset)) {
+			ptp_verbose_log("Tether connect\n");
+			info->transport = FUJI_FEATURE_WIRELESS_TETHER;
+			int rc = fuji_tether_accept(info, s->tether_fd, arg);
+			if (rc) return -1;
+			return FUJI_D_GO_PTP;
+		}
+	}
+
+	if (fuji_discovery_check_cancel(arg)) {
+		return FUJI_D_CANCELED;
+	}
+
+	return 0;
+}
+
 int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg) {
-	int rc = 0;
 	memset(info, 0, sizeof(struct DiscoverInfo));
 
 	char local_ip[64];
@@ -447,110 +590,19 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 
 	plat_dbg("You are on %s", local_ip);
 
-	int reg_fd = open_dgram_socket(FUJI_AUTOSAVE_REGISTER);
-	if (reg_fd <= 0) {
-		plat_dbg("Error connect register: %d", reg_fd);
-		return -reg_fd;
-	}
-	int con_fd = open_dgram_socket(FUJI_AUTOSAVE_CONNECT);
-	if (con_fd <= 0) {
-		plat_dbg("Error connect svr: %d", con_fd);
-		return -con_fd;
-	}
+	app_get_os_network_handle(&info->h);
 
-	int tether_fd = fuji_open_tether_server(local_ip);
-	if (tether_fd < 0) {
-		perror("socket");
-		return -1;
-	}
+	struct DiscoveryState s;
+	memset(&s, 0, sizeof(struct DiscoveryState));
 
-	int pcss_fd = open_pcss();
-	if (pcss_fd < 0) {
-		plat_dbg("Failed to open pcss port");
-		return -1;
-	}
-
-	char greeting[1024];
-	while (1) {
-		if (send_pcss_datagram(pcss_fd, local_ip)) {
-			plat_dbg("Failed to send datagram: %d", errno);
-			rc = -1;
-			break;
-		}
-
-		struct timeval tv;
-		tv.tv_sec = 1;
-		tv.tv_usec = 0;
-
-		fd_set fdset;
-		FD_ZERO(&fdset);
-		FD_SET(reg_fd, &fdset);
-		FD_SET(con_fd, &fdset);
-		FD_SET(tether_fd, &fdset);
-
-		int max = (reg_fd > con_fd ? reg_fd : con_fd);
-		if (tether_fd > max) {
-			max = tether_fd;
-		}
-
-		// TODO: this is triggered when a socket disconnect happens, not only when it's connected.
-		int n = select(max + 1, &fdset, NULL, NULL, &tv);
-		if (n < 0) {
-			plat_dbg("select: %d", n);
-			rc = -1;
-			break;
-		}
-
-		if (n != 0) {
-			fuji_discovery_update_progress(arg, 0);
-		}
-
-		if (FD_ISSET(reg_fd, &fdset)) {
-			ptp_verbose_log("AutoSave register\n");
-			info->transport = FUJI_FEATURE_AUTOSAVE;
-			int len = recvfrom(reg_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
-			if (len <= 0) {
-				plat_dbg("recvfrom: %d", len);
-				rc = -1;
-				break;
-			}
-			greeting[len] = '\0';
-			rc = accept_register(info, greeting);
-			if (rc == 0) rc = FUJI_D_REGISTERED;
-			break;
-		}
-		if (FD_ISSET(tether_fd, &fdset)) {
-			ptp_verbose_log("Tether connect\n");
-			info->transport = FUJI_FEATURE_WIRELESS_TETHER;
-			rc = fuji_tether_accept(info, tether_fd, arg);
-			if (rc == 0) rc = FUJI_D_GO_PTP;
-			break;
-		}
-		if (FD_ISSET(con_fd, &fdset)) {
-			ptp_verbose_log("AutoSave connect\n");
-			info->transport = FUJI_FEATURE_AUTOSAVE;
-			int len = recvfrom(con_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
-			if (len <= 0) {
-				plat_dbg("recvfrom: %d", len);
-				rc = -1;
-				break;
-			}
-			greeting[len] = '\0';
-			rc = accept_connect(info, greeting);
-			info->transport = FUJI_FEATURE_AUTOSAVE;
-			if (rc == 0) rc = FUJI_D_GO_PTP;
-			break;
-		}
-
-		if (fuji_discovery_check_cancel(arg)) {
-			rc = FUJI_D_CANCELED;
-			break;
+	int rc = try_connect_all_sockets(&s, local_ip);
+	if (rc == 0) {
+		while (rc == 0) {
+			rc = state_idle(&s, info, local_ip, arg);
 		}
 	}
 
-	close(pcss_fd);
-	close(tether_fd);
-	close(con_fd);
-	close(reg_fd);
+	close_all_sockets(&s);
+
 	return rc;
 }

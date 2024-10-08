@@ -16,10 +16,16 @@ struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r) {
 	return (struct FujiDeviceKnowledge *)r->userdata;
 }
 
+struct NetworkHandle *ptp_get_network_info(struct PtpRuntime *r) {
+	return &fuji_get(r)->net;
+}
+
 int fuji_reset_ptp(struct PtpRuntime *r) {
 	ptp_reset(r);
 	// leaks, don't care
-	r->userdata = calloc(1, sizeof(struct FujiDeviceKnowledge));
+	if (r->userdata == NULL)
+		r->userdata = malloc(sizeof(struct FujiDeviceKnowledge));
+	memset(r->userdata, 0, sizeof(struct FujiDeviceKnowledge));
 	r->connection_type = PTP_IP_USB;
 	r->response_wait_default = 3; // Fuji cams are slow!
 	r->io_kill_switch = 0;

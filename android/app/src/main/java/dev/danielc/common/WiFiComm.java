@@ -2,6 +2,7 @@
 // Copyright Daniel Cook - Apache License
 package dev.danielc.common;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -12,6 +13,7 @@ import android.net.NetworkInfo;
 import android.net.NetworkRequest;
 import android.net.NetworkSpecifier;
 import android.net.Uri;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.os.Build;
 import android.os.Handler;
@@ -19,6 +21,9 @@ import android.os.PatternMatcher;
 import android.provider.Settings;
 import android.util.Log;
 import 	android.net.wifi.WifiManager;
+
+import java.lang.reflect.Method;
+
 public class WiFiComm {
     public static final String TAG = "wifi";
 
@@ -97,14 +102,6 @@ public class WiFiComm {
         requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
         //requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR);
 
-        WifiManager wm = (WifiManager)ctx.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            wm.isMakeBeforeBreakWifiSwitchingSupported();
-            wm.isStaConcurrencyForLocalOnlyConnectionsSupported();
-            //wm.isStaConcurrencyForRestrictedConnectionsSupported();
-        }
-
         ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
             Intent settings = null;
             @Override
@@ -155,16 +152,35 @@ public class WiFiComm {
         return wifiInfo.isAvailable();
     }
 
-    public static long getInternalNetworkHandle() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return UNSUPPORTED_SDK;
+    // If we go through WifiNetworkSpecifier, then the device may be handling two concurrent connections.
+    // This is up to a 2x performance hit.
+    public static boolean isWiFiModuleHandlingTwoConnections(Context ctx) {
+        WifiManager wm = (WifiManager)ctx.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // 'Query whether or not the device supports concurrent station (STA) connections
+            // for local-only connections using WifiNetworkSpecifier.'
+            return wm.isStaConcurrencyForLocalOnlyConnectionsSupported();
         }
-
-        Network n = cm.getActiveNetwork();
-        if (n == null) return NOT_AVAILABLE;
-        return n.getNetworkHandle();
+        // If below 31, then Android supposedly doesn't support concurrent connections at all
+        return false;
     }
 
+    public static boolean isHotSpotEnabled(Context ctx) {
+        WifiManager wm = (WifiManager)ctx.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        try {
+            Method m = wm.getClass().getDeclaredMethod("isWifiApEnabled");
+            m.setAccessible(true);
+            if ((boolean)m.invoke(wm) == false) {
+                return false;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+
+        return true;
+    }
+
+    @SuppressLint("ObsoleteSdkInt")
     public static long getNetworkHandle() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return UNSUPPORTED_SDK;
@@ -183,5 +199,19 @@ public class WiFiComm {
 
         Log.d("wifi", "WiFi network not available");
         return NOT_AVAILABLE;
+    }
+
+    public static void openHotSpotSettings(Context ctx) {
+        Intent tetherSettings = new Intent();
+        tetherSettings.setClassName("com.android.settings", "com.android.settings.TetherSettings");
+        ctx.startActivity(tetherSettings);
+    }
+
+    public static void openWiFiSettings(Activity ctx) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ctx.startActivityForResult(new Intent(Settings.Panel.ACTION_WIFI), 0);
+        } else {
+            ctx.startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
+        }
     }
 }

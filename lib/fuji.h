@@ -2,6 +2,7 @@
 #define FUJIAPP_FUJI_H
 #include <camlib.h>
 #include "fujiptp.h"
+#include "app.h"
 
 #define DEVICE_NAME "Fudge"
 
@@ -10,14 +11,19 @@
 #define FUJI_MAX_PARTIAL_OBJECT 0x100000
 
 /// @brief IP address used for all PTP connections
+/// @note must free()
 char *app_get_camera_ip(void);
 
 /// @brief If 1, then do not try to bind to any network. Leave the OS to decide. This is mainly for
 /// listening to the device's own hotspot.
+/// @note must free()
 int app_do_connect_without_wifi(void);
 
 /// @brief Get friendly client name
+/// @note must free()
 char *app_get_client_name(void);
+
+struct NetworkHandle *ptp_get_network_info(struct PtpRuntime *r);
 
 enum DiscoverRet {
 	FUJI_D_REGISTERED = 1,
@@ -31,6 +37,7 @@ enum DiscoverRet {
 
 /// @brief Holds all information about a camera that has been detected (through any means)
 struct DiscoverInfo {
+	struct NetworkHandle h;
 	char camera_ip[64];
 	char camera_name[64];
 	char camera_model[64];
@@ -41,6 +48,8 @@ struct DiscoverInfo {
 
 /// @brief Holds runtime info about the camera
 struct FujiDeviceKnowledge {
+	/// @note applied from struct DiscoverInfo
+	struct NetworkHandle net;
 	/// @note applied from struct DiscoverInfo
 	char ip_address[64];
 	/// @note applied from struct DiscoverInfo

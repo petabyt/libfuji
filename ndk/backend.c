@@ -332,15 +332,15 @@ JNI_FUNC(jint, cGetTransport)(JNIEnv *env, jobject thiz) {
 JNI_FUNC(jint, cTryConnectWiFi)(JNIEnv *env, jobject thiz, jint extra_tmout) {
 	set_jni_env(env);
 	char *c_ip = app_get_camera_ip();
-
-	int rc = ptpip_connect(&backend.r, c_ip, FUJI_CMD_IP_PORT, (int)extra_tmout);
-
-	if (rc == 0) {
-		fuji_reset_ptp(ptp_get());
-		strcpy(fuji_get(ptp_get())->ip_address, c_ip);
-		fuji_get(ptp_get())->transport = FUJI_FEATURE_WIRELESS_COMM;
+	fuji_reset_ptp(ptp_get());
+	strcpy(fuji_get(ptp_get())->ip_address, c_ip);
+	fuji_get(ptp_get())->transport = FUJI_FEATURE_WIRELESS_COMM;
+	if (app_get_wifi_network_handle(&fuji_get(ptp_get())->net)) {
+		// weird state, network became inactive immediately
+		free(c_ip);
+		return -1;
 	}
-
+	int rc = ptpip_connect(&backend.r, c_ip, FUJI_CMD_IP_PORT, (int)extra_tmout);
 	free(c_ip);
 
 	return rc;
@@ -362,26 +362,10 @@ JNI_FUNC(jint, cConnectFromDiscovery)(JNIEnv *env, jobject thiz, jbyteArray disc
 		fuji_reset_ptp(ptp_get());
 		strcpy(fuji_get(ptp_get())->ip_address, info->camera_ip);
 		fuji_get(ptp_get())->transport = info->transport;
+		memcpy(&fuji_get(ptp_get())->net, &info->h, sizeof(struct NetworkHandle));
 	}
 
-	(*env)->ReleaseByteArrayElements(env, discovery, (jbyte *)info, JNI_ABORT);
-
-	return rc;
-}
-
-JNI_FUNC(jint, cConnectNative)(JNIEnv *env, jobject thiz, jstring ip, jint port) {
-	set_jni_env(env);
-	const char *c_ip = (*env)->GetStringUTFChars(env, ip, 0);
-
-	int rc = ptpip_connect(&backend.r, c_ip, (int)port, 0);
-
-	if (rc == 0) {
-		//fuji_reset_ptp(ptp_get()); // ???
-		strcpy(fuji_get(ptp_get())->ip_address, c_ip);
-		// TODO: ->transport ???
-	}
-
-	(*env)->ReleaseStringUTFChars(env, ip, c_ip);
+	(*env)->ReleaseByteArrayElements(env, discovery, (jbyte *)info, 0);
 
 	return rc;
 }
@@ -474,23 +458,24 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 	return rc;
 }
 
-static jlong get_handle(void) {
+int app_get_wifi_network_handle(struct NetworkHandle *h) {
 	JNIEnv *env = get_jni_env();
 	jclass class = (*env)->FindClass(env, "dev/danielc/common/WiFiComm");
 	jmethodID get_handle_m = (*env)->GetStaticMethodID(env, class, "getNetworkHandle", "()J");
-	jlong handle = (*env)->CallStaticLongMethod(env, class, get_handle_m);
-	return handle;
+	h->android_fd = (*env)->CallStaticLongMethod(env, class, get_handle_m);
+	if (h->android_fd < 0) {
+		return -1;
+	}
+	return 0;
 }
 
-/// @brief Check if the user's chosen WiFi network is available
-/// If this network is not available, then calling `app_bind_socket_wifi` can be skipped.
-int app_is_alternative_network_available(void);
+int app_get_os_network_handle(struct NetworkHandle *h) {
+	h->ignore = 1;
+	return 0;
+}
 
-int app_bind_socket_wifi(int fd) {
-	if (app_do_connect_without_wifi()) {
-		return 0;
-	}
-
+int app_bind_socket_to_network(int fd, struct NetworkHandle *h) {
+	if (h->ignore) return 0;
 	typedef int (*_android_setsocknetwork_td)(jlong handle, int fd);
 
 	// https://developer.android.com/ndk/reference/group/networking#android_setsocknetwork
@@ -502,23 +487,14 @@ int app_bind_socket_wifi(int fd) {
 		return -1;
 	}
 
-	jlong handle = get_handle();
-	if (handle < 0) {
-		plat_dbg("handle is %d", handle);
-		return (int)handle;
-	}
+	jlong handle = h->android_fd;
 
 	int rc = _android_setsocknetwork(handle, fd);
 	if (rc == -1) {
 		plat_dbg("android_setsocknetwork failed: %d", errno);
+		plat_dbg("Handle: %ld", handle);
+		return errno;
 	}
 
-	// TODO: Better error message
-	if (errno == 1) {
-		app_print("Is VPN enabled?");
-	}
-
-	dlclose(lib);
-
-	return rc;
+	return 0;
 }

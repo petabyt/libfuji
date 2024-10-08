@@ -16,7 +16,7 @@ PTP_FUNC(jbyteArray, cPtpGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env_ctx(env, NULL);
 	struct PtpRuntime *r = ptp_get();
 
-	ptp_mutex_keep_locked(r);
+	ptp_mutex_lock(r);
     int rc = ptp_get_thumbnail(r, (int)handle);
     if (rc == PTP_CHECK_CODE || ptp_get_payload_length(r) < 100) {
         __android_log_write(ANDROID_LOG_ERROR, "camlib", "Thumbnail get failed");

@@ -40,6 +40,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.Locale;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -64,7 +65,7 @@ public class Viewer extends AppCompatActivity {
     static void notifyDownloadSpeed(int mbps) {
         PopupWindow popupWindow = getPopup();
         if (popupWindow == null) return;
-        ((TextView)popupWindow.getContentView().findViewById(R.id.download_speed)).setText(String.format("%dmbps", mbps));
+        ((TextView)popupWindow.getContentView().findViewById(R.id.download_speed)).setText(String.format(Locale.US, "%dmbps", mbps));
     }
 
     static void notifyDownloadProgress(int percent) {

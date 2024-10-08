@@ -10,8 +10,8 @@ CAMLIB := $(LIB)/camlib
 CAMLIB_CORE := $(addprefix $(CAMLIB)/src/,transport.c data.c enum_dump.c enums.c canon.c operations.c packet.c lib.c conv.c generic.c object.c)
 CAMLIB_CORE += $(addprefix $(CAMLIB)/src/,lua/lua-cjson/strbuf.c lua/lua-cjson/lua_cjson.c lua/lua.c lua/runtime.c)
 
-LIBFUDGE_CORE := $(CAMLIB_CORE) $(addprefix $(LIB)/,fuji.c fuji_usb.c tester.c net.c data.c discovery.c exif.c)
-LIB_FILES := main.c backend.c scripts.c camlib.c usb.c liveview.c uilua.c settings.c
+LIBFUDGE_CORE := $(CAMLIB_CORE) $(addprefix $(LIB)/,fuji.c fuji_usb.c tester.c net.c data.c discovery.c exif.c uilua.c)
+LIB_FILES := main.c backend.c scripts.c camlib.c usb.c liveview.c settings.c
 
 LOCAL_MODULE := fudge
 LOCAL_CFLAGS := -D ANDROID -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations -g

@@ -96,12 +96,14 @@ public class Backend extends Camlib {
         haveInited = true;
     }
 
-    // IO kill switch is in C/camlib, so we must set it when a connection is established
+    /** IO kill switch is in C/camlib, so we must set it when a connection is established */
     public native static void cClearKillSwitch();
     public native static boolean cGetKillSwitch();
     public native static int cGetTransport();
     public native static int cUSBConnectNative(SimpleUSB usb);
+    /** establish connection over default wifi network */
     public native static int cTryConnectWiFi(int extraTmout);
+    /** establish connection from the parameters of the discovery struct */
     public native static int cConnectFromDiscovery(byte[] struct);
     public native static void cInit();
     public native static int cFujiSetup();
@@ -109,7 +111,7 @@ public class Backend extends Camlib {
     public native static int[] cGetObjectHandles();
     public native static int cFujiConfigImageGallery();
     public native static byte[] cFujiGetThumb(int handle);
-    /// Run mass gallery photo importer based on transport
+    /** Run mass gallery photo importer based on transport */
     public native static int cFujiImportFiles(int[] handles, int filter_mask);
 
     // For tester only
