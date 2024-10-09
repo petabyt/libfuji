@@ -44,6 +44,8 @@ import java.util.Locale;
 
 import javax.microedition.khronos.opengles.GL10;
 
+import dev.danielc.common.WiFiComm;
+
 public class Viewer extends AppCompatActivity {
     public static final String TAG = "viewer";
     public Handler handler = null;
@@ -65,13 +67,29 @@ public class Viewer extends AppCompatActivity {
     static void notifyDownloadSpeed(int mbps) {
         PopupWindow popupWindow = getPopup();
         if (popupWindow == null) return;
-        ((TextView)popupWindow.getContentView().findViewById(R.id.download_speed)).setText(String.format(Locale.US, "%dmbps", mbps));
+        View c = popupWindow.getContentView();
+        c.post(new Runnable() {
+            @Override
+            public void run() {
+                if (WiFiComm.isWiFiModuleHandlingTwoConnections(c.getContext()) && mbps < 12) {
+                    ((TextView)c.findViewById(R.id.download_warning_text)).setVisibility(View.VISIBLE);
+                    ((TextView)c.findViewById(R.id.download_warning_text)).setText(R.string.hint_disconnect_from_main_network);
+                }
+                ((TextView)c.findViewById(R.id.download_speed)).setText(String.format(Locale.US, "%dmbps", mbps));
+            }
+        });
     }
 
     static void notifyDownloadProgress(int percent) {
         PopupWindow popupWindow = getPopup();
         if (popupWindow == null) return;
-        ((ProgressBar)popupWindow.getContentView().findViewById(R.id.progress_bar)).setProgress(percent);
+        View c = popupWindow.getContentView();
+        c.post(new Runnable() {
+            @Override
+            public void run() {
+                ((ProgressBar)c.findViewById(R.id.progress_bar)).setProgress(percent);
+            }
+        });
     }
 
     void fail(int code, String reason) {
@@ -202,7 +220,7 @@ public class Viewer extends AppCompatActivity {
 
     private void loadThumb(int handle) {
         try {
-            String t = Backend.cFujiGetUncompressedObjectInfo(handle);
+            String t = Backend.cFujiBeginDownloadGetObjectInfo(handle);
             if (t == null) {
                 fail(Backend.PTP_IO_ERR, "Failed to get object info");
                 return;

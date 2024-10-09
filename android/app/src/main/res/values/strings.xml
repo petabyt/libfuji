@@ -56,5 +56,6 @@
     <string name="import_all_files">Import All</string>
     <string name="select_wifi_network">Select WiFi</string>
     <string name="try_to_connect_to_anything">Connect</string>
+    <string name="hint_disconnect_from_main_network">Tip: Disconnect from your 2.4ghz internet WiFi network to get faster download speeds.</string>
 
 </resources>

@@ -225,7 +225,7 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 
 	fuji_discovery_update_progress(NULL, 1);
 
-	char *client_name = "Fudgey";
+	char *client_name = app_get_client_name();
 
 	char response[] =
 		"NOTIFY * HTTP/1.1\r\n"
@@ -234,6 +234,8 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 
 	char notify[512];
 	sprintf(notify, response, info->camera_ip, FUJI_AUTOSAVE_NOTIFY, client_name);
+
+	free(client_name);
 
 	int fd = connect_to_notify_server(s, info->camera_ip, FUJI_AUTOSAVE_NOTIFY);
 	if (fd <= 0) {

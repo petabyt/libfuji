@@ -22,7 +22,6 @@ struct NetworkHandle *ptp_get_network_info(struct PtpRuntime *r) {
 
 int fuji_reset_ptp(struct PtpRuntime *r) {
 	ptp_reset(r);
-	// leaks, don't care
 	if (r->userdata == NULL)
 		r->userdata = malloc(sizeof(struct FujiDeviceKnowledge));
 	memset(r->userdata, 0, sizeof(struct FujiDeviceKnowledge));
@@ -89,7 +88,6 @@ int fuji_setup(struct PtpRuntime *r) {
 
 	char *device_name = app_get_client_name();
 
-	// TODO: possibly more robust handling here
 	struct PtpFujiInitResp resp;
 	int rc = ptpip_fuji_init_req(r, device_name, &resp);
 	if (rc == PTP_RUNTIME_ERR) {
@@ -161,7 +159,7 @@ int fuji_setup(struct PtpRuntime *r) {
 	}
 
 	if (fuji->transport == FUJI_FEATURE_AUTOSAVE) {
-		rc = fuji_enable_compression(r);
+		rc = fuji_begin_file_download(r);
 		if (rc) return rc;
 	}
 
@@ -226,9 +224,12 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 
 	ptp_write_unicode_string(p->device_name, device_name);
 
+	// TODO: Fix deadlock here?
+	ptp_verbose_log("Waiting\n");
 	ptp_mutex_lock(r);
-
+	ptp_verbose_log("Unlocked\n");
 	if (ptpip_cmd_write(r, r->data, (int)p->length) != p->length) goto io_err;
+	ptp_verbose_log("cmd_write done");
 
 	// Read the packet size, then receive the rest
 	int x = ptpip_cmd_read(r, r->data, 4);
@@ -252,6 +253,7 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 	ptp_mutex_unlock(r);
 	return 0;
 	io_err:;
+	ptp_verbose_log("cmd_write done2");
 	ptp_mutex_unlock(r);
 	return PTP_IO_ERR;
 }
@@ -364,18 +366,26 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 	return rc;
 }
 
-// TODO: I named these functions completely backwards
-// Set the compression prop (allows full images to go through, otherwise puts
-// extra data in ObjectInfo and cuts off image downloads)
-// This appears to take a while, so r->wait_for_response is used here
-int fuji_enable_compression(struct PtpRuntime *r) {
+int fuji_begin_file_download(struct PtpRuntime *r) {
+	// Seems to take a while in some cases.
 	r->wait_for_response = 3;
-	int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_NoCompression, 1);
+	int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_EnableCorrectFileSize, 1);
 	return rc;
 }
 
-int fuji_disable_compression(struct PtpRuntime *r) {
-	int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_NoCompression, 0);
+int fuji_end_file_download(struct PtpRuntime *r) {
+	int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_EnableCorrectFileSize, 0);
+	return rc;
+}
+
+int fuji_begin_download_get_object_info(struct PtpRuntime *r, int handle, struct PtpObjectInfo *oi) {
+	int rc;
+	if (r->connection_type == PTP_IP_USB) {
+		rc = fuji_begin_file_download(r);
+		if (rc) return rc;
+	}
+
+	rc = ptp_get_object_info(r, handle, oi);
 	return rc;
 }
 
@@ -812,7 +822,7 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
 		rc = fuji_get_events(r);
 		if (rc) return rc;
-		rc = fuji_disable_compression(r);
+		rc = fuji_end_file_download(r);
 	}
 	ptp_mutex_unlock(r);
 	return rc;

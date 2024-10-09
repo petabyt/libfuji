@@ -262,7 +262,6 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *data, int size) {
 	// The delay only helped certain operations (specifically after GetPartialObject and SetPropValue). The solution may be
 	// handling those calls with extra caution.
 
-	errno = 0;
 	int result = send(b->fd, data, size, 0);
 	if (result < 0) {
 		return -1;

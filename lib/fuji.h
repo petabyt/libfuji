@@ -129,8 +129,10 @@ int fuji_wait_for_access(struct PtpRuntime *r);
 int fuji_get_events(struct PtpRuntime *r);
 
 // Enable/disable compression prop for downloading photos
-int fuji_disable_compression(struct PtpRuntime *r);
-int fuji_enable_compression(struct PtpRuntime *r);
+int fuji_end_file_download(struct PtpRuntime *r);
+int fuji_begin_file_download(struct PtpRuntime *r);
+
+int fuji_begin_download_get_object_info(struct PtpRuntime *r, int handle, struct PtpObjectInfo *oi);
 
 /// @brief Covers classic 'SELECT_MULTIPLE' feature found in 2013-2017 cams.
 int fuji_download_classic(struct PtpRuntime *r);

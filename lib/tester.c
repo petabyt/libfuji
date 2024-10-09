@@ -172,7 +172,7 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 			tester_log("Found EXIF thumb at %d %d", offset, length);
 		}
 
-		rc = fuji_enable_compression(r);
+		rc = fuji_begin_file_download(r);
 		if (rc) {
 			return rc;
 		}
@@ -187,7 +187,7 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 			return rc;
 		}
 
-		rc = fuji_disable_compression(r);
+		rc = fuji_end_file_download(r);
 		if (rc) {
 			return rc;
 		}
@@ -211,7 +211,7 @@ int fuji_simulate_app(struct PtpRuntime *r) {
 
 		handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
 
-		rc = fuji_enable_compression(r);
+		rc = fuji_begin_file_download(r);
 		if (rc) {
 			return rc;
 		}
@@ -230,7 +230,7 @@ int fuji_simulate_app(struct PtpRuntime *r) {
 		}
 
 		end:;
-		rc = fuji_disable_compression(r);
+		rc = fuji_end_file_download(r);
 		if (rc) {
 			return rc;
 		}

@@ -117,9 +117,8 @@ public class Backend extends Camlib {
     // For tester only
     public native static int cFujiTestSuite();
 
-    // Must be called in order - first one enables compression, second disables compression
-    // It must be this way to be as optimized as possible
-    public native static String cFujiGetUncompressedObjectInfo(int handle);
+    /** Must be called before cFujiGetFile (GetEvent calls should work inbetween) */
+    public native static String cFujiBeginDownloadGetObjectInfo(int handle);
     public native static int cFujiGetFile(int handle, byte[] array, int fileSize);
     public native static int cFujiDownloadFile(int handle, String path);
 

@@ -145,7 +145,7 @@ static int jbytearray_add(void *arg, void *data, int size, int read) {
 
 	// Check for java possible buffer overflow
 	if ((*env)->ExceptionCheck(env)) {
-		plat_dbg("SetByteArrayRegion exception");
+		plat_dbg("SetByteArrayRegion exception: %d, %d", size, read);
 		(*env)->ExceptionClear(env);
 		return -1;
 	}
@@ -163,30 +163,16 @@ JNI_FUNC(jint, cFujiGetFile)(JNIEnv *env, jobject thiz, jint handle, jbyteArray 
 	app_set_progress_bar(0, 0);
 	if (rc) return rc;
 
-	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
-		fuji_disable_compression(r);
-	}
-
 	return 0;
 }
 
 // PTP_IP_USB: Must be called *before* a call to cFujiGetFile
-JNI_FUNC(jstring, cFujiGetUncompressedObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
+JNI_FUNC(jstring, cFujiBeginDownloadGetObjectInfo)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
 
-	int rc;
-	if (backend.r.connection_type == PTP_IP_USB) {
-		rc = fuji_enable_compression(&backend.r);
-		if (rc) {
-			return NULL;
-		}
-	}
-
 	struct PtpObjectInfo oi;
-	rc = ptp_get_object_info(&backend.r, (int)handle, &oi);
-	if (rc) {
-		return NULL;
-	}
+	int rc = fuji_begin_download_get_object_info(ptp_get(), (int) handle, &oi);
+	if (rc) return NULL;
 
 	char buffer[1024];
 	ptp_object_info_json(&oi, buffer, sizeof(buffer));
@@ -470,6 +456,8 @@ int app_get_wifi_network_handle(struct NetworkHandle *h) {
 }
 
 int app_get_os_network_handle(struct NetworkHandle *h) {
+	// For the default network, we want to bind to all interfaces. This is the default state of a socket().
+	// The ignore bit is set to prevent the PTP code from connecting to the WiFI network handle.
 	h->ignore = 1;
 	return 0;
 }

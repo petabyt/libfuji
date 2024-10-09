@@ -10,10 +10,10 @@
 
 #define SETTINGS_FUNC(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_fujiapp_SettingsActivity_##name
 
-int app_do_connect_without_wifi(void) {
-	JNIEnv *env = get_jni_env();
-	return jni_get_pref_int(env, "connect_without_wifi", 0);
-}
+//int app_do_connect_without_wifi(void) {
+//	JNIEnv *env = get_jni_env();
+//	return jni_get_pref_int(env, "connect_without_wifi", 0);
+//}
 
 char *app_get_client_name(void) {
 	JNIEnv *env = get_jni_env();
@@ -61,11 +61,13 @@ static void on_selected_handler(const char *view_id, const char *setting_id) {
 
 SETTINGS_FUNC(void, handleSettingsButtons)(JNIEnv *env, jobject thiz, jobject ctx) {
 	set_jni_env_ctx(env, ctx);
+	int x;
+	jobject view;
 
-	jobject view = view_get_by_id(env, ctx, "connect_without_wifi");
-	view_add_native_checked_listener(env, view, (void *) on_selected_handler, 2, "connect_without_wifi", "connect_without_wifi");
-	int x = app_do_connect_without_wifi();
-	view_set_checked(env, view, x);
+//	jobject view = view_get_by_id(env, ctx, "connect_without_wifi");
+//	view_add_native_checked_listener(env, view, (void *) on_selected_handler, 2, "connect_without_wifi", "connect_without_wifi");
+//	int x = app_do_connect_without_wifi();
+//	view_set_checked(env, view, x);
 
 	view = view_get_by_id(env, ctx, "ip_address_text");
 	view_add_native_input_listener(env, view, (void *) input_handler, 2, "ip_address_text", "ip_address");

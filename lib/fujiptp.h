@@ -33,8 +33,15 @@ enum FujiTransport {
 #define PTP_PC_FUJI_ObjectCount		0xd222
 #define PTP_PC_FUJI_CameraState		0xdf00 
 #define PTP_PC_FUJI_ClientState		0xdf01
-#define PTP_PC_FUJI_CompressSmall	0xD226 // compress into 400-800kb
-#define PTP_PC_FUJI_NoCompression	0xD227 // Enable full image download
+/// @info If 1, will heavily compress images into 400kb-800kb. Fuji uses this for downloading a quick preview.
+#define PTP_PC_FUJI_CompressSmall	0xD226
+/// @info If 0 (default value), the compressed_size field of PtpObjectInfo will be set at 100kb.
+/// If 1, it will set the correct file size.
+/// Fuji sets this to 1 before GetObjectInfo and GetPartialObject(s) calls, and 0 after.
+/// It has no noticeable performance impact on download speed there. But if this property is set in
+/// the setup process, then it will make the gallery slower (I think slowing down GetThumb calls).
+/// PC AutoSave will set this to 1 on startup, although this doesn't make a difference since it never calls GetThumb.
+#define PTP_PC_FUJI_EnableCorrectFileSize	0xD227 // Enable full image download
 
 // Fuji Camera Connect has this version - 2.11 if parsed as bytes. Or 11.2
 // XS10 on reported 0x02000A, camera connect set to 2000B
