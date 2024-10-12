@@ -128,8 +128,9 @@ int fuji_wait_for_access(struct PtpRuntime *r);
 /// @brief Receives events once, and updates info struct with changes
 int fuji_get_events(struct PtpRuntime *r);
 
-// Enable/disable compression prop for downloading photos
+/// @brief Set a prop needed to have the correct file size
 int fuji_end_file_download(struct PtpRuntime *r);
+/// @brief Unset the prop that fuji_end_file_download sets
 int fuji_begin_file_download(struct PtpRuntime *r);
 
 int fuji_begin_download_get_object_info(struct PtpRuntime *r, int handle, struct PtpObjectInfo *oi);
@@ -137,7 +138,7 @@ int fuji_begin_download_get_object_info(struct PtpRuntime *r, int handle, struct
 /// @brief Covers classic 'SELECT_MULTIPLE' feature found in 2013-2017 cams.
 int fuji_download_classic(struct PtpRuntime *r);
 
-// Another socket on top of the 2 that camlib connects to
+/// @note Another socket on top of the 2 that camlib connects to
 int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port);
 
 /// Main entry function for all USB connections
@@ -157,10 +158,6 @@ int fujiusb_download_backup(struct PtpRuntime *r, FILE *f);
 #define PTP_SELET_JPEG (1 << 0)
 #define PTP_SELET_RAW  (1 << 1)
 #define PTP_SELET_MOV  (1 << 2)
-#define PTP_SORT_NEWEST (1 << 3)
-#define PTP_SORT_OLDEST (1 << 4)
-#define PTP_SORT_LARGEST (1 << 5)
-#define PTP_SORT_SMALLEST (1 << 6)
 
 /// @brief Respects cancel signals.
 /// @note If transport is FUJI_FEATURE_WIRELESS_COMM, compression property will be enabled after download

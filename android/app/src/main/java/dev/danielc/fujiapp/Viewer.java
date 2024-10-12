@@ -339,6 +339,7 @@ public class Viewer extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        super.onDestroy();
         actionBar = null;
         if (bitmap != null) {
             bitmap.recycle();
@@ -348,9 +349,8 @@ public class Viewer extends AppCompatActivity {
         if (popupWindow == null) return;
         popupWindow.dismiss();
         popupWindowInstance.clear();
-        //Runtime.getRuntime().gc();
+        Runtime.getRuntime().gc();
         handler = null;
-        super.onDestroy();
     }
 
     @Override

@@ -11,6 +11,7 @@
 #include "fuji.h"
 #include "fujiptp.h"
 #include "exif.h"
+#include "object.h"
 
 struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r) {
 	return (struct FujiDeviceKnowledge *)r->userdata;
@@ -33,7 +34,10 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	plat_dbg("Kill switch: %d\n", r->io_kill_switch);
+	// Unlock the thread in case there's deadlock bugs
+	ptp_mutex_unlock_thread(r);
 	if (r->io_kill_switch) return;
+	r->io_kill_switch = 1;
 
 	// Safely disconnect if intentional
 	if (code == 0) {
@@ -44,8 +48,6 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	// Send Fuji's 'goodbye' packet - we don't care if this fails or not
 	uint8_t goodbye_packet[] = {0x8, 0x0, 0x0, 0x0, 0xff, 0xff, 0xff, 0xff};
 	ptpip_cmd_write(r, goodbye_packet, 8);
-
-	r->io_kill_switch = 1;
 
 	if (r->connection_type == PTP_IP_USB) {
 		ptpip_close(r);

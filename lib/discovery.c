@@ -128,7 +128,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 		return -1;
 	}
 
-	if (bind(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+	if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
 		plat_dbg("upnp: Binding failed");
 		return -1;
 	}
@@ -139,12 +139,31 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 		return -1;
 	}
 
+	struct timeval timeout;
+	fd_set read_fds;
+
+	FD_ZERO(&read_fds);
+	FD_SET(server_fd, &read_fds);
+
+	timeout.tv_sec = 20;
+	timeout.tv_usec = 0;
+
 	plat_dbg("invite server is listening...");
 
-	// TODO: timeout here 20 seconds?
-	client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
+	int rc = select(server_fd + 1, &read_fds, NULL, NULL, &timeout);
+	if (rc < 0) {
+		plat_dbg("select() failed");
+		close(server_fd);
+		return -1;
+	} else if (rc == 0) {
+		plat_dbg("select() timeout");
+		close(server_fd);
+		return -1;
+	}
+
+	client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
 	if (client_fd < 0) {
-		plat_dbg("invite server: Accepting connection failed");
+		plat_dbg("invite server: Accepting connection failed: %d", errno);
 		return -1;
 	}
 
@@ -154,7 +173,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 
 	// We don't really care about this info
 	char buffer[1024];
-	int rc = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+	rc = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 	if (rc < 0) {
 		perror("recv fail");
 		return -1;
@@ -203,8 +222,6 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 
 // TODO: Respond to any connection
 static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct DiscoverInfo *info) {
-	memset(info, 0, sizeof(struct DiscoverInfo));
-
 	char *saveptr;
 	char *delim = " :\r\n";
 	char *cur = strtok_r(greeting, delim, &saveptr);
@@ -213,19 +230,19 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 			cur = strtok_r(NULL, delim, &saveptr);
 			if (cur == NULL) return -1;
 			plat_dbg("Client name: %s\n", cur);
-			strcpy(info->client_name, cur);
+			strncpy(info->client_name, cur, sizeof(info->client_name));
 		} else if (!strcmp(cur, "DSCADDR")) {
 			cur = strtok_r(NULL, delim, &saveptr);
 			if (cur == NULL) return -1;
 			plat_dbg("Client IP: %s\n", cur);
-			strcpy(info->camera_ip, cur);
+			strncpy(info->camera_ip, cur, sizeof(info->camera_ip));
 		}
 		cur = strtok_r(NULL, delim, &saveptr);
 	}
 
 	fuji_discovery_update_progress(NULL, 1);
 
-	char *client_name = app_get_client_name();
+//	char *client_name = app_get_client_name();
 
 	char response[] =
 		"NOTIFY * HTTP/1.1\r\n"
@@ -233,9 +250,12 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 		"IMPORTER: %s\r\n";
 
 	char notify[512];
-	sprintf(notify, response, info->camera_ip, FUJI_AUTOSAVE_NOTIFY, client_name);
+	snprintf(
+		notify, sizeof(notify), response,
+		info->camera_ip, FUJI_AUTOSAVE_NOTIFY, info->client_name // use whatever name the camera is looking for :)
+	);
 
-	free(client_name);
+//	free(client_name);
 
 	int fd = connect_to_notify_server(s, info->camera_ip, FUJI_AUTOSAVE_NOTIFY);
 	if (fd <= 0) {
@@ -243,12 +263,20 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 		return -1;
 	}
 
-	send(fd, notify, strlen(notify), 0);
+	size_t len = send(fd, notify, strlen(notify), 0);
+	if (len != strlen(notify)) {
+		plat_dbg("Failed to send datagram response");
+		return -1;
+	}
 
 	char ack[512];
-	int len = recv(fd, ack, sizeof(ack), 0);
+	len = recv(fd, ack, sizeof(ack), 0);
+	if (len <= 0) {
+		plat_dbg("Failed to read datagram response");
+		return -1;
+	}
 	response[len] = '\0';
-	// Don't care about that message...
+	plat_dbg(response);
 
 	close(fd);
 
@@ -342,7 +370,7 @@ int fuji_open_tether_server(struct DiscoveryState *s, const char *local_ip) {
 		return -1;
 	}
 
-	// Listen for incoming connections
+	// TODO: delete and add select()
 	if (listen(server_fd, 5) < 0) {
 		plat_dbg("upnp: Listening failed");
 		return -1;
@@ -437,7 +465,7 @@ static int send_pcss_datagram(int sock, const char *local_ip) {
 		local_ip
 	);
 
-	ssize_t rc = sendto(sock, broadcast, sizeof(broadcast), 0, (struct sockaddr *)&addr, sizeof(addr));
+	ssize_t rc = sendto(sock, broadcast, strlen(broadcast), 0, (struct sockaddr *)&addr, sizeof(addr));
 	if (rc == -1) {
 		return -1;
 	}
@@ -602,6 +630,10 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 		while (rc == 0) {
 			rc = state_idle(&s, info, local_ip, arg);
 		}
+	}
+
+	if (rc == -1) {
+		app_print("Error connecting to camera."); // TODO: localize
 	}
 
 	close_all_sockets(&s);

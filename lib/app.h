@@ -1,6 +1,8 @@
 #ifndef APP_H
 #define APP_H
 
+#include <ptp.h>
+
 /// @brief Send current camera name to UI
 void app_send_cam_name(const char *name);
 
@@ -15,9 +17,6 @@ void app_print_id(int resid);
 // Test suite verbose logging
 void tester_log(char *fmt, ...);
 void tester_fail(char *fmt, ...);
-
-/// @brief Bind to default or user-selected wifi device
-//int app_bind_socket_wifi(int sockfd);
 
 /// @brief Get default PTP object
 /// @note Eventually this will be removed when more than one connection is allowed at once

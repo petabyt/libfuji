@@ -12,6 +12,7 @@
     <color name="card">#101010</color>
     <color name="go_green">#528549</color>
     <color name="go_green2">#38836D</color>
+    <color name="selected_grey">#676767</color>
     <color name="ble_blue">#0A3D91</color>
     <color name="gray">#3C3C3C</color>
     <color name="light_gray">#4C4C4C</color>

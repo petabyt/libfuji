@@ -56,7 +56,7 @@ public class WiFiComm {
     // https://source.android.com/docs/core/connect/wifi-sta-sta-concurrency#local-only
     public int connectToAccessPoint(Context ctx, String password) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            Log.d("wifi", "Connecting: " + password);
+            Log.d("wifi", String.format("Connecting: %s", password));
             WifiNetworkSpecifier.Builder builder = new WifiNetworkSpecifier.Builder();
             builder.setSsidPattern(new PatternMatcher("FUJIFILM", PatternMatcher.PATTERN_PREFIX));
 
