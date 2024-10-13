@@ -1,3 +1,8 @@
+// Implements Fuji discovery service based on a mix of UDP/SSDP/TCP
+// Supports:
+// - PC AutoSave (register and connect)
+// - Wireless Tether
+// Copyright Daniel Cook 2024
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -145,7 +150,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 	FD_ZERO(&read_fds);
 	FD_SET(server_fd, &read_fds);
 
-	timeout.tv_sec = 20;
+	timeout.tv_sec = 30;
 	timeout.tv_usec = 0;
 
 	plat_dbg("invite server is listening...");
@@ -169,7 +174,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 
 	plat_dbg("invite server: Connection accepted from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-	fuji_discovery_update_progress(NULL, 3);
+	fuji_discovery_update_progress(NULL, FUJI_UM_CAMERA_CONNETED_TO_INVITE_SERVER);
 
 	// We don't really care about this info
 	char buffer[1024];
@@ -240,9 +245,13 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 		cur = strtok_r(NULL, delim, &saveptr);
 	}
 
-	fuji_discovery_update_progress(NULL, 1);
+	fuji_discovery_update_progress(NULL, FUJI_UM_CONNECTING_TO_NOTIFY_SERVER);
 
-//	char *client_name = app_get_client_name();
+	int fd = connect_to_notify_server(s, info->camera_ip, FUJI_AUTOSAVE_NOTIFY);
+	if (fd <= 0) {
+		plat_dbg("Failed to connect to notify server: %d", fd);
+		return -1;
+	}
 
 	char response[] =
 		"NOTIFY * HTTP/1.1\r\n"
@@ -254,14 +263,6 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 		notify, sizeof(notify), response,
 		info->camera_ip, FUJI_AUTOSAVE_NOTIFY, info->client_name // use whatever name the camera is looking for :)
 	);
-
-//	free(client_name);
-
-	int fd = connect_to_notify_server(s, info->camera_ip, FUJI_AUTOSAVE_NOTIFY);
-	if (fd <= 0) {
-		plat_dbg("Failed to connect to notify server: %d", fd);
-		return -1;
-	}
 
 	size_t len = send(fd, notify, strlen(notify), 0);
 	if (len != strlen(notify)) {
@@ -287,14 +288,14 @@ static int accept_register(struct DiscoveryState *s, struct DiscoverInfo *info, 
 	int rc = respond_to_datagram(s, greeting, info);
 	if (rc) return rc;
 
-	fuji_discovery_update_progress(NULL, 2);
+	fuji_discovery_update_progress(NULL, FUJI_UM_STARTING_INVITE_SERVER);
 
 	rc = start_invite_server(s, info, FUJI_AUTOSAVE_REGISTER);
 	if (rc) return rc;
 
 	plat_dbg("Finished registering");
 
-	fuji_discovery_update_progress(NULL, 4);
+	fuji_discovery_update_progress(NULL, FUJI_UM_ALL_DONE);
 
 	return 0;
 }
@@ -303,7 +304,7 @@ static int accept_connect(struct DiscoveryState *s, struct DiscoverInfo *info, c
 	int rc = respond_to_datagram(s, greeting, info);
 	if (rc) return rc;
 
-	fuji_discovery_update_progress(NULL, 2);
+	fuji_discovery_update_progress(NULL, FUJI_UM_STARTING_INVITE_SERVER);
 
 	rc = start_invite_server(s, info, FUJI_AUTOSAVE_CONNECT);
 	if (rc) return rc;
@@ -312,7 +313,7 @@ static int accept_connect(struct DiscoveryState *s, struct DiscoverInfo *info, c
 
 	info->camera_port = FUJI_CMD_IP_PORT;
 
-	fuji_discovery_update_progress(NULL, 4);
+	fuji_discovery_update_progress(NULL, FUJI_UM_ALL_DONE);
 
 	return 0;
 }
@@ -389,7 +390,7 @@ static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *ar
 		return -1;
 	}
 
-	fuji_discovery_update_progress(arg, 0);
+	fuji_discovery_update_progress(arg, FUJI_UM_GOT_FIRST_MESSAGE);
 
 	plat_dbg("invite server: Connection accepted from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
@@ -571,7 +572,7 @@ static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const
 				return -1;
 			}
 			greeting[len] = '\0';
-			fuji_discovery_update_progress(arg, 0);
+			fuji_discovery_update_progress(arg, FUJI_UM_GOT_FIRST_MESSAGE);
 			int rc = accept_register(s, info, greeting);
 			if (rc) return -1;
 			return FUJI_D_REGISTERED;
@@ -587,7 +588,7 @@ static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const
 				return -1;
 			}
 			greeting[len] = '\0';
-			fuji_discovery_update_progress(arg, 0);
+			fuji_discovery_update_progress(arg, FUJI_UM_GOT_FIRST_MESSAGE);
 			int rc = accept_connect(s, info, greeting);
 			if (rc) return -1;
 			return FUJI_D_GO_PTP;

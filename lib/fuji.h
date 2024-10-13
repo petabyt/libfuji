@@ -14,16 +14,19 @@
 /// @note must free()
 char *app_get_camera_ip(void);
 
-/// @brief If 1, then do not try to bind to any network. Leave the OS to decide. This is mainly for
-/// listening to the device's own hotspot.
-/// @note must free()
-int app_do_connect_without_wifi(void);
-
 /// @brief Get friendly client name
 /// @note must free()
 char *app_get_client_name(void);
 
 struct NetworkHandle *ptp_get_network_info(struct PtpRuntime *r);
+
+enum DiscoverUpdateMessages {
+	FUJI_UM_GOT_FIRST_MESSAGE,
+	FUJI_UM_CONNECTING_TO_NOTIFY_SERVER,
+	FUJI_UM_STARTING_INVITE_SERVER,
+	FUJI_UM_CAMERA_CONNETED_TO_INVITE_SERVER,
+	FUJI_UM_ALL_DONE,
+};
 
 enum DiscoverRet {
 	FUJI_D_REGISTERED = 1,
@@ -86,9 +89,10 @@ int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info);
 /// @brief Check if discovery is canceled
 /// @note to be defined by frontend
 int fuji_discovery_check_cancel(void *arg);
-/// @brief Update the frontend on UI discovery progress, 0-7
+
+/// @brief Fun update messages from discovery service
 /// @note to be defined by frontend
-void fuji_discovery_update_progress(void *arg, int progress);
+void fuji_discovery_update_progress(void *arg, enum DiscoverUpdateMessages progress);
 
 /// @brief Initializes allocations for Fuji PTP session
 int fuji_reset_ptp(struct PtpRuntime *r);
