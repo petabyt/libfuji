@@ -475,7 +475,7 @@ int fuji_get_events(struct PtpRuntime *r) {
 	for (int i = 0; i < ev->length; i++) {
 		ptp_read_u16(&ev->events[i].code, &code);
 		ptp_read_u32(&ev->events[i].value, &value);
-		ptp_verbose_log("%X changed to %d\n", code, value);
+		ptp_verbose_log("%X changed to %X\n", code, value);
 	}
 
 	for (int i = 0; i < ev->length; i++) {

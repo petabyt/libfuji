@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.connect_wifi).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (blockConnect) return;
+                if (blockConnect || Backend.cGetKillSwitch()) return;
                 Frontend.clearPrint();
                 connectClick();
             }
@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.connect_wifi).setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                if (blockConnect) return false;
+                if (blockConnect || Backend.cGetKillSwitch()) return false;
                 Intent intent = new Intent(MainActivity.this, Tester.class);
                 startActivity(intent);
                 return false;
@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.connect_usb).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (blockConnect) return;
+                if (blockConnect || Backend.cGetKillSwitch()) return;
                 Frontend.clearPrint();
                 connectUSB();
             }
@@ -148,13 +148,14 @@ public class MainActivity extends AppCompatActivity {
         wifi.onWiFiSelectAvailable = new Runnable() {
             @Override
             public void run() {
-                if (blockConnect) return;
                 Log.d("main", "Selection successful");
+                // Time for the network to initialize - not proven needed, but probably good to have
                 try {
                     Thread.sleep(1000);
                 } catch (Exception e) {
 
                 }
+                if (blockConnect || Backend.cGetKillSwitch()) return;
                 int rc = tryConnect(3);
                 if (rc != 0) {
                     Frontend.print(R.string.connection_failed);
