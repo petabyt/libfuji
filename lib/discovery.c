@@ -424,7 +424,7 @@ static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *ar
 		cur = strtok_r(NULL, delim, &saveptr);
 	}
 
-	fuji_discover_ask_connect(arg, info);
+	//fuji_discover_ask_connect(arg, info);
 
 	const char resp[] = "HTTP/1.1 200 OK\r\n";
 	rc = send(client_fd, resp, sizeof(resp), 0);

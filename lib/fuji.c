@@ -81,6 +81,27 @@ int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *in
 	return 0;
 }
 
+int fuji_connection_entry(struct PtpRuntime *r) {
+	plat_dbg("transport: %d", fuji_get(r)->transport);
+	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_TETHER || r->connection_type == PTP_USB) {
+		return fujitether_setup(r);
+	} else {
+		int rc = fuji_setup(r);
+
+		if (!rc && fuji_get(r)->camera_state == FUJI_MULTIPLE_TRANSFER) {
+			rc = fuji_download_classic(r);
+			if (rc) {
+				app_print("Error downloading images");
+				return rc;
+			}
+			app_print("Check your file manager app/gallery.");
+			ptp_report_error(r, "Disconnected", 0);
+		}
+	}
+
+	return 0;
+}
+
 // Assumes cmd socket is valid
 int fuji_setup(struct PtpRuntime *r) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
@@ -414,6 +435,7 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 		app_get_file_path(buffer, oi.filename);
 		FILE *f = fopen(buffer, "wb");
 		if (f == NULL) return PTP_RUNTIME_ERR;
+		app_print("Downloading %s", buffer);
 		ptp_download_object(r, a->data[i], f, 0x100000);
 		fclose(f);
 
@@ -422,6 +444,8 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 		if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_TETHER) {
 			ptp_delete_object(r, a->data[i], 0x0);
 		}
+
+		app_print("Done downloading.");
 	}
 
 	free(a);
@@ -468,7 +492,8 @@ int fuji_get_events(struct PtpRuntime *r) {
 			fuji->camera_state = ev->events[i].value;
 			break;
 		case PTP_PC_FUJI_FreeSDRAMImages:
-			fuji_tether_download(r);
+			if (fuji->transport == FUJI_FEATURE_WIRELESS_TETHER)
+				fuji_tether_download(r);
 			break;
 		}
 	}

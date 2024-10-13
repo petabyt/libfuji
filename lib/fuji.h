@@ -54,6 +54,7 @@ struct FujiDeviceKnowledge {
 	char ip_address[64];
 	/// @note applied from struct DiscoverInfo
 	enum FujiTransport transport;
+	char autosave_client_name[64];
 	int camera_state;
 	int selected_imgs_mode;
 
@@ -97,6 +98,8 @@ int fuji_setup_remote_mode(struct PtpRuntime *r);
 
 /// @brief Main entry function for PTP/IP
 int fuji_setup(struct PtpRuntime *r);
+
+int fuji_connection_entry(struct PtpRuntime *r);
 
 /// @brief Import files, based on an array of object IDs. Object Info will be fetched for each, mask will dictate if it's skipped or not.
 int fuji_import_objects(struct PtpRuntime *r, int *object_ids, int length, int mask);

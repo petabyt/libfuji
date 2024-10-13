@@ -23,7 +23,7 @@ int fujiusb_setup(struct PtpRuntime *r) {
 	app_send_cam_name(di.model);
 
 	// TODO: Determine transport based on product_id? Or other things?
-	fuji_get(r)->transport = FUJI_FEATURE_USB_CARD_READER;
+	//fuji_get(r)->transport = FUJI_FEATURE_USB_CARD_READER;
 
 	return rc;
 }
@@ -34,6 +34,12 @@ int fujitether_setup(struct PtpRuntime *r) {
 
 	struct PtpFujiInitResp resp;
 	int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+	if (rc == PTP_RUNTIME_ERR) {
+		rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+	}
+	if (rc == PTP_RUNTIME_ERR) {
+		rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+	}
 	if (rc == PTP_RUNTIME_ERR) {
 		rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
 	}
