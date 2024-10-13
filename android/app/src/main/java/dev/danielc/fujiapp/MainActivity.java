@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.connect_wifi).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (blockConnect || Backend.cGetKillSwitch()) return;
+                if (blockConnect || !Backend.cGetKillSwitch()) return;
                 Frontend.clearPrint();
                 connectClick();
             }
@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.connect_wifi).setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                if (blockConnect || Backend.cGetKillSwitch()) return false;
+                if (blockConnect || !Backend.cGetKillSwitch()) return false;
                 Intent intent = new Intent(MainActivity.this, Tester.class);
                 startActivity(intent);
                 return false;
@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.connect_usb).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (blockConnect || Backend.cGetKillSwitch()) return;
+                if (blockConnect || !Backend.cGetKillSwitch()) return;
                 Frontend.clearPrint();
                 connectUSB();
             }
@@ -155,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
                 } catch (Exception e) {
 
                 }
-                if (blockConnect || Backend.cGetKillSwitch()) return;
+                if (blockConnect || !Backend.cGetKillSwitch()) return;
                 int rc = tryConnect(3);
                 if (rc != 0) {
                     Frontend.print(R.string.connection_failed);
@@ -316,6 +316,7 @@ public class MainActivity extends AppCompatActivity {
         if (rc != 0) return rc;
         Backend.cancelDiscoveryThread();
         Frontend.print("Connection established");
+        Thread.dumpStack();
         handler.post(new Runnable() {
             @Override
             public void run() {

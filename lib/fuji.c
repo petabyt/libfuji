@@ -28,7 +28,6 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 	memset(r->userdata, 0, sizeof(struct FujiDeviceKnowledge));
 	r->connection_type = PTP_IP_USB;
 	r->response_wait_default = 3; // Fuji cams are slow!
-	r->io_kill_switch = 0;
 	return 0;
 }
 
@@ -234,6 +233,11 @@ int fuji_setup_remote_mode(struct PtpRuntime *r) {
 }
 
 int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp) {
+	if (fuji_get(r)->debug_step != 0) {
+		ptp_panic("ptpip_fuji_init_req called twice");
+	}
+	fuji_get(r)->debug_step++;
+
 	struct FujiInitPacket *p = (struct FujiInitPacket *)r->data;
 	memset(p, 0, sizeof(struct FujiInitPacket));
 	p->length = 0x52;

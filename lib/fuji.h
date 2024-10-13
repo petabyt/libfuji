@@ -66,10 +66,10 @@ struct FujiDeviceKnowledge {
 	int image_view_version;
 	int image_get_version;
 	int remote_version;
-
 	int num_objects;
-
 	int open_capture_trans_id;
+
+	int debug_step;
 };
 struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r);
 

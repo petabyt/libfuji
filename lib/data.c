@@ -22,7 +22,6 @@ int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data) {
 	uint32_t length;
 	of += ptp_read_u32(data + of, &length);
 
-
 	if (length > 500) {
 		ptp_panic("TOo many properties");
 	}

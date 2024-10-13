@@ -295,6 +295,7 @@ public class Gallery extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Frontend.print("Starting gallery");
 
         setContentView(R.layout.gallery);
 
