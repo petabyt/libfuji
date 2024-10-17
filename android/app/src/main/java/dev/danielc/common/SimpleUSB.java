@@ -31,6 +31,8 @@ public class SimpleUSB {
     UsbDeviceConnection connection;
     UsbManager inMan;
 
+    public native static int initSetup();
+
     public boolean havePermission() {
         return inMan.hasPermission(dev);
     }
