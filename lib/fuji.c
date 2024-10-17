@@ -70,8 +70,19 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 // TODO: use this function
 int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info) {
 	fuji_reset_ptp(r);
+	r->io_kill_switch = 0;
+	strncpy(fuji_get(r)->ip_address, info->camera_ip, 64);
+	strncpy(fuji_get(r)->autosave_client_name, info->client_name, 64);
 	fuji_get(r)->transport = info->transport;
-	int rc = ptpip_connect(r, info->camera_ip, info->camera_port, 0);
+	memcpy(&fuji_get(r)->net, &info->h, sizeof(struct NetworkHandle));
+
+	int rc = ptpip_connect(r, info->camera_ip, info->camera_port, 5);
+
+	// If camera ignored the TCP connect, try again
+	if (rc) {
+		rc = ptpip_connect(r, info->camera_ip, info->camera_port, 5);
+	}
+
 	if (rc) {
 		plat_dbg("Error connecting to %s:%d\n", info->camera_ip, info->camera_port);
 		return rc;

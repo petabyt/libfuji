@@ -283,12 +283,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // called by backend
-    void onCameraWantsToConnect(String model, String name, byte[] struct) {
+    void onCameraWantsToConnect(String model, String name) {
         try {
             Frontend.print("Waiting on network...");
             Thread.sleep(500); // Time for network to configure - this can probably be removed
-            Backend.cConnectFromDiscovery(struct);
-            Backend.cClearKillSwitch();
+            Backend.cConnectFromDiscovery();
+            //Backend.cClearKillSwitch();
             handler.post(new Runnable() {
                 @Override
                 public void run() {

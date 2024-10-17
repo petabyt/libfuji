@@ -4,6 +4,8 @@
 #include <android/log.h>
 #include <camlib.h>
 
+#include "object.h"
+
 #define PTP_FUNC(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_common_Camlib_##name
 
 void set_jni_env_ctx(JNIEnv *env, jobject ctx);
@@ -101,15 +103,17 @@ PTP_FUNC(jobject, cPtpObjectServiceGetFilled)(JNIEnv *env, jclass clazz) {
 
 	for (int i = 0; i < count; i++) {
 		struct PtpObjectInfo *oi = ptp_object_service_get_index(r, r->oc, i);
-		if (oi == NULL) abort();
+		if (oi == NULL) {
+			(*env)->SetObjectArrayElement(env, json_object_array, i, NULL);
+		} else {
+			char buffer[1024];
+			ptp_object_info_json(oi, buffer, sizeof(buffer));
 
-		char buffer[1024];
-		ptp_object_info_json(oi, buffer, sizeof(buffer));
+			jobject jo = jni_string_to_jsonobject(env, buffer);
 
-		jobject jo = jni_string_to_jsonobject(env, buffer);
-
-		(*env)->SetObjectArrayElement(env, json_object_array, i, jo);
-		(*env)->DeleteLocalRef(env, jo);
+			(*env)->SetObjectArrayElement(env, json_object_array, i, jo);
+			(*env)->DeleteLocalRef(env, jo);
+		}
 	}
 
 	return json_object_array;

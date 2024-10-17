@@ -60,7 +60,14 @@ struct PtpRuntime *luaptp_get_runtime(void *L) {
 }
 
 void app_get_file_path(char buffer[256], const char *filename) {
-	sprintf(buffer, "/storage/emulated/0/Pictures/fudge/%s", filename);
+	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 10);
+	jclass backend_c = get_backend_class(env);
+	jmethodID get_path_m = (*env)->GetStaticMethodID(env, backend_c, "getFilePath", "(Ljava/lang/String;)Ljava/lang/String;");
+	jstring res = (*env)->CallStaticObjectMethod(env, backend_c, get_path_m, (*env)->NewStringUTF(env, filename));
+	const char *res_cstr = (*env)->GetStringUTFChars(env, res, 0);
+	snprintf(buffer, 256, "%s", res_cstr);
+	(*env)->PopLocalFrame(env, NULL);
 }
 
 #define VERBOSE
@@ -103,21 +110,11 @@ void ptp_panic(char *fmt, ...) {
 	va_end(args);
 
 	__android_log_write(ANDROID_LOG_ERROR, "ptp_panic", buffer);
-	abort();
+	exit(-1);
 }
 
 int app_get_string(const char *key) {
 	return jni_get_string_id(get_jni_env(), get_jni_ctx(), key);
-}
-
-static inline jclass get_frontend_class(JNIEnv *env) {
-	return (*env)->FindClass(env, "dev/danielc/fujiapp/Frontend");
-}
-
-#define get_frontend_class(env) (*env)->FindClass(env, "dev/danielc/fujiapp/Frontend")
-
-static inline jclass get_tester_class(JNIEnv *env) {
-	return (*env)->FindClass(env, "dev/danielc/fujiapp/Tester");
 }
 
 static jobject jni_to_json(JNIEnv *env, const char *string) {

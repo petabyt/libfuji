@@ -9,6 +9,32 @@
 #include "fuji.h"
 #include "fujiptp.h"
 
+int fujiusb_try_connect(struct PtpRuntime *r) {
+	struct PtpDeviceEntry *list = ptpusb_device_list(r);
+
+	struct PtpDeviceEntry *curr = NULL;
+	for (curr = list; curr != NULL; curr = curr->next) {
+		if (curr->vendor_id == 0x4cb) {
+			break;
+		}
+	}
+
+	if (curr == NULL) {
+		ptpusb_free_device_list(list);
+		return PTP_NO_DEVICE;
+	}
+
+	int rc = ptp_device_open(r, curr);
+	if (rc) {
+		ptpusb_free_device_list(list);
+		return rc;
+	}
+
+	ptpusb_free_device_list(list);
+
+	return 0;
+}
+
 int fujiusb_setup(struct PtpRuntime *r) {
 	int rc = ptp_open_session(r);
 	if (rc) {

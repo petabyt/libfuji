@@ -11,7 +11,6 @@ import android.view.View;
 import java.io.File;
 
 import dev.danielc.common.Camlib;
-import dev.danielc.common.SimpleUSB;
 
 public class Backend extends Camlib {
     static {
@@ -30,39 +29,8 @@ public class Backend extends Camlib {
     final static int FUJI_FEATURE_AUTOSAVE = 1;
     final static int FUJI_FEATURE_WIRELESS_COMM = 3;
 
-    static SimpleUSB usb = new SimpleUSB();
-
     public static void connectUSB(Context ctx) throws Exception {
-        UsbManager man = (UsbManager)ctx.getSystemService(Context.USB_SERVICE);
-        usb.getUsbDevices(man);
-
-        Frontend.print("Trying to get permission...");
-        usb.waitPermission(ctx);
-
-        for (int i = 0; i < 100; i++) {
-            if (usb.havePermission()) {
-                Log.d("perm", "Have USB permission");
-                continueOpenUSB();
-                break;
-            }
-            try {
-                Thread.sleep(50); // ???
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    static void continueOpenUSB() {
-        try {
-            usb.openConnection();
-            usb.getInterface();
-            usb.getEndpoints();
-            cUSBConnectNative(usb);
-            cClearKillSwitch();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        cTryConnectUSB(ctx);
     }
 
     public static int fujiConnectToCmd(int extraTmout) {
@@ -97,14 +65,14 @@ public class Backend extends Camlib {
     }
 
     /** IO kill switch is in C/camlib, so we must set it when a connection is established */
-    public native static void cClearKillSwitch();
+    //public native static void cClearKillSwitch();
     public native static boolean cGetKillSwitch();
     public native static int cGetTransport();
-    public native static int cUSBConnectNative(SimpleUSB usb);
+    public native static int cTryConnectUSB(Context appContext);
     /** establish connection over default wifi network */
     public native static int cTryConnectWiFi(int extraTmout);
     /** establish connection from the parameters of the discovery struct */
-    public native static int cConnectFromDiscovery(byte[] struct);
+    public native static int cConnectFromDiscovery();
     public native static void cInit();
     public native static int cFujiSetup();
     public native static int cPtpFujiPing();

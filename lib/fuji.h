@@ -40,17 +40,21 @@ enum DiscoverRet {
 
 /// @brief Holds all information about a camera that has been detected (through any means)
 struct DiscoverInfo {
+	enum FujiTransport transport;
 	struct NetworkHandle h;
 	char camera_ip[64];
 	char camera_name[64];
 	char camera_model[64];
 	char client_name[64];
 	int camera_port;
-	enum FujiTransport transport;
+	int vendor_id;
+	int product_id;
 };
 
 /// @brief Holds runtime info about the camera
 struct FujiDeviceKnowledge {
+	struct DiscoverInfo *info;
+
 	/// @note applied from struct DiscoverInfo
 	struct NetworkHandle net;
 	/// @note applied from struct DiscoverInfo
@@ -73,8 +77,10 @@ struct FujiDeviceKnowledge {
 };
 struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r);
 
+int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info);
+
 /// @brief Do a weird hack where we GetPartialObject on the first few kb of a file, then grab the thumbnail
-/// from the exif data. Not reliable. TODO: Move to camlib.c
+/// from the exif data. Not reliable.
 int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *length);
 
 /// @brief Shut down a connection with an error code from struct PtpGeneralError. reason can be NULL. code can be zero for intentional disconnect
@@ -149,6 +155,7 @@ int fuji_download_classic(struct PtpRuntime *r);
 int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port);
 
 /// Main entry function for all USB connections
+int fujiusb_try_connect(struct PtpRuntime *r);
 int fujiusb_setup(struct PtpRuntime *r);
 int fujitether_setup(struct PtpRuntime *r);
 

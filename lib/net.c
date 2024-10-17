@@ -194,7 +194,7 @@ int ptpip_connect(struct PtpRuntime *r, const char *addr, int port, int extra_tm
 		r->io_kill_switch = 0;
 		return 0;
 	} else {
-		b->fd = 0;
+		b->fd = 0;;
 		return fd;
 	}
 }

@@ -70,4 +70,16 @@ void jni_verbose_log(char *str);
 
 int jni_setup_usb(JNIEnv *env, jobject obj);
 
+static inline jclass get_frontend_class(JNIEnv *env) {
+	return (*env)->FindClass(env, "dev/danielc/fujiapp/Frontend");
+}
+
+static inline jclass get_backend_class(JNIEnv *env) {
+	return (*env)->FindClass(env, "dev/danielc/fujiapp/Backend");
+}
+
+static inline jclass get_tester_class(JNIEnv *env) {
+	return (*env)->FindClass(env, "dev/danielc/fujiapp/Tester");
+}
+
 #endif

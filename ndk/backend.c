@@ -92,9 +92,9 @@ JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reaso
 }
 
 // TODO: remove
-JNI_FUNC(void, cClearKillSwitch)(JNIEnv *env, jobject thiz) {
-	backend.r.io_kill_switch = 0;
-}
+//JNI_FUNC(void, cClearKillSwitch)(JNIEnv *env, jobject thiz) {
+//	backend.r.io_kill_switch = 0;
+//}
 
 /// For frontend to check connection status
 JNI_FUNC(jboolean, cGetKillSwitch)(JNIEnv *env, jobject thiz) {
@@ -229,21 +229,7 @@ JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz) {
 		return PTP_IO_ERR;
 	}
 
-	if (r->connection_type == PTP_USB) return fujiusb_setup(r);
-
-	int rc = fuji_setup(r);
-
-	if (!rc && fuji_get(r)->camera_state == FUJI_MULTIPLE_TRANSFER) {
-		rc = fuji_download_classic(r);
-		if (rc) {
-			app_print("Error downloading images");
-			return rc;
-		}
-		app_print("Check your file manager app/gallery.");
-		ptp_report_error(r, "Disconnected", 0);
-	}
-
-	return rc;
+	return fuji_connection_entry(r);
 }
 
 JNI_FUNC(jint, cFujiConfigImageGallery)(JNIEnv *env, jobject thiz) {
@@ -317,12 +303,12 @@ JNI_FUNC(jint, cGetTransport)(JNIEnv *env, jobject thiz) {
 
 JNI_FUNC(jint, cTryConnectWiFi)(JNIEnv *env, jobject thiz, jint extra_tmout) {
 	set_jni_env(env);
+	struct PtpRuntime *r = ptp_get();
 	char *c_ip = app_get_camera_ip();
-	fuji_reset_ptp(ptp_get());
-	strcpy(fuji_get(ptp_get())->ip_address, c_ip);
-	fuji_get(ptp_get())->transport = FUJI_FEATURE_WIRELESS_COMM;
-	if (app_get_wifi_network_handle(&fuji_get(ptp_get())->net)) {
-		// weird state, network became inactive immediately
+	fuji_reset_ptp(r);
+	strcpy(fuji_get(r)->ip_address, c_ip);
+	fuji_get(r)->transport = FUJI_FEATURE_WIRELESS_COMM;
+	if (app_get_wifi_network_handle(&fuji_get(r)->net)) {
 		free(c_ip);
 		return -1;
 	}
@@ -332,28 +318,25 @@ JNI_FUNC(jint, cTryConnectWiFi)(JNIEnv *env, jobject thiz, jint extra_tmout) {
 	return rc;
 }
 
-JNI_FUNC(jint, cConnectFromDiscovery)(JNIEnv *env, jobject thiz, jbyteArray discovery) {
-	set_jni_env(env);
-
-	struct DiscoverInfo *info = (struct DiscoverInfo *)(*env)->GetByteArrayElements(env, discovery, 0);
-
-	int rc = ptpip_connect(&backend.r, info->camera_ip, info->camera_port, 5);
-
-	// If camera ignored the TCP connect, try again
-	if (rc) {
-		rc = ptpip_connect(&backend.r, info->camera_ip, info->camera_port, 5);
-	}
-
+JNI_FUNC(jint, cTryConnectUSB)(JNIEnv *env, jclass thiz, jobject ctx) {
+	set_jni_env_ctx(env, ctx);
+	struct PtpRuntime *r = ptp_get();
+	int rc = fujiusb_try_connect(r);
 	if (rc == 0) {
-		fuji_reset_ptp(ptp_get());
-		strcpy(fuji_get(ptp_get())->ip_address, info->camera_ip);
-		fuji_get(ptp_get())->transport = info->transport;
-		memcpy(&fuji_get(ptp_get())->net, &info->h, sizeof(struct NetworkHandle));
+		fuji_get(r)->transport = FUJI_FEATURE_USB;
 	}
-
-	(*env)->ReleaseByteArrayElements(env, discovery, (jbyte *)info, 0);
-
 	return rc;
+}
+
+JNI_FUNC(jint, cConnectFromDiscovery)(JNIEnv *env, jobject thiz) {
+	set_jni_env_ctx(env, NULL);
+
+	struct PtpRuntime *r = ptp_get();
+
+	struct DiscoverInfo *info = fuji_get(r)->info;
+	if (info == NULL) ptp_panic("info is null");
+
+	return fuji_connect_from_discoverinfo(r, info);
 }
 
 JNI_FUNC(jint, cFujiImportFiles)(JNIEnv *env, jobject thiz, jintArray handles, int mask) {
@@ -369,6 +352,7 @@ JNI_FUNC(jint, cFujiImportFiles)(JNIEnv *env, jobject thiz, jintArray handles, i
 	return rc;
 }
 
+// For tether, unused for now
 int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 	JNIEnv *env = get_jni_env();
 	jobject ctx = get_jni_ctx();
@@ -381,30 +365,31 @@ int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 }
 
 int fuji_discovery_check_cancel(void *arg) {
+	(void)arg;
 	return app_check_thread_cancel();
 }
 
-void fuji_discovery_update_progress(void *arg, int progress) {
+void fuji_discovery_update_progress(void *arg, enum DiscoverUpdateMessages progress) {
 	switch (progress) {
-	case 0:
+	case FUJI_UM_GOT_FIRST_MESSAGE:
 		app_print_id(app_get_string("discovery1")); return;
-	case 1:
+	case FUJI_UM_CONNECTING_TO_NOTIFY_SERVER:
 		app_print("Exchanging a loving greeting..."); return;
-	case 2:
-		app_print("Waiting for the camera to invite us in..."); return;
-	case 3:
-		app_print("Waiting for the camera to tell us it's secrets..."); return;
-	case 4:
-		app_print("Accepting the camera's offer..."); return;
+	case FUJI_UM_STARTING_INVITE_SERVER:
+		app_print("Please start touching your camera..."); return;
+	case FUJI_UM_CAMERA_CONNETED_TO_INVITE_SERVER:
+		app_print("Waiting for the camera to tell us her secrets..."); return;
+	case FUJI_UM_ALL_DONE:
+		app_print("Starting a relationship with the camera..."); return;
 	default:
 		app_print("...");
 	}
 }
 
-volatile static int already_discovering = 0;
+static int already_discovering = 0;
 JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 	struct PtpRuntime *r = ptp_get();
-	//struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 
 	set_jni_env_ctx(env, ctx);
 	if (already_discovering) {
@@ -415,24 +400,21 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 
 	(*env)->PushLocalFrame(env, 10);
 
-	struct DiscoverInfo info;
-	int rc = fuji_discover_thread(&info, app_get_client_name(), fuji_get(ptp_get()));
-	if (rc == FUJI_D_REGISTERED) {
-		jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onCameraRegistered",
-			"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
-		(*env)->CallVoidMethod(env, ctx, register_m,
-			(*env)->NewStringUTF(env, info.camera_model),
-			(*env)->NewStringUTF(env, info.camera_name),
-			(*env)->NewStringUTF(env, info.camera_ip)
-		);
-	} else if (rc == FUJI_D_GO_PTP) {
-		jmethodID register_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "dev/danielc/fujiapp/MainActivity"), "onCameraWantsToConnect",
-												   "(Ljava/lang/String;Ljava/lang/String;[B)V");
-		(*env)->CallVoidMethod(env, ctx, register_m,
-							   (*env)->NewStringUTF(env, info.camera_model),
-							   (*env)->NewStringUTF(env, info.camera_name),
-							   jni_struct_to_bytearr(&info, sizeof(struct DiscoverInfo))
-		);
+	struct DiscoverInfo *info = malloc(sizeof(struct DiscoverInfo));
+	fuji->info = info;
+
+	int rc = fuji_discover_thread(fuji->info, app_get_client_name(), NULL);
+	if (rc > 0) {
+		jstring model = (*env)->NewStringUTF(env, info->camera_model);
+		jstring name = (*env)->NewStringUTF(env, info->camera_name);
+		jstring ip = (*env)->NewStringUTF(env, info->camera_ip);
+		if (rc == FUJI_D_REGISTERED) {
+			jmethodID register_m = (*env)->GetStaticMethodID(env, get_frontend_class(env), "onCameraRegistered", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+			(*env)->CallStaticVoidMethod(env, ctx, register_m, model, name, ip);
+		} else if (rc == FUJI_D_GO_PTP) {
+			jmethodID register_m = (*env)->GetStaticMethodID(env, get_frontend_class(env), "onCameraWantsToConnect", "(Ljava/lang/String;Ljava/lang/String;)V");
+			(*env)->CallStaticVoidMethod(env, ctx, register_m, model, name);
+		}
 	} else if (rc < 0) {
 		already_discovering = 0;
 		(*env)->PopLocalFrame(env, NULL);

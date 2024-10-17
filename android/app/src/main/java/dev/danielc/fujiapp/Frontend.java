@@ -117,4 +117,6 @@ public class Frontend {
     }
     public static void notifyDownloadProgress(int percent) {Viewer.notifyDownloadProgress(percent);}
     public static void notifyDownloadSpeed(int mbps) {Viewer.notifyDownloadSpeed(mbps);}
+    public static void onCameraRegistered(String model, String name, String ip) { MainActivity.instance.onCameraRegistered(model, name, ip); }
+    public static void onCameraWantsToConnect(String model, String name, String ip) { MainActivity.instance.onCameraWantsToConnect(model, name); }
 }

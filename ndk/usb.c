@@ -10,6 +10,7 @@
 #include <camlib.h>
 #include "backend.h"
 #include "app.h"
+#include <android.h>
 
 struct PrivUSB {
 	jobject obj;
@@ -60,46 +61,41 @@ struct PtpDeviceEntry *ptpusb_device_list(struct PtpRuntime *r) {
 
 	JNIEnv *env = get_jni_ctx();
 	jobject ctx = get_jni_ctx();
-	jobject man = get_usb_man(env, ctx);
 
 	(*env)->PushLocalFrame(env, 100);
+	jobject man = get_usb_man(env, ctx);
 
 	jclass man_c = (*env)->FindClass(env, "android/hardware/usb/UsbManager");
 	jmethodID get_dev_list_m = (*env)->GetMethodID(env, man_c, "getDeviceList", "()Ljava/util/HashMap;");
 	jobject deviceList = (*env)->CallObjectMethod(env, man, get_dev_list_m);
 
-	//Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
-	jclass ClassHashMap = (*env)->FindClass(env, "java/util/HashMap");
-	jmethodID Methodvalues = (*env)->GetMethodID(env, ClassHashMap, "values", "()Ljava/util/Collection;");
-	jobject deviceListCollection = (*env)->CallObjectMethod(env, deviceList, Methodvalues);
-	jclass ClassCollection = (*env)->FindClass(env, "java/util/Collection");
-	jmethodID Methoditerator = (*env)->GetMethodID(env, ClassCollection, "iterator", "()Ljava/util/Iterator;");
-	jobject deviceListIterator = (*env)->CallObjectMethod(env, deviceListCollection, Methoditerator);
-	jclass ClassIterator = (*env)->FindClass(env, "java/util/Iterator");
-
-	//while (deviceIterator.hasNext())
-	jmethodID MethodhasNext = (*env)->GetMethodID( env, ClassIterator, "hasNext", "()Z" );
-	jmethodID Methodnext = (*env)->GetMethodID( env, ClassIterator, "next", "()Ljava/lang/Object;" );
+	jclass hashmap_c = (*env)->FindClass(env, "java/util/HashMap");
+	jmethodID values_m = (*env)->GetMethodID(env, hashmap_c, "values", "()Ljava/util/Collection;");
+	jobject dev_list = (*env)->CallObjectMethod(env, deviceList, values_m);
+	jclass collection_c = (*env)->FindClass(env, "java/util/Collection");
+	jmethodID iterator_m = (*env)->GetMethodID(env, collection_c, "iterator", "()Ljava/util/Iterator;");
+	jobject iterator = (*env)->CallObjectMethod(env, dev_list, iterator_m);
+	jclass iterator_c = (*env)->FindClass(env, "java/util/Iterator");
+	jmethodID has_next_m = (*env)->GetMethodID(env, iterator_c, "hasNext", "()Z" );
+	jmethodID next_m = (*env)->GetMethodID(env, iterator_c, "next", "()Ljava/lang/Object;" );
 
 	int valid_devices = 0;
-	while ((*env)->CallBooleanMethod(env, deviceListIterator, MethodhasNext)) {
-		jobject device = (*env)->CallObjectMethod( env, deviceListIterator, Methodnext);
+	while ((*env)->CallBooleanMethod(env, iterator, has_next_m)) {
+		jobject device = (*env)->CallObjectMethod(env, iterator, next_m);
 
 		jclass usb_dev_c = (*env)->FindClass(env, "android/hardware/usb/UsbDevice" );
 		jclass usb_interf_c = (*env)->FindClass(env, "android/hardware/usb/UsbInterface" );
 		jclass usb_endpoint_c = (*env)->FindClass(env, "android/hardware/usb/UsbEndpoint" );
-		jclass usb_conn_c = (*env)->FindClass(env, "android/hardware/usb/UsbDeviceConnection" );
-		jmethodID get_dev_name_m = (*env)->GetMethodID(env, usb_dev_c, "getDeviceName", "()Ljava/lang/String;" );
 		jmethodID get_vendor_id_m = (*env)->GetMethodID(env, usb_dev_c, "getVendorId", "()I" );
 		jmethodID get_product_id_m = (*env)->GetMethodID(env, usb_dev_c, "getProductId", "()I" );
 
 		jmethodID get_endpoint_count_m = (*env)->GetMethodID(env, usb_interf_c, "getEndpointCount", "()I" );
 		jmethodID get_endpoint_m = (*env)->GetMethodID(env, usb_interf_c, "getEndpoint", "(I)Landroid/hardware/usb/UsbEndpoint;" );
 
-		jmethodID MethodgetAddress = (*env)->GetMethodID(env, usb_endpoint_c, "getAddress", "()I" );
+		jmethodID get_addr_m = (*env)->GetMethodID(env, usb_endpoint_c, "getAddress", "()I" );
 		jmethodID get_type_m = (*env)->GetMethodID(env, usb_endpoint_c, "getType", "()I" );
 		jmethodID get_dir_m = (*env)->GetMethodID(env, usb_endpoint_c, "getDirection", "()I" );
-		jmethodID MethodgetMaxPacketSize = (*env)->GetMethodID(env, usb_endpoint_c, "getMaxPacketSize", "()I" );
+		jmethodID get_max_packet_size_m = (*env)->GetMethodID(env, usb_endpoint_c, "getMaxPacketSize", "()I" );
 
 		if (valid_devices != 0) {
 			struct PtpDeviceEntry *new_ent = malloc(sizeof(struct PtpDeviceEntry));
@@ -128,7 +124,7 @@ struct PtpDeviceEntry *ptpusb_device_list(struct PtpRuntime *r) {
 			jobject ep = (*env)->CallObjectMethod(env, interf, get_endpoint_m, i);
 			int type = (*env)->CallIntMethod(env, ep, get_type_m);
 			int dir = (*env)->CallIntMethod(env, ep, get_dir_m);
-			int addr = (*env)->CallIntMethod(env, ep, MethodgetAddress);
+			int addr = (*env)->CallIntMethod(env, ep, get_addr_m);
 			if (type == 2) {
 				if (dir == 0x80) { // USB_DIR_IN
 					curr_ent->endpoint_in = addr;
@@ -144,14 +140,56 @@ struct PtpDeviceEntry *ptpusb_device_list(struct PtpRuntime *r) {
 	return orig_ent;
 }
 
+static int get_usb_permission(JNIEnv *env, jobject ctx, jobject man, jobject device) {
+	(*env)->PushLocalFrame(env, 20);
+
+	jclass man_c = (*env)->FindClass(env, "android/hardware/usb/UsbManager");
+
+	jstring pkg = jni_get_package_name(env, ctx);
+	jstring perm = jni_concat_strings2(env, pkg, ".USB_PERMISSION");
+
+	jclass intent_c = (*env)->FindClass(env, "android/content/Intent");
+	jmethodID intent_init = (*env)->GetMethodID(env, intent_c, "<init>", "(Ljava/lang/String;)V");
+	jobject permission_intent = (*env)->NewObject(env, intent_c, intent_init, perm);
+
+	jclass pending_intent_class = (*env)->FindClass(env, "android/app/PendingIntent");
+	jmethodID pending_intent_get_broadcast = (*env)->GetStaticMethodID(env, pending_intent_class, "getBroadcast", "(Landroid/content/Context;ILandroid/content/Intent;I)Landroid/app/PendingIntent;");
+
+	const jint FLAG_IMMUTABLE = 0x04000000;
+	jobject pending_intent = (*env)->CallStaticObjectMethod(env, pending_intent_class, pending_intent_get_broadcast, ctx, 0, permission_intent, FLAG_IMMUTABLE);
+
+	if (pending_intent == NULL) {
+		(*env)->PopLocalFrame(env, NULL);
+		return PTP_NO_PERM;
+	}
+
+	jmethodID req_perm_m = (*env)->GetMethodID(env, man_c, "requestPermission", "(Landroid/hardware/usb/UsbDevice;Landroid/app/PendingIntent;)V");
+	(*env)->CallVoidMethod(env, man, req_perm_m, device, pending_intent);
+
+	jmethodID has_perm_m = (*env)->GetMethodID(env, man_c, "hasPermission", "(Landroid/hardware/usb/UsbDevice;)Z");
+
+	for (int i = 0; i < 10; i++) {
+		if ((*env)->CallBooleanMethod(env, man, has_perm_m, device)) {
+			(*env)->PopLocalFrame(env, NULL);
+			return 0;
+		}
+		usleep(1000 * 1000);
+	}
+
+	(*env)->PopLocalFrame(env, NULL);
+	return PTP_NO_PERM;
+}
+
 int ptp_device_open(struct PtpRuntime *r, struct PtpDeviceEntry *entry) {
 	JNIEnv *env = get_jni_ctx();
 	jobject ctx = get_jni_ctx();
 	(*env)->PushLocalFrame(env, 20);
 
 	jobject man = get_usb_man(env, ctx);
-
 	jclass man_c = (*env)->FindClass(env, "android/hardware/usb/UsbManager");
+
+	get_usb_permission(env, ctx, man, (jobject)entry->device_handle_ptr);
+
 	jmethodID open_dev_m = (*env)->GetMethodID(env, man_c, "openDevice", "(Landroid/hardware/usb/UsbDevice;)Landroid/hardware/usb/UsbDeviceConnection;");
 	jobject connection = (*env)->CallObjectMethod(env, man, open_dev_m, (jobject)entry->device_handle_ptr);
 	if (connection == NULL) {
@@ -166,35 +204,11 @@ int ptp_device_open(struct PtpRuntime *r, struct PtpDeviceEntry *entry) {
 	priv->fd = (*env)->CallIntMethod(env, connection, get_desc_m);
 
 	(*env)->PopLocalFrame(env, NULL);
-
 	return 0;
 }
-
-#if 0
-JNI_FUNC(jint, cUSBConnectNative)(JNIEnv *env, jclass thiz, jobject usb) {
-	set_jni_env(env);
-	struct PtpRuntime *r = ptp_get();
-
-	jni_setup_usb(env, usb);
-
-	ptp_reset(&backend.r);
-	backend.r.connection_type = PTP_USB;
-	backend.r.max_packet_size = 512; // Android can go higher, but this will do
-
-	fuji_reset_ptp(r);
-
-	r->io_kill_switch = 0;
-	strncpy(fuji_get(r)->ip_address, info->camera_ip, 64);
-	strncpy(fuji_get(r)->autosave_client_name, info->client_name, 64);
-	fuji_get(r)->transport = info->transport;
-	memcpy(&fuji_get(r)->net, &info->h, sizeof(struct NetworkHandle));
-
-	return 0;
-}
-#endif
 
 int ptp_device_init(struct PtpRuntime *r) {
-	// connection done by frontend
+	// This can be a portable function in camlib/src/lib.c
 	return -1;
 }
 
