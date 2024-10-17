@@ -21,3 +21,11 @@ theme:
 markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
+
+nav:
+  - FAQ: help.md
+  - News: blog/index.md
+  - dev.md
+
+plugins:
+  - blog
