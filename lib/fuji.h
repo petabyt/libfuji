@@ -53,8 +53,8 @@ struct DiscoverInfo {
 
 /// @brief Holds runtime info about the camera
 struct FujiDeviceKnowledge {
+	/// @info Pointer to struct being used by discovery service
 	struct DiscoverInfo *info;
-
 	/// @note applied from struct DiscoverInfo
 	struct NetworkHandle net;
 	/// @note applied from struct DiscoverInfo
@@ -89,9 +89,11 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code);
 
 /// @note This will block
 int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg);
+
 /// @brief Callback for discovery. Called when a new device wanting to pair is discovered. Return 1 if connection accepted
 /// @note to be defined by frontend
 int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info);
+
 /// @brief Check if discovery is canceled
 /// @note to be defined by frontend
 int fuji_discovery_check_cancel(void *arg);

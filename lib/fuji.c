@@ -407,12 +407,12 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 int fuji_begin_file_download(struct PtpRuntime *r) {
 	// Seems to take a while in some cases.
 	r->wait_for_response = 3;
-	int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_EnableCorrectFileSize, 1);
+	int rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize, 1);
 	return rc;
 }
 
 int fuji_end_file_download(struct PtpRuntime *r) {
-	int rc = ptp_set_prop_value16(r, PTP_PC_FUJI_EnableCorrectFileSize, 0);
+	int rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize, 0);
 	return rc;
 }
 
@@ -470,7 +470,7 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 int fuji_get_events(struct PtpRuntime *r) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 	ptp_mutex_lock(r);
-	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_EventsList);
+	int rc = ptp_get_prop_value(r, PTP_DPC_FUJI_EventsList);
 	if (rc == PTP_CHECK_CODE) {
 		return 0;
 	}
@@ -497,16 +497,16 @@ int fuji_get_events(struct PtpRuntime *r) {
 		ptp_read_u16(&ev->events[i].code, &code);
 		ptp_read_u32(&ev->events[i].value, &value);
 		switch (ev->events[i].code) {
-		case PTP_PC_FUJI_SelectedImgsMode:
+		case PTP_DPC_FUJI_SelectedImgsMode:
 			fuji->selected_imgs_mode = ev->events[i].value;
 			break;
-		case PTP_PC_FUJI_ObjectCount:
+		case PTP_DPC_FUJI_ObjectCount:
 			fuji->num_objects = ev->events[i].value;
 			break;
-		case PTP_PC_FUJI_CameraState:
+		case PTP_DPC_FUJI_CameraState:
 			fuji->camera_state = ev->events[i].value;
 			break;
-		case PTP_PC_FUJI_FreeSDRAMImages:
+		case PTP_DPC_FUJI_FreeSDRAMImages:
 			if (fuji->transport == FUJI_FEATURE_WIRELESS_TETHER)
 				fuji_tether_download(r);
 			break;
@@ -554,22 +554,22 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 int fuji_config_init_mode(struct PtpRuntime *r) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 
-	int rc = ptp_get_prop_value(r, PTP_PC_FUJI_GetObjectVersion);
+	int rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion);
 	if (rc) return rc;
 	fuji->get_object_version = ptp_parse_prop_value(r);
 	ptp_verbose_log("GetObjectVersion: 0x%X\n", fuji->get_object_version);
 
-	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion);
 	if (rc) return rc;
 	fuji->remote_image_view_version = ptp_parse_prop_value(r);
 	ptp_verbose_log("RemoteGetObjectVersion: 0x%X\n", fuji->remote_image_view_version);
 
-	rc = ptp_get_prop_value(r, PTP_PC_FUJI_ImageGetVersion);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_ImageGetVersion);
 	if (rc) return rc;
 	fuji->image_get_version = ptp_parse_prop_value(r);
 	ptp_verbose_log("ImageGetVersion: 0x%X\n", fuji->image_get_version);
 
-	rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteVersion);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteVersion);
 	if (rc) return rc;
 	fuji->remote_version = ptp_parse_prop_value(r);
 	ptp_verbose_log("RemoteVersion: 0x%X\n", fuji->remote_version);
@@ -598,7 +598,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	// We have to wait for a response in this case
 	r->wait_for_response = 255;
 
-	rc = ptp_set_prop_value16(r, PTP_PC_FUJI_ClientState, mode);
+	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState, mode);
 	if (rc) return rc;
 
 	rc = fuji_get_events(r);
@@ -613,13 +613,13 @@ int fuji_config_version(struct PtpRuntime *r) {
 	int rc = 0;
 	ptp_mutex_lock(r);
 	if (fuji->camera_state == FUJI_PC_AUTO_SAVE) {
-		rc = ptp_get_prop_value(r, PTP_PC_FUJI_AutoSaveVersion);
+		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_AutoSaveVersion);
 		if (rc) goto end;
 		int code = ptp_parse_prop_value(r);
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_AutoSaveVersion, code);
+		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_AutoSaveVersion, code);
 		goto end;
 	} else if (fuji->remote_version == -1) {
-		rc = ptp_get_prop_value(r, PTP_PC_FUJI_GetObjectVersion);
+		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion);
 		if (rc) goto end;
 
 		int version = ptp_parse_prop_value(r);
@@ -628,14 +628,14 @@ int fuji_config_version(struct PtpRuntime *r) {
 
 		// The property must be set again (to it's own value) to tell the camera
 		// that the current version is supported - Fuji's app does this, so we assume it's necessary
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_GetObjectVersion, version);
+		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_GetObjectVersion, version);
 		if (rc) goto end;
 	} else {
 		// Some cams set from 2000a to 2000b
 		// Others set 20006 to 2000c (?)
 		// X-T20 has 20004
 		// Setting to the highest (supported?) value (2000c) seems to be what Fuji does
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteVersion, FUJI_CAM_CONNECT_REMOTE_VER);
+		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemoteVersion, FUJI_CAM_CONNECT_REMOTE_VER);
 		if (rc) goto end;
 
 		// Don't understand this object yet
@@ -709,7 +709,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		if (rc) return rc;
 
 		// Tell the camera that we actually want that mode
-		rc = ptp_set_prop_value16(r, PTP_PC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
+		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
 		if (rc) return rc;
 
 		rc = fuji_get_events(r);
@@ -721,23 +721,23 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 		if (rc) return rc;
 
 		// Check SD card slot, not really useful for now
-		//rc = ptp_get_prop_value(r, PTP_PC_FUJI_StorageID);
+		//rc = ptp_get_prop_value(r, PTP_DPC_FUJI_StorageID);
 		//if (rc) return rc;
 		//ptp_verbose_log("Storage ID: %d\n", ptp_parse_prop_value(r));
 
 		// Now we finally enter the remote image viewer
-		rc = ptp_set_prop_value16(r, PTP_PC_FUJI_ClientState, FUJI_MODE_REMOTE_IMG_VIEW);
+		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState, FUJI_MODE_REMOTE_IMG_VIEW);
 		if (rc) return rc;
 
 		rc = fuji_get_events(r);
 		if (rc) return rc;
 
-		rc = ptp_get_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion);
+		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion);
 		fuji->remote_image_view_version = ptp_parse_prop_value(r);
 		if (rc) return rc;
 
 		// Set the prop higher - X-S10 and X-H1 want 4
-		rc = ptp_set_prop_value(r, PTP_PC_FUJI_RemoteGetObjectVersion, 5);
+		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion, 5);
 		if (rc) return rc;
 
 		// The props we set should show up here

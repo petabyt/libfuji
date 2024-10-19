@@ -12,10 +12,6 @@
 #include "fuji.h"
 #include "fujiptp.h"
 
-static inline jclass get_backend_class(JNIEnv *env) {
-	return (*env)->FindClass(env, "dev/danielc/fujiapp/Backend");
-}
-
 jbyteArray jni_struct_to_bytearr(void *data, int length) {
 	JNIEnv *env = get_jni_env();
 	jbyteArray arr = (*env)->NewByteArray(env, length);

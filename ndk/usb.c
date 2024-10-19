@@ -8,7 +8,6 @@
 #include <linux/usbdevice_fs.h>
 #include <string.h>
 #include <camlib.h>
-#include "backend.h"
 #include "app.h"
 #include <android.h>
 
@@ -32,7 +31,7 @@ static jobject get_usb_man(JNIEnv *env, jobject ctx) {
 	jfieldID lid_USB_SERVICE = (*env)->GetStaticFieldID(env, ClassContext, "USB_SERVICE", "Ljava/lang/String;");
 	jobject USB_SERVICE = (*env)->GetStaticObjectField(env, ClassContext, lid_USB_SERVICE);
 
-	jmethodID get_sys_service_m = (*env)->GetMethodID(env, ctx, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
+	jmethodID get_sys_service_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "android/content/Context"), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
 	return (*env)->CallObjectMethod(env, ctx, get_sys_service_m, USB_SERVICE);
 }
 
@@ -59,7 +58,7 @@ struct PtpDeviceEntry *ptpusb_device_list(struct PtpRuntime *r) {
 
 	struct PtpDeviceEntry *orig_ent = curr_ent;
 
-	JNIEnv *env = get_jni_ctx();
+	JNIEnv *env = get_jni_env();
 	jobject ctx = get_jni_ctx();
 
 	(*env)->PushLocalFrame(env, 100);
@@ -135,8 +134,8 @@ struct PtpDeviceEntry *ptpusb_device_list(struct PtpRuntime *r) {
 		}
 	}
 
+	ptp_verbose_log("Found %d devices\n", valid_devices);
 	(*env)->PopLocalFrame(env, NULL);
-
 	return orig_ent;
 }
 
@@ -146,7 +145,7 @@ static int get_usb_permission(JNIEnv *env, jobject ctx, jobject man, jobject dev
 	jclass man_c = (*env)->FindClass(env, "android/hardware/usb/UsbManager");
 
 	jstring pkg = jni_get_package_name(env, ctx);
-	jstring perm = jni_concat_strings2(env, pkg, ".USB_PERMISSION");
+	jstring perm = jni_concat_strings2(env, pkg, (*env)->NewStringUTF(env, ".USB_PERMISSION"));
 
 	jclass intent_c = (*env)->FindClass(env, "android/content/Intent");
 	jmethodID intent_init = (*env)->GetMethodID(env, intent_c, "<init>", "(Ljava/lang/String;)V");
@@ -181,7 +180,7 @@ static int get_usb_permission(JNIEnv *env, jobject ctx, jobject man, jobject dev
 }
 
 int ptp_device_open(struct PtpRuntime *r, struct PtpDeviceEntry *entry) {
-	JNIEnv *env = get_jni_ctx();
+	JNIEnv *env = get_jni_env();
 	jobject ctx = get_jni_ctx();
 	(*env)->PushLocalFrame(env, 20);
 
@@ -205,6 +204,12 @@ int ptp_device_open(struct PtpRuntime *r, struct PtpDeviceEntry *entry) {
 
 	(*env)->PopLocalFrame(env, NULL);
 	return 0;
+}
+
+void ptpusb_free_device_list_entry(void *ptr) {
+	JNIEnv *env = get_jni_env();
+	// TODO: release interface on dev object
+	(*env)->DeleteGlobalRef(env, (jobject)ptr);
 }
 
 int ptp_device_init(struct PtpRuntime *r) {

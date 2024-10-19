@@ -29,8 +29,8 @@ public class Backend extends Camlib {
     final static int FUJI_FEATURE_AUTOSAVE = 1;
     final static int FUJI_FEATURE_WIRELESS_COMM = 3;
 
-    public static void connectUSB(Context ctx) throws Exception {
-        cTryConnectUSB(ctx);
+    public static int connectUSB(Context ctx) {
+        return cTryConnectUSB(ctx);
     }
 
     public static int fujiConnectToCmd(int extraTmout) {

@@ -357,14 +357,13 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    Backend.connectUSB(MainActivity.this);
+                if (Backend.connectUSB(MainActivity.this) != 0) {
                     Frontend.print(R.string.connection_failed);
-                    Intent intent = new Intent(MainActivity.this, Gallery.class);
-                    startActivity(intent);
-                } catch (Exception e) {
-                    Frontend.print(e.getMessage());
+                    return;
                 }
+                Frontend.print(R.string.good_connection);
+                Intent intent = new Intent(MainActivity.this, Gallery.class);
+                startActivity(intent);
             }
         }).start();
     }

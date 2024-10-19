@@ -98,10 +98,9 @@ public class Tester extends AppCompatActivity {
                 if (rc != 0) {
                     fail("Failed to connect to cmd: " + Frontend.parseErr(rc));
 
-                    try {
-                        Backend.connectUSB(Tester.this);
-                    } catch (Exception e2) {
-                        fail("USB: " + e2.toString());
+                    rc = Backend.connectUSB(Tester.this);
+                    if (rc != 0) {
+                        fail("USB: " + rc);
                         verboseLog = Backend.cEndLogs();
                         return;
                     }

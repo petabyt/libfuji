@@ -10,7 +10,7 @@
 
 static int get_prop_size(uint16_t code) {
 	switch (code) {
-	case PTP_PC_CaptureDelay:
+	case PTP_DPC_CaptureDelay:
 		return 2;
 	}
 	return 0;
