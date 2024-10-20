@@ -61,6 +61,7 @@ struct FujiDeviceKnowledge {
 	char ip_address[64];
 	/// @note applied from struct DiscoverInfo
 	enum FujiTransport transport;
+
 	char autosave_client_name[64];
 	int camera_state;
 	int selected_imgs_mode;

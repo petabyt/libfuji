@@ -87,11 +87,6 @@ JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reaso
 	(*env)->DeleteLocalRef(env, reason);
 }
 
-// TODO: remove
-//JNI_FUNC(void, cClearKillSwitch)(JNIEnv *env, jobject thiz) {
-//	backend.r.io_kill_switch = 0;
-//}
-
 /// For frontend to check connection status
 JNI_FUNC(jboolean, cGetKillSwitch)(JNIEnv *env, jobject thiz) {
 	return backend.r.io_kill_switch != 0;

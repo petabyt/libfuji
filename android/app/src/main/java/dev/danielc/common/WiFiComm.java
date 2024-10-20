@@ -7,6 +7,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
+import android.net.LinkProperties;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
@@ -20,7 +21,8 @@ import android.os.Handler;
 import android.os.PatternMatcher;
 import android.provider.Settings;
 import android.util.Log;
-import 	android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiInfo;
 
 import java.lang.reflect.Method;
 
@@ -52,8 +54,7 @@ public class WiFiComm {
         }
     }
 
-    // This will cause 2x slowdown for concurrent connections:
-    // https://source.android.com/docs/core/connect/wifi-sta-sta-concurrency#local-only
+    /** Opens an Android 10+ popup to prompt the user to select a WiFi network */
     public int connectToAccessPoint(Context ctx, String password) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             Log.d("wifi", String.format("Connecting: %s", password));
@@ -79,12 +80,17 @@ public class WiFiComm {
                     Log.d("wifi", "Network selected by user: " + network);
                     foundWiFiDevice = network;
                     run(onWiFiSelectAvailable);
+                    isHandlingConflictingConnections();
                 }
                 @Override
                 public void onUnavailable() {
                     Log.d("wifi", "Network unavailable, not selected by user");
                     foundWiFiDevice = null;
                     run(onWiFiSelectCancel);
+                }
+                @Override
+                public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
+
                 }
             };
             connectivityManager.requestNetwork(request, networkCallback);
@@ -100,13 +106,11 @@ public class WiFiComm {
         ConnectivityManager m = (ConnectivityManager)ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
         requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
-        //requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR);
 
         ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
             Intent settings = null;
             @Override
             public void onAvailable(Network network) {
-//                if (m.getNetworkCapabilities(network).hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
                 Log.d(TAG, "Wifi network is available: " + network.getNetworkHandle());
                 if (settings != null) {
                     ((Activity)ctx).finish();
@@ -144,6 +148,28 @@ public class WiFiComm {
     public static final int NOT_CONNECTED = -102;
     public static final int UNSUPPORTED_SDK = -103;
 
+    /** Determine if the device is handling two different WiFi connections at the same time, on the same band.
+     * On Android 12+ devices, this causes a 2x rx/tx speed hit.
+     * https://source.android.com/docs/core/connect/wifi-sta-sta-concurrency#local-only */
+    public static boolean isHandlingConflictingConnections() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            if (isNetworkValid(wifiDevice) && isNetworkValid(foundWiFiDevice)) {
+                NetworkCapabilities c1 = cm.getNetworkCapabilities(wifiDevice);
+                if (c1 == null) return false;
+                WifiInfo info1 = (WifiInfo) c1.getTransportInfo();
+                if (info1 == null) return false;
+                int mainBand = info1.getFrequency() / 100;
+                NetworkCapabilities c2 = cm.getNetworkCapabilities(foundWiFiDevice);
+                if (c2 == null) return false;
+                WifiInfo info2 = (WifiInfo) c2.getTransportInfo();
+                if (info2 == null) return false;
+                int secondBand = info2.getFrequency() / 100;
+                return mainBand == secondBand;
+            }
+        }
+        return false;
+    }
+
     public static boolean isNetworkValid(Network net) {
         if (cm == null) return false;
         NetworkInfo wifiInfo = cm.getNetworkInfo(net);
@@ -154,7 +180,7 @@ public class WiFiComm {
 
     // If we go through WifiNetworkSpecifier, then the device may be handling two concurrent connections.
     // This is up to a 2x performance hit.
-    public static boolean isWiFiModuleHandlingTwoConnections(Context ctx) {
+    public static boolean isWiFiModuleCapableOfHandlingTwoConnections(Context ctx) {
         WifiManager wm = (WifiManager)ctx.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             // 'Query whether or not the device supports concurrent station (STA) connections

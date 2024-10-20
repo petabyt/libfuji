@@ -316,7 +316,6 @@ public class MainActivity extends AppCompatActivity {
         if (rc != 0) return rc;
         Backend.cancelDiscoveryThread();
         Frontend.print("Connection established");
-        Thread.dumpStack();
         handler.post(new Runnable() {
             @Override
             public void run() {

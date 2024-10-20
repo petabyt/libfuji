@@ -63,7 +63,7 @@ public class Tester extends AppCompatActivity {
         };
 
         log(String.format(Locale.getDefault(), "WiFi hotspot: %b", WiFiComm.isHotSpotEnabled(this)));
-        log(String.format(Locale.getDefault(), "WiFi Concurrency?: %s",  WiFiComm.isWiFiModuleHandlingTwoConnections(this) ? "Yes" : "No"));
+        log(String.format(Locale.getDefault(), "WiFi Concurrency?: %s",  WiFiComm.isWiFiModuleCapableOfHandlingTwoConnections(this) ? "Yes" : "No"));
 
         log("(The tester is only designed for WiFi pairing. PC AutoSave or Wireless Tether Shoot is not working here yet.)");
 

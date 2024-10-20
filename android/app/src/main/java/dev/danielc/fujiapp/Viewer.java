@@ -71,7 +71,7 @@ public class Viewer extends AppCompatActivity {
         c.post(new Runnable() {
             @Override
             public void run() {
-                if (WiFiComm.isWiFiModuleHandlingTwoConnections(c.getContext()) && mbps < 12) {
+                if (WiFiComm.isHandlingConflictingConnections()) {
                     ((TextView)c.findViewById(R.id.download_warning_text)).setVisibility(View.VISIBLE);
                     ((TextView)c.findViewById(R.id.download_warning_text)).setText(R.string.hint_disconnect_from_main_network);
                 }

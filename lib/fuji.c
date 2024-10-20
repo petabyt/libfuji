@@ -32,17 +32,20 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 }
 
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
-	plat_dbg("Kill switch: %d\n", r->io_kill_switch);
-	// Unlock the thread in case there's deadlock bugs
-	ptp_mutex_unlock_thread(r);
 	if (r->io_kill_switch) return;
-	r->io_kill_switch = 1;
+	ptp_mutex_lock(r);
+	if (r->io_kill_switch) {
+		ptp_mutex_unlock(r);
+		return;
+	}
 
 	// Safely disconnect if intentional
 	if (code == 0) {
 		plat_dbg("Closing session");
 		ptp_close_session(r);
 	}
+
+	r->operation_kill_switch = 1;
 
 	// Send Fuji's 'goodbye' packet - we don't care if this fails or not
 	uint8_t goodbye_packet[] = {0x8, 0x0, 0x0, 0x0, 0xff, 0xff, 0xff, 0xff};
@@ -54,7 +57,9 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 		ptp_device_close(r);
 	}
 
-	fuji_reset_ptp(r); // TODO: this should only be called on connected
+	r->io_kill_switch = 1;
+
+	ptp_mutex_unlock(r);
 
 	if (reason == NULL) {
 		if (code == PTP_IO_ERR) {
@@ -836,7 +841,8 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 			goto end;
 		} else if (rc) {
 			plat_dbg("Download fail %d", rc);
-			goto end;
+			ptp_mutex_unlock(r);
+			return rc;
 		}
 
 		size_t payload_size = ptp_get_payload_length(r);
