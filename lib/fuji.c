@@ -32,6 +32,7 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 }
 
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
+	//ptp_mutex_unlock_thread(r);
 	if (r->io_kill_switch) return;
 	ptp_mutex_lock(r);
 	if (r->io_kill_switch) {
@@ -46,6 +47,8 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	}
 
 	r->operation_kill_switch = 1;
+
+	ptp_verbose_log("Goodbye");
 
 	// Send Fuji's 'goodbye' packet - we don't care if this fails or not
 	uint8_t goodbye_packet[] = {0x8, 0x0, 0x0, 0x0, 0xff, 0xff, 0xff, 0xff};
@@ -477,6 +480,7 @@ int fuji_get_events(struct PtpRuntime *r) {
 	ptp_mutex_lock(r);
 	int rc = ptp_get_prop_value(r, PTP_DPC_FUJI_EventsList);
 	if (rc == PTP_CHECK_CODE) {
+		ptp_mutex_unlock(r);
 		return 0;
 	}
 	if (rc) {
