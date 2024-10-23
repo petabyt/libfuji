@@ -201,6 +201,16 @@ public class Gallery extends AppCompatActivity {
         }
     }
 
+    static void stopAll() {
+        Gallery ctx = getInstance(); if (ctx == null) return;
+        if (ctx.imageAdapter != null) {
+            ctx.imageAdapter.queue.stopRequestThread();
+        }
+        if (ctx.list != null) {
+            ctx.list.queue.stopRequestThread();
+        }
+    }
+
     static void resumeAll() {
         Gallery ctx = getInstance(); if (ctx == null) return;
         if (ctx.imageAdapter != null)
@@ -389,6 +399,7 @@ public class Gallery extends AppCompatActivity {
 
     @Override
     public void onDestroy() {
+        stopAll();
         importPopup = null;
         listView = null;
         list = null;
