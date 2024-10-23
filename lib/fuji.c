@@ -251,7 +251,8 @@ int fuji_setup_remote_mode(struct PtpRuntime *r) {
 	return 0;
 }
 
-int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp) {
+
+static int ptpip_fuji_init_req_(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp) {
 	if (fuji_get(r)->debug_step != 0) {
 		ptp_panic("ptpip_fuji_init_req called twice");
 	}
@@ -270,23 +271,16 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 
 	ptp_write_unicode_string(p->device_name, device_name);
 
-	// TODO: Fix deadlock here?
-	ptp_verbose_log("Waiting\n");
-	ptp_mutex_lock(r);
-	ptp_verbose_log("Unlocked\n");
-	if (ptpip_cmd_write(r, r->data, (int)p->length) != p->length) goto io_err;
-	ptp_verbose_log("cmd_write done");
+	if (ptpip_cmd_write(r, r->data, (int)p->length) != p->length) return PTP_IO_ERR;
 
 	// Read the packet size, then receive the rest
 	int x = ptpip_cmd_read(r, r->data, 4);
-	if (x < 0) goto io_err;
+	if (x < 0) return PTP_IO_ERR;
 	x = ptpip_cmd_read(r, r->data + 4, (int)p->length - 4);
-	if (x < 0) goto io_err;
+	if (x < 0) return PTP_IO_ERR;
 
 	if (p->type == PTPIP_INIT_FAIL) {
 		ptp_verbose_log("PTPIP_INIT_FAIL\n");
-		// Caller should resend the packet...
-		ptp_mutex_unlock(r);
 		return PTP_RUNTIME_ERR;
 	}
 
@@ -294,14 +288,16 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 	ptp_verbose_log("Connected to %s\n", resp->cam_name);
 
 	if (ptp_get_return_code(r) != 0) {
-		goto io_err;
+		return PTP_IO_ERR;
 	}
-	ptp_mutex_unlock(r);
+
 	return 0;
-	io_err:;
-	ptp_verbose_log("cmd_write done2");
+}
+int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp) {
+	ptp_mutex_lock(r);
+	int rc = ptpip_fuji_init_req_(r, device_name, resp);
 	ptp_mutex_unlock(r);
-	return PTP_IO_ERR;
+	return rc;
 }
 
 int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
@@ -873,7 +869,10 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 	end:;
 	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_COMM) {
 		rc = fuji_get_events(r);
-		if (rc) return rc;
+		if (rc) {
+			ptp_mutex_unlock(r);
+			return rc;
+		}
 		rc = fuji_end_file_download(r);
 	}
 	ptp_mutex_unlock(r);

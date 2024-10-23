@@ -25,7 +25,7 @@
 
 // External definitions:
 // app_bind_socket_to_network
-// struct NetworkHandle
+// ptp_get_network_info
 // app_increment_progress_bar(result);
 
 struct PtpIpBackend {
