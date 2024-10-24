@@ -76,7 +76,7 @@ public class Tester extends AppCompatActivity {
             public void onClick(View v) {
                 String password = SettingsActivity.getWPA2Password(Tester.this);
                 if (password.length() == 0) password = null;
-                if (wifi.connectToAccessPoint(Tester.this, password) != 0) {
+                if (wifi.connectToAccessPoint(Tester.this, password, Backend.matchAp) != 0) {
                     fail("Didn't select access point.");
                 }
             }
@@ -94,11 +94,11 @@ public class Tester extends AppCompatActivity {
             @Override
             public void run() {
                 log(getString(R.string.connecting));
-                int rc = Backend.fujiConnectToCmd(0);
+                int rc = Backend.cTryConnectWiFi(0);
                 if (rc != 0) {
                     fail("Failed to connect to cmd: " + Frontend.parseErr(rc));
 
-                    rc = Backend.connectUSB(Tester.this);
+                    rc = Backend.cTryConnectUSB(Tester.this);
                     if (rc != 0) {
                         fail("USB: " + rc);
                         verboseLog = Backend.cEndLogs();

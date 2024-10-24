@@ -229,6 +229,11 @@ JNI_FUNC(jint, cFujiConfigImageGallery)(JNIEnv *env, jobject thiz) {
 	return rc;
 }
 
+// Is this a good idea?
+JNI_FUNC(void, cPtpUnlockAllThreads)(JNIEnv *env, jobject thiz) {
+	ptp_mutex_unlock_thread(ptp_get());
+}
+
 jintArray ptpusb_get_object_handles(JNIEnv *env, struct PtpRuntime *r) {
 	struct PtpArray *arr;
 	int rc = ptp_get_storage_ids(r, &arr);
@@ -401,10 +406,10 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 		jstring ip = (*env)->NewStringUTF(env, info->camera_ip);
 		if (rc == FUJI_D_REGISTERED) {
 			jmethodID register_m = (*env)->GetStaticMethodID(env, get_frontend_class(env), "onCameraRegistered", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
-			(*env)->CallStaticVoidMethod(env, ctx, register_m, model, name, ip);
+			(*env)->CallStaticVoidMethod(env, get_frontend_class(env), register_m, model, name, ip);
 		} else if (rc == FUJI_D_GO_PTP) {
 			jmethodID register_m = (*env)->GetStaticMethodID(env, get_frontend_class(env), "onCameraWantsToConnect", "(Ljava/lang/String;Ljava/lang/String;)V");
-			(*env)->CallStaticVoidMethod(env, ctx, register_m, model, name);
+			(*env)->CallStaticVoidMethod(env, get_frontend_class(env), register_m, model, name);
 		}
 	} else if (rc < 0) {
 		already_discovering = 0;
@@ -429,8 +434,10 @@ int app_get_wifi_network_handle(struct NetworkHandle *h) {
 }
 
 int app_get_os_network_handle(struct NetworkHandle *h) {
-	// For the default network, we want to bind to all interfaces. This is the default state of a socket().
-	// The ignore bit is set to prevent the PTP code from connecting to the WiFI network handle.
+	// By default, a socket() to bind to whatever interface it finds the IP address on.
+	// We want this for PC AutoSave, since we can't get the handle for the hotspot interface.
+	// There is a slight chance though, if you're connected to a internet WiFi network and have a
+	// hotspot open, it may bind to the wrong interface.
 	h->ignore = 1;
 	return 0;
 }

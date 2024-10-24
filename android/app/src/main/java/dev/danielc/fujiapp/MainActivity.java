@@ -311,7 +311,7 @@ public class MainActivity extends AppCompatActivity {
     public int tryConnect(int extraTmout) {
         blockConnect = true;
         Frontend.print(getString(R.string.connecting));
-        int rc = Backend.fujiConnectToCmd(extraTmout);
+        int rc = Backend.cTryConnectWiFi(extraTmout);
         blockConnect = false;
         if (rc != 0) return rc;
         Backend.cancelDiscoveryThread();
@@ -337,7 +337,7 @@ public class MainActivity extends AppCompatActivity {
                 int rc = tryConnect(0);
                 if (rc != 0) {
                     Frontend.print(R.string.connection_failed);
-                    if (wifi.connectToAccessPoint(ctx, password) != 0) {
+                    if (wifi.connectToAccessPoint(ctx, password, Backend.matchAp) != 0) {
                         // TODO: This message repeats on every connect attempt, annoying
                         Frontend.print("You must manually connect to the WiFi access point");
                         handler.post(new Runnable() {
@@ -356,7 +356,7 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                if (Backend.connectUSB(MainActivity.this) != 0) {
+                if (Backend.cTryConnectUSB(MainActivity.this) != 0) {
                     Frontend.print(R.string.connection_failed);
                     return;
                 }

@@ -1,4 +1,4 @@
-// Basic wifi-priority socket interface for camlib
+// Android WiFi helper and utility library
 // Copyright Daniel Cook - Apache License
 package dev.danielc.common;
 
@@ -25,6 +25,7 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.WifiInfo;
 
 import java.lang.reflect.Method;
+import java.util.regex.Pattern;
 
 public class WiFiComm {
     public static final String TAG = "wifi";
@@ -33,6 +34,11 @@ public class WiFiComm {
     public void setConnectivityManager(ConnectivityManager cm) {
         WiFiComm.cm = cm;
     }
+
+    // Error codes
+    public static final int NOT_AVAILABLE = -101;
+    public static final int NOT_CONNECTED = -102;
+    public static final int UNSUPPORTED_SDK = -103;
 
     static Network wifiDevice = null;
     static Network foundWiFiDevice = null;
@@ -55,14 +61,14 @@ public class WiFiComm {
     }
 
     /** Opens an Android 10+ popup to prompt the user to select a WiFi network */
-    public int connectToAccessPoint(Context ctx, String password) {
+    public int connectToAccessPoint(Context ctx, String password, PatternMatcher pattern) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            Log.d("wifi", String.format("Connecting: %s", password));
             WifiNetworkSpecifier.Builder builder = new WifiNetworkSpecifier.Builder();
-            builder.setSsidPattern(new PatternMatcher("FUJIFILM", PatternMatcher.PATTERN_PREFIX));
+            builder.setSsidPattern(pattern);
 
             if (password != null) {
                 builder.setWpa2Passphrase(password);
+                Log.d(TAG, String.format("password: %s", password));
             }
             NetworkSpecifier specifier = builder.build();
 
@@ -77,14 +83,14 @@ public class WiFiComm {
             ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override
                 public void onAvailable(Network network) {
-                    Log.d("wifi", "Network selected by user: " + network);
+                    Log.d(TAG, "Network selected by user: " + network);
                     foundWiFiDevice = network;
                     run(onWiFiSelectAvailable);
                     isHandlingConflictingConnections();
                 }
                 @Override
                 public void onUnavailable() {
-                    Log.d("wifi", "Network unavailable, not selected by user");
+                    Log.d(TAG, "Network unavailable, not selected by user");
                     foundWiFiDevice = null;
                     run(onWiFiSelectCancel);
                 }
@@ -96,10 +102,10 @@ public class WiFiComm {
             connectivityManager.requestNetwork(request, networkCallback);
             // Disconnect after inactive?
             // connectivityManager.unregisterNetworkCallback(this);
+            return 0;
         } else {
-            return 1;
+            return UNSUPPORTED_SDK;
         }
-        return 0;
     }
 
     public void startNetworkListeners(Context ctx) {
@@ -143,10 +149,6 @@ public class WiFiComm {
             ctx.startActivity(goToSettings);
         }
     }
-
-    public static final int NOT_AVAILABLE = -101;
-    public static final int NOT_CONNECTED = -102;
-    public static final int UNSUPPORTED_SDK = -103;
 
     /** Determine if the device is handling two different WiFi connections at the same time, on the same band.
      * On Android 12+ devices, this causes a 2x rx/tx speed hit.
@@ -214,16 +216,16 @@ public class WiFiComm {
 
         // Prefer user-selected network
         if (isNetworkValid(foundWiFiDevice)) {
-            Log.d("wifi", "Returning found wifi device");
+            Log.d(TAG, "Returning found wifi device");
             return foundWiFiDevice.getNetworkHandle();
         }
 
         if (isNetworkValid(wifiDevice)) {
-            Log.d("wifi", "Returning default WiFi");
+            Log.d(TAG, "Returning default WiFi");
             return wifiDevice.getNetworkHandle();
         }
 
-        Log.d("wifi", "WiFi network not available");
+        Log.d(TAG, "WiFi network not available");
         return NOT_AVAILABLE;
     }
 
