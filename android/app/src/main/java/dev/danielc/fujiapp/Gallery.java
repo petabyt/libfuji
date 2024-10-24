@@ -366,11 +366,14 @@ public class Gallery extends AppCompatActivity {
 
                 objectHandles = Backend.cGetObjectHandles();
 
-                if (objectHandles == null) {
+                if (objectHandles == null || objectHandles.length == 0) {
                     Frontend.print(getString(R.string.noImages1));
-                    Frontend.print(getString(R.string.getImages2));
-                } else if (objectHandles.length == 0) {
-                    Frontend.print("No images available.");
+                    int transport = Backend.cGetTransport();
+                    if (transport == Backend.FUJI_FEATURE_WIRELESS_TETHER || transport == Backend.FUJI_FEATURE_USB_TETHER_SHOOT) {
+                        Frontend.print("Waiting to download images.");
+                    } else {
+                        Frontend.print(getString(R.string.getImages2));
+                    }
                 } else {
                     Backend.cPtpObjectServiceStart(objectHandles);
                     int f = Backend.cGetTransport();

@@ -116,8 +116,7 @@ public class Viewer extends AppCompatActivity {
     // Must be ran on UI thread
     public void writeFile() {
         if (fileByteData == null) return;
-        String saveDir = Backend.getDownloads();
-        String path = saveDir + File.separator + filename;
+        String path = Backend.getFilePath(filename);
         File file = new File(path);
         FileOutputStream fos = null;
 

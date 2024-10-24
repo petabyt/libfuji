@@ -253,11 +253,6 @@ int fuji_setup_remote_mode(struct PtpRuntime *r) {
 
 
 static int ptpip_fuji_init_req_(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp) {
-	if (fuji_get(r)->debug_step != 0) {
-		ptp_panic("ptpip_fuji_init_req called twice");
-	}
-	fuji_get(r)->debug_step++;
-
 	struct FujiInitPacket *p = (struct FujiInitPacket *)r->data;
 	memset(p, 0, sizeof(struct FujiInitPacket));
 	p->length = 0x52;
@@ -451,7 +446,7 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 
 		app_downloading_file(&oi);
 		char buffer[256];
-		app_get_file_path(buffer, oi.filename);
+		app_get_tether_file_path(buffer, oi.filename);
 		FILE *f = fopen(buffer, "wb");
 		if (f == NULL) return PTP_RUNTIME_ERR;
 		app_print("Downloading %s", buffer);
@@ -613,19 +608,18 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 }
 
 
-int fuji_config_version(struct PtpRuntime *r) {
+int fuji_config_version_(struct PtpRuntime *r) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 	int rc = 0;
-	ptp_mutex_lock(r);
 	if (fuji->camera_state == FUJI_PC_AUTO_SAVE) {
 		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_AutoSaveVersion);
-		if (rc) goto end;
+		if (rc) return rc;
 		int code = ptp_parse_prop_value(r);
 		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_AutoSaveVersion, code);
-		goto end;
+		if (rc) return rc;
 	} else if (fuji->remote_version == -1) {
 		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion);
-		if (rc) goto end;
+		if (rc) return rc;
 
 		int version = ptp_parse_prop_value(r);
 
@@ -634,28 +628,30 @@ int fuji_config_version(struct PtpRuntime *r) {
 		// The property must be set again (to it's own value) to tell the camera
 		// that the current version is supported - Fuji's app does this, so we assume it's necessary
 		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_GetObjectVersion, version);
-		if (rc) goto end;
+		if (rc) return rc;
 	} else {
 		// Some cams set from 2000a to 2000b
 		// Others set 20006 to 2000c (?)
 		// X-T20 has 20004
 		// Setting to the highest (supported?) value (2000c) seems to be what Fuji does
 		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemoteVersion, FUJI_CAM_CONNECT_REMOTE_VER);
-		if (rc) goto end;
+		if (rc) return rc;
 
 		// Don't understand this object yet
 		struct PtpObjectInfo oi;
 		rc = ptp_get_object_info(r, 0xfffffff1, &oi);
-		if (rc == PTP_CHECK_CODE) {
-			rc = 0;
-			goto end;
-		} else if (rc) goto end;
+		if (rc == PTP_CHECK_CODE) rc = 0;
+		if (rc) return rc;
 		char buffer[512];
 		ptp_object_info_json(&oi, buffer, sizeof(buffer));
 		plat_dbg(buffer);
 	}
 
-	end:;
+	return 0;
+}
+int fuji_config_version(struct PtpRuntime *r) {
+	ptp_mutex_lock(r);
+	int rc = fuji_config_version_(r);
 	ptp_mutex_unlock(r);
 	return rc;
 }

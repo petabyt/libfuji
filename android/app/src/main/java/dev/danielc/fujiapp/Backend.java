@@ -9,6 +9,7 @@ import android.os.Environment;
 import android.view.View;
 
 import java.io.File;
+import java.util.Locale;
 
 import dev.danielc.common.Camlib;
 
@@ -27,7 +28,11 @@ public class Backend extends Camlib {
     final static int DISCOVERY_ERROR_THRESHOLD = 5;
 
     final static int FUJI_FEATURE_AUTOSAVE = 1;
+    final static int FUJI_FEATURE_WIRELESS_TETHER = 2;
     final static int FUJI_FEATURE_WIRELESS_COMM = 3;
+    final static int FUJI_FEATURE_USB_CARD_READER = 4;
+    final static int FUJI_FEATURE_USB_TETHER_SHOOT = 5;
+    final static int FUJI_FEATURE_RAW_CONV = 6;
 
     public static int connectUSB(Context ctx) {
         return cTryConnectUSB(ctx);
@@ -150,6 +155,19 @@ public class Backend extends Camlib {
               directory.mkdirs();
         }
         return fujifilm;
+    }
+    static int lastFilenameNum = 0;
+    public static String newTetherPhoto() {
+        while (true) {
+            String filename = getDownloads() + File.separator + "TETHER" + String.format(Locale.US, "%03d", lastFilenameNum) + ".JPG";
+            File test = new File(filename);
+            if (!test.exists()) {
+                return filename;
+            } else {
+                Log.d("b", "File exists: " + filename);
+            }
+            lastFilenameNum++;
+        }
     }
     public static String getFilePath(String filename) {
         return getDownloads() + File.separator + filename;

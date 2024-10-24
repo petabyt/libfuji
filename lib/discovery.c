@@ -385,8 +385,7 @@ static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *ar
 	socklen_t client_addr_len = sizeof(client_addr);
 	int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
 	if (client_fd < 0) {
-		perror("accept");
-		plat_dbg("invite server: Accepting connection failed");
+		plat_dbg("invite server: Accepting connection failed: %d", errno);
 		return -1;
 	}
 
