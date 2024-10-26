@@ -3,6 +3,9 @@ package dev.danielc.fujiapp;
 import android.content.Context;
 import android.content.Intent;
 
+import dev.danielc.views.DownloadQueue;
+import dev.danielc.views.ThumbAdapter;
+
 public class PtpThumbAdapter extends ThumbAdapter {
     private final int[] object_ids;
     public PtpThumbAdapter(Context ctx, int[] object_ids) {
@@ -12,9 +15,9 @@ public class PtpThumbAdapter extends ThumbAdapter {
     }
 
     Queue queue;
-    class Queue extends DownloadQueue<PtpThumbAdapter.Request> {
+    class Queue extends DownloadQueue<Request> {
         @Override
-        void perform(Request req) {
+        public void perform(Request req) {
             if (Backend.cGetKillSwitch()) return;
             byte[] jpegByteArray = Backend.cFujiGetThumb(req.object_id);
             if (jpegByteArray == null) {
@@ -30,7 +33,7 @@ public class PtpThumbAdapter extends ThumbAdapter {
         // TODO: Bring in ObjectIDs if idling
     }
     @Override
-    void imageClickHandler(ImageViewHolder holder) {
+    public void imageClickHandler(ImageViewHolder holder) {
         if (holder.isLoaded) {
             Intent intent = new Intent(holder.image.getContext(), Viewer.class);
             intent.putExtra("handle", holder.handle);
@@ -39,7 +42,7 @@ public class PtpThumbAdapter extends ThumbAdapter {
     }
 
     @Override
-    void queueImage(ImageViewHolder holder, int position) {
+    public void queueImage(ImageViewHolder holder, int position) {
         Request req = new Request();
         req.ctx = context;
         req.holder = holder;
@@ -50,7 +53,7 @@ public class PtpThumbAdapter extends ThumbAdapter {
     }
 
     @Override
-    void cancelRequest(ImageViewHolder holder) {
+    public void cancelRequest(ImageViewHolder holder) {
         for (int i = 0; i < queue.requests.size(); i++) {
             if (queue.requests.get(i).holder == holder) {
                 queue.requests.remove(queue.requests.get(i));

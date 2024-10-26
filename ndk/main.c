@@ -70,12 +70,12 @@ void app_get_file_path(char buffer[256], const char *filename) {
 	(*env)->PopLocalFrame(env, NULL);
 }
 
-void app_get_tether_file_path(char buffer[256], const char *filename) {
+void app_get_tether_file_path(char buffer[256]) {
 	JNIEnv *env = get_jni_env();
 	(*env)->PushLocalFrame(env, 10);
 	jclass backend_c = get_backend_class(env);
 	jmethodID get_path_m = (*env)->GetStaticMethodID(env, backend_c, "newTetherPhoto", "()Ljava/lang/String;");
-	jstring res = (*env)->CallStaticObjectMethod(env, backend_c, get_path_m, (*env)->NewStringUTF(env, filename));
+	jstring res = (*env)->CallStaticObjectMethod(env, backend_c, get_path_m);
 	const char *res_cstr = (*env)->GetStringUTFChars(env, res, 0);
 	snprintf(buffer, 256, "%s", res_cstr);
 	(*env)->PopLocalFrame(env, NULL);

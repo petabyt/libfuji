@@ -1,10 +1,9 @@
 // recyclerview image adapter to load images LIFO style
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
-package dev.danielc.fujiapp;
+package dev.danielc.views;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.view.View;
@@ -13,18 +12,18 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.ArrayList;
+import dev.danielc.fujiapp.Backend;
+import dev.danielc.fujiapp.R;
 
 public abstract class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.ImageViewHolder> {
-    Context context;
+    public Context context;
     public ThumbAdapter(Context ctx) {
         this.context = ctx;
     }
 
-    abstract void imageClickHandler(ImageViewHolder holder);
+    public abstract void imageClickHandler(ImageViewHolder holder);
 
     // Set up click event - navigate to viewer and send object handle
     @Override
@@ -39,7 +38,7 @@ public abstract class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.Ima
         return holder;
     }
 
-    void invalidThumb(Context ctx, ImageViewHolder holder) {
+    public void invalidThumb(Context ctx, ImageViewHolder holder) {
         holder.isLoaded = false;
         holder.itemView.post(new Runnable() {
             @SuppressLint("UseCompatLoadingForDrawables")
@@ -52,7 +51,7 @@ public abstract class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.Ima
         });
     }
 
-    void loadThumb(ImageViewHolder holder, byte[] data) {
+    public void loadThumb(ImageViewHolder holder, byte[] data) {
         try {
             BitmapFactory.Options opt = new BitmapFactory.Options();
             opt.inScaled = true;
@@ -77,8 +76,8 @@ public abstract class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.Ima
         }
     }
 
-    abstract void queueImage(ImageViewHolder holder, int position);
-    abstract void cancelRequest(ImageViewHolder holder);
+    public abstract void queueImage(ImageViewHolder holder, int position);
+    public abstract void cancelRequest(ImageViewHolder holder);
 
     @SuppressLint("UseCompatLoadingForDrawables")
     @Override

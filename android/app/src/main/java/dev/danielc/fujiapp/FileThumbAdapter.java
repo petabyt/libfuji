@@ -4,27 +4,14 @@
 // Copyright 2023 Daniel C - https://github.com/petabyt/fujiapp
 package dev.danielc.fujiapp;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.util.Log;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-
-import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.util.ArrayList;
 
 import dev.danielc.common.Exif;
+import dev.danielc.views.ThumbAdapter;
 
 public class FileThumbAdapter extends ThumbAdapter {
     File[] files;
@@ -34,7 +21,7 @@ public class FileThumbAdapter extends ThumbAdapter {
         files = dir.listFiles();
     }
 
-    void imageClickHandler(ImageViewHolder holder) {
+    public void imageClickHandler(ImageViewHolder holder) {
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_VIEW);
         intent.setDataAndType(Uri.parse(holder.filename), "image/*");
@@ -49,7 +36,8 @@ public class FileThumbAdapter extends ThumbAdapter {
         return files.length;
     }
 
-    void queueImage(ImageViewHolder holder, int position) {
+    @Override
+    public void queueImage(ImageViewHolder holder, int position) {
         holder.image.post(new Runnable() {
             @Override
             public void run() {
@@ -67,5 +55,5 @@ public class FileThumbAdapter extends ThumbAdapter {
     }
 
     @Override
-    void cancelRequest(ImageViewHolder holder) {}
+    public void cancelRequest(ImageViewHolder holder) {}
 }

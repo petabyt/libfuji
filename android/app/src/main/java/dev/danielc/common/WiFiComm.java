@@ -43,6 +43,7 @@ public class WiFiComm {
     static Network wifiDevice = null;
     static Network foundWiFiDevice = null;
 
+    // Non-static event handlers since a frontend may need to spawn two listeners
     public Handler handler = null;
     public Runnable onAvailable = null;
     public Runnable onWiFiSelectAvailable = null;
@@ -60,9 +61,16 @@ public class WiFiComm {
         }
     }
 
+    ConnectivityManager.NetworkCallback lastCallback = null;
+
     /** Opens an Android 10+ popup to prompt the user to select a WiFi network */
     public int connectToAccessPoint(Context ctx, String password, PatternMatcher pattern) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            ConnectivityManager connectivityManager = (ConnectivityManager)ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (lastCallback != null) {
+                connectivityManager.unregisterNetworkCallback(lastCallback);
+            }
+
             WifiNetworkSpecifier.Builder builder = new WifiNetworkSpecifier.Builder();
             builder.setSsidPattern(pattern);
 
@@ -78,9 +86,7 @@ public class WiFiComm {
                             .setNetworkSpecifier(specifier)
                             .build();
 
-            ConnectivityManager connectivityManager = (ConnectivityManager)ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
-
-            ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+            lastCallback = new ConnectivityManager.NetworkCallback() {
                 @Override
                 public void onAvailable(Network network) {
                     Log.d(TAG, "Network selected by user: " + network);
@@ -96,12 +102,10 @@ public class WiFiComm {
                 }
                 @Override
                 public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
-
+                    Log.e(TAG, "capabilities changed");
                 }
             };
-            connectivityManager.requestNetwork(request, networkCallback);
-            // Disconnect after inactive?
-            // connectivityManager.unregisterNetworkCallback(this);
+            connectivityManager.requestNetwork(request, lastCallback);
             return 0;
         } else {
             return UNSUPPORTED_SDK;
@@ -141,6 +145,7 @@ public class WiFiComm {
             }
         };
 
+        // TODO: Gracefully handle this
         try {
             m.requestNetwork(requestBuilder.build(), networkCallback);
         } catch (Exception e) {
@@ -165,6 +170,7 @@ public class WiFiComm {
                 if (c2 == null) return false;
                 WifiInfo info2 = (WifiInfo) c2.getTransportInfo();
                 if (info2 == null) return false;
+                if (info1.equals(info2)) return false; // Android may sometimes give the same object in both listeners
                 int secondBand = info2.getFrequency() / 100;
                 return mainBand == secondBand;
             }

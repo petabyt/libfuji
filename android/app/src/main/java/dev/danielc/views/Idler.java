@@ -1,9 +1,8 @@
-package dev.danielc.fujiapp;
-import java.util.ArrayList;
+package dev.danielc.views;
 
 abstract public class Idler {
-    volatile boolean stopDownloading = false;
-    volatile boolean pauseDownloading = false;
+    public volatile boolean stopDownloading = false;
+    public volatile boolean pauseDownloading = false;
 
     public synchronized void stopRequestThread() {
         stopDownloading = true;
@@ -21,7 +20,7 @@ abstract public class Idler {
         notifyAll();
     }
 
-    abstract boolean idle();
+    public abstract boolean idle();
 
     public void startRequestThread() {
         new Thread(new Runnable() {

@@ -14,6 +14,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import dev.danielc.common.Camlib;
+import dev.danielc.views.Idler;
 
 public class ObjectInfoAdapter extends BaseAdapter {
     int[] objectIDs;
@@ -57,7 +58,7 @@ public class ObjectInfoAdapter extends BaseAdapter {
 
     class Queue extends Idler {
         @Override
-        boolean idle() {
+        public boolean idle() {
             int rc = Backend.cPtpObjectServiceStep();
             if (rc < 0) {
                 stopRequestThread();

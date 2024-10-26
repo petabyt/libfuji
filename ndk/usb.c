@@ -13,6 +13,7 @@
 
 struct PrivUSB {
 	jobject obj;
+	jobject dev;
 	int fd;
 	int endpoint_in;
 	int endpoint_out;
@@ -80,6 +81,7 @@ struct PtpDeviceEntry *ptpusb_device_list(struct PtpRuntime *r) {
 
 	int valid_devices = 0;
 	while ((*env)->CallBooleanMethod(env, iterator, has_next_m)) {
+		ptp_verbose_log("Probing valid device\n");
 		jobject device = (*env)->CallObjectMethod(env, iterator, next_m);
 
 		jclass usb_dev_c = (*env)->FindClass(env, "android/hardware/usb/UsbDevice" );
@@ -94,7 +96,6 @@ struct PtpDeviceEntry *ptpusb_device_list(struct PtpRuntime *r) {
 		jmethodID get_addr_m = (*env)->GetMethodID(env, usb_endpoint_c, "getAddress", "()I" );
 		jmethodID get_type_m = (*env)->GetMethodID(env, usb_endpoint_c, "getType", "()I" );
 		jmethodID get_dir_m = (*env)->GetMethodID(env, usb_endpoint_c, "getDirection", "()I" );
-		jmethodID get_max_packet_size_m = (*env)->GetMethodID(env, usb_endpoint_c, "getMaxPacketSize", "()I" );
 
 		if (valid_devices != 0) {
 			struct PtpDeviceEntry *new_ent = malloc(sizeof(struct PtpDeviceEntry));
@@ -198,9 +199,19 @@ int ptp_device_open(struct PtpRuntime *r, struct PtpDeviceEntry *entry) {
 
 	struct PrivUSB *priv = init_comm(r);
 	priv->obj = (*env)->NewGlobalRef(env, connection);
+	priv->dev = (*env)->NewGlobalRef(env, (jobject)entry->device_handle_ptr);
 
 	jmethodID get_desc_m = (*env)->GetMethodID(env, (*env)->FindClass(env, "android/hardware/usb/UsbDeviceConnection"), "getFileDescriptor", "()I");
 	priv->fd = (*env)->CallIntMethod(env, connection, get_desc_m);
+
+	r->io_kill_switch = 0;
+	r->operation_kill_switch = 0;
+
+	//jmethodID get_max_packet_size_m = (*env)->GetMethodID(env, usb_endpoint_c, "getMaxPacketSize", "()I" );
+	r->max_packet_size = 512;
+
+	priv->endpoint_in = entry->endpoint_in;
+	priv->endpoint_out = entry->endpoint_out;
 
 	(*env)->PopLocalFrame(env, NULL);
 	return 0;
@@ -218,18 +229,19 @@ int ptp_device_init(struct PtpRuntime *r) {
 }
 
 int ptp_cmd_write(struct PtpRuntime *r, void *to, int length) {
-	if (r->io_kill_switch) return -1;
+	if (r->io_kill_switch) return -100;
 	struct PrivUSB *priv = init_comm(r);
 	struct usbdevfs_bulktransfer ctrl;
 	ctrl.ep = priv->endpoint_out;
 	ctrl.len = length;
 	ctrl.data = to;
 	ctrl.timeout = PTP_TIMEOUT;
-	return ioctl(priv->fd, USBDEVFS_BULK, &ctrl);
+	int rc = ioctl(priv->fd, USBDEVFS_BULK, &ctrl);
+	return rc;
 }
 
 int ptp_cmd_read(struct PtpRuntime *r, void *to, int length) {
-	if (r->io_kill_switch) return -1;
+	if (r->io_kill_switch) return -100;
 	struct PrivUSB *priv = init_comm(r);
 	struct usbdevfs_bulktransfer ctrl;
 	ctrl.ep = priv->endpoint_in;
@@ -237,7 +249,6 @@ int ptp_cmd_read(struct PtpRuntime *r, void *to, int length) {
 	ctrl.data = to;
 	ctrl.timeout = PTP_TIMEOUT;
 	int rc = ioctl(priv->fd, USBDEVFS_BULK, &ctrl);
-
 	if (rc > 0) app_increment_progress_bar(rc);
 
 	return rc;
@@ -247,6 +258,13 @@ int ptp_device_close(struct PtpRuntime *r) {
 	JNIEnv *env = get_jni_env();
 	struct PrivUSB *priv = init_comm(r);
 	jclass class = (*env)->GetObjectClass(env, priv->obj);
+
+	jobject interf = get_ptp_interface(env, priv->dev);
+
+	jclass conn_c = (*env)->FindClass(env, "android/hardware/usb/UsbDeviceConnection");
+	jmethodID release_interf_m = (*env)->GetMethodID(env, conn_c, "releaseInterface", "(Landroid/hardware/usb/UsbInterface;)Z");
+	(*env)->CallBooleanMethod(env, priv->obj, release_interf_m, interf);
+
 	jmethodID close = (*env)->GetMethodID(env, class, "close", "()V");
 	(*env)->CallVoidMethod(env, priv->obj, close);
 	(*env)->DeleteGlobalRef(env, priv->obj);

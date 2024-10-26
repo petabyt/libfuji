@@ -77,12 +77,6 @@ JNI_FUNC(void, cReportError)(JNIEnv *env, jobject thiz, jint code, jstring reaso
 
 	ptp_report_error(&backend.r, c_reason, (int)code);
 
-	if (backend.r.connection_type == PTP_USB) {
-		ptp_device_close(&backend.r);
-	} else {
-		ptpip_close(&backend.r);
-	}
-
 	(*env)->ReleaseStringUTFChars(env, reason, c_reason);
 	(*env)->DeleteLocalRef(env, reason);
 }
@@ -94,12 +88,15 @@ JNI_FUNC(jboolean, cGetKillSwitch)(JNIEnv *env, jobject thiz) {
 
 JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
+	struct PtpRuntime *r = ptp_get();
 	if (backend.r.connection_type == PTP_USB) {
-		// TODO: Poll int endpoint?
+		if (r->io_kill_switch) {
+			return PTP_IO_ERR;
+		}
 		return 0;
 	}
 
-	return fuji_get_events(&backend.r);
+	return fuji_get_events(r);
 }
 
 JNI_FUNC(jint, cFujiDownloadFile)(JNIEnv *env, jobject thiz, jint handle, jstring path) {
@@ -318,9 +315,6 @@ JNI_FUNC(jint, cTryConnectUSB)(JNIEnv *env, jclass thiz, jobject ctx) {
 	set_jni_env_ctx(env, ctx);
 	struct PtpRuntime *r = ptp_get();
 	int rc = fujiusb_try_connect(r);
-	if (rc == 0) {
-		fuji_get(r)->transport = FUJI_FEATURE_USB;
-	}
 	return rc;
 }
 

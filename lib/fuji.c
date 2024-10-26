@@ -50,11 +50,11 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 
 	ptp_verbose_log("Goodbye");
 
-	// Send Fuji's 'goodbye' packet - we don't care if this fails or not
-	uint8_t goodbye_packet[] = {0x8, 0x0, 0x0, 0x0, 0xff, 0xff, 0xff, 0xff};
-	ptpip_cmd_write(r, goodbye_packet, 8);
-
 	if (r->connection_type == PTP_IP_USB) {
+		// Send Fuji's 'goodbye' packet - we don't care if this fails or not
+		uint8_t goodbye_packet[] = {0x8, 0x0, 0x0, 0x0, 0xff, 0xff, 0xff, 0xff};
+		ptpip_cmd_write(r, goodbye_packet, 8);
+
 		ptpip_close(r);
 	} else if (r->connection_type == PTP_USB) {
 		ptp_device_close(r);
@@ -75,10 +75,8 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	}
 }
 
-// TODO: use this function
 int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info) {
 	fuji_reset_ptp(r);
-	r->io_kill_switch = 0;
 	strncpy(fuji_get(r)->ip_address, info->camera_ip, 64);
 	strncpy(fuji_get(r)->autosave_client_name, info->client_name, 64);
 	fuji_get(r)->transport = info->transport;
@@ -404,9 +402,13 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 }
 
 int fuji_begin_file_download(struct PtpRuntime *r) {
+	ptp_verbose_log("Beginning file download\n");
+	int rc = fuji_get_events(r);
+	if (rc) return rc;
+
 	// Seems to take a while in some cases.
 	r->wait_for_response = 3;
-	int rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize, 1);
+	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize, 1);
 	return rc;
 }
 
@@ -440,13 +442,15 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 	if (rc) return rc;
 
 	for (int i = 0; i < a->length; i++) {
+		// oi.filename will always be DSCF0001.JPG
 		struct PtpObjectInfo oi;
 		rc = ptp_get_object_info(r, a->data[i], &oi);
 		if (rc) return rc;
 
 		app_downloading_file(&oi);
+
 		char buffer[256];
-		app_get_tether_file_path(buffer, oi.filename);
+		app_get_tether_file_path(buffer);
 		FILE *f = fopen(buffer, "wb");
 		if (f == NULL) return PTP_RUNTIME_ERR;
 		app_print("Downloading %s", buffer);

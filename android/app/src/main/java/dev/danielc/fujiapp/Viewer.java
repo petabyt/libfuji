@@ -209,7 +209,7 @@ public class Viewer extends AppCompatActivity {
                 thread = new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        loadThumb(handle);
+                        loadImage(handle);
                     }
                 });
                 thread.start();
@@ -217,7 +217,7 @@ public class Viewer extends AppCompatActivity {
         });
     }
 
-    private void loadThumb(int handle) {
+    private void loadImage(int handle) {
         try {
             String t = Backend.cFujiBeginDownloadGetObjectInfo(handle);
             if (t == null) {

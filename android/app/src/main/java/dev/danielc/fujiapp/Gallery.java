@@ -305,7 +305,6 @@ public class Gallery extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Frontend.print("Starting gallery");
 
         setContentView(R.layout.gallery);
 
@@ -348,6 +347,7 @@ public class Gallery extends AppCompatActivity {
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
+                Frontend.print("Starting gallery");
                 int rc = Backend.cFujiSetup();
                 if (rc != 0) {
                     fail(rc, "Setup error");
@@ -384,7 +384,9 @@ public class Gallery extends AppCompatActivity {
                     }
                 }
 
-                // After init, use this thread to ping the camera for events
+                // After init, use this thread to ping the camera for events. This is the main
+                // event thread that will run for the rest of the session and will close this activity
+                // if an error is reported.
                 while (true) {
                     if (Backend.cPtpFujiPing() == 0) {
                         try {
@@ -423,6 +425,7 @@ public class Gallery extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
             Backend.reportErrorNonBlock(0, "Quitting");
+            //finish();
             return true;
         }
         return false;

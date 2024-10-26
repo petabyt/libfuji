@@ -35,7 +35,7 @@ int app_get_string(const char *key);
 /// @brief Get download path for a new file, for fopen()
 void app_get_file_path(char buffer[256], const char *filename);
 
-void app_get_tether_file_path(char buffer[256], const char *filename);
+void app_get_tether_file_path(char buffer[256]);
 
 /// @brief Check if the current downloader thread has been marked as canceled
 int app_check_thread_cancel(void);

@@ -96,11 +96,11 @@ static int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec
 //		ptp_verbose_log("Failed to set keepalive: %d\n", errno);
 //	}
 
-//	rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&yes, sizeof(int));
-//	if (rc < 0) {
-//		ptp_verbose_log("Failed to set nodelay: %d\n", errno);
-//	}
-//
+	rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&yes, sizeof(int));
+	if (rc < 0) {
+		ptp_verbose_log("Failed to set nodelay: %d\n", errno);
+	}
+
 	rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&yes, sizeof(int));
 	if (rc < 0) {
 		ptp_verbose_log("Failed to set reuseaddr: %d\n", errno);
@@ -200,7 +200,7 @@ int ptpip_connect(struct PtpRuntime *r, const char *addr, int port, int extra_tm
 		r->operation_kill_switch = 0;
 		return 0;
 	} else {
-		b->fd = 0;;
+		b->fd = 0;
 		return fd;
 	}
 }

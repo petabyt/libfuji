@@ -1,10 +1,10 @@
-package dev.danielc.fujiapp;
+package dev.danielc.views;
 import java.util.ArrayList;
 
 abstract public class DownloadQueue<T> extends Idler {
     public final ArrayList<T> requests = new ArrayList<>();
 
-    abstract void perform(T request);
+    public abstract void perform(T request);
 
     public void enqueue(T req) {
         synchronized (requests) {
@@ -13,7 +13,7 @@ abstract public class DownloadQueue<T> extends Idler {
         }
     }
 
-    boolean idle() {
+    public boolean idle() {
         T req = null;
         synchronized (requests) {
             while (requests.isEmpty()) {

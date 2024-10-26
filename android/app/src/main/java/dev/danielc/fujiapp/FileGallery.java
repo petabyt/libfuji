@@ -8,6 +8,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.os.Bundle;
 import android.view.MenuItem;
 
+import dev.danielc.views.ThumbAdapter;
+
 public class FileGallery extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {

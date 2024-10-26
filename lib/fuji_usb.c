@@ -10,6 +10,10 @@
 #include "fujiptp.h"
 
 int fujiusb_try_connect(struct PtpRuntime *r) {
+	fuji_reset_ptp(r);
+	r->connection_type = PTP_USB;
+	fuji_get(r)->transport = FUJI_FEATURE_USB;
+
 	struct PtpDeviceEntry *list = ptpusb_device_list(r);
 
 	struct PtpDeviceEntry *curr = NULL;
@@ -37,7 +41,9 @@ int fujiusb_try_connect(struct PtpRuntime *r) {
 
 int fujiusb_setup(struct PtpRuntime *r) {
 	int rc = ptp_open_session(r);
-	if (rc) {
+	if (rc == PTP_CHECK_CODE) {
+		// PTP_RC_SessionAlreadyOpened, don't care
+	} else if (rc) {
 		app_print("Failed to open session.");
 		return rc;
 	}
@@ -58,32 +64,34 @@ int fujitether_setup(struct PtpRuntime *r) {
 	app_print("Waiting on the camera...");
 	app_print("Make sure you pressed OK.");
 
-	struct PtpFujiInitResp resp;
-	int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
-	if (rc == PTP_RUNTIME_ERR) {
-		rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
-	}
-	if (rc == PTP_RUNTIME_ERR) {
-		rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
-	}
-	if (rc == PTP_RUNTIME_ERR) {
-		rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
-	}
-	if (rc) {
-		app_print("Failed to initialize connection");
-		return rc;
-	}
-	app_print("Initialized connection.");
+	if (r->connection_type == PTP_IP_USB) {
+		struct PtpFujiInitResp resp;
+		int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+		if (rc == PTP_RUNTIME_ERR) {
+			rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+		}
+		if (rc == PTP_RUNTIME_ERR) {
+			rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+		}
+		if (rc == PTP_RUNTIME_ERR) {
+			rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+		}
+		if (rc) {
+			app_print("Failed to initialize connection");
+			return rc;
+		}
+		app_print("Initialized connection.");
 
-	app_send_cam_name(resp.cam_name);
+		app_send_cam_name(resp.cam_name);
 
-	// Fuji cameras require delay after init
-	app_print("The camera is thinking...");
-	usleep(50000);
+		// Fuji cameras require delay after init
+		app_print("The camera is thinking...");
+		usleep(50000);
+	}
 
-	fujiusb_setup(r);
+	int rc = fujiusb_setup(r);
 
-	return 0;
+	return rc;
 }
 
 int fujiusb_download_backup(struct PtpRuntime *r, FILE *f) {
