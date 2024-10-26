@@ -104,6 +104,7 @@ int fuji_connection_entry(struct PtpRuntime *r) {
 	} else {
 		int rc = fuji_setup(r);
 
+		// TODO: Handle this less weird
 		if (!rc && fuji_get(r)->camera_state == FUJI_MULTIPLE_TRANSFER) {
 			rc = fuji_download_classic(r);
 			if (rc) {
@@ -113,6 +114,8 @@ int fuji_connection_entry(struct PtpRuntime *r) {
 			app_print("Check your file manager app/gallery.");
 			ptp_report_error(r, "Disconnected", 0);
 		}
+
+		return rc;
 	}
 
 	return 0;

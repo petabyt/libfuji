@@ -287,7 +287,9 @@ public class MainActivity extends AppCompatActivity {
         try {
             Frontend.print("Waiting on network...");
             Thread.sleep(500); // Time for network to configure - this can probably be removed
-            Backend.cConnectFromDiscovery();
+            if (Backend.cConnectFromDiscovery() != 0) {
+                Backend.discoveryThread(MainActivity.this);
+            }
             //Backend.cClearKillSwitch();
             handler.post(new Runnable() {
                 @Override

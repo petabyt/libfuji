@@ -8,6 +8,8 @@
 #include <linux/usbdevice_fs.h>
 #include <string.h>
 #include <camlib.h>
+#include <fcntl.h>
+#include <signal.h>
 #include "app.h"
 #include <android.h>
 
@@ -229,7 +231,7 @@ int ptp_device_init(struct PtpRuntime *r) {
 }
 
 int ptp_cmd_write(struct PtpRuntime *r, void *to, int length) {
-	if (r->io_kill_switch) return -100;
+	if (r->io_kill_switch) return -1;
 	struct PrivUSB *priv = init_comm(r);
 	struct usbdevfs_bulktransfer ctrl;
 	ctrl.ep = priv->endpoint_out;
@@ -241,7 +243,7 @@ int ptp_cmd_write(struct PtpRuntime *r, void *to, int length) {
 }
 
 int ptp_cmd_read(struct PtpRuntime *r, void *to, int length) {
-	if (r->io_kill_switch) return -100;
+	if (r->io_kill_switch) return -1;
 	struct PrivUSB *priv = init_comm(r);
 	struct usbdevfs_bulktransfer ctrl;
 	ctrl.ep = priv->endpoint_in;
@@ -252,6 +254,23 @@ int ptp_cmd_read(struct PtpRuntime *r, void *to, int length) {
 	if (rc > 0) app_increment_progress_bar(rc);
 
 	return rc;
+}
+
+int ptpusb_get_status(struct PtpRuntime *r) {
+	if (r->io_kill_switch) return -100;
+	struct PrivUSB *priv = init_comm(r);
+	struct usbdevfs_ctrltransfer ctrl;
+	ctrl.bRequestType = 0x80;
+	ctrl.bRequest = 0;
+	ctrl.wValue = 0;
+	ctrl.wIndex = 0;
+	char buffer[2];
+	ctrl.data = buffer;
+	ctrl.wLength = sizeof(buffer);
+	ctrl.timeout = PTP_TIMEOUT;
+	int rc = ioctl(priv->fd, USBDEVFS_CONTROL, &ctrl);
+	if (rc < 0) return -1;
+	return 0;
 }
 
 int ptp_device_close(struct PtpRuntime *r) {

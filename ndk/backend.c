@@ -12,6 +12,8 @@
 #include "fuji.h"
 #include "fujiptp.h"
 
+static struct DiscoverInfo fuji_discover_struct;
+
 jbyteArray jni_struct_to_bytearr(void *data, int length) {
 	JNIEnv *env = get_jni_env();
 	jbyteArray arr = (*env)->NewByteArray(env, length);
@@ -90,6 +92,8 @@ JNI_FUNC(jint, cPtpFujiPing)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
 	if (backend.r.connection_type == PTP_USB) {
+		int ptpusb_get_status(struct PtpRuntime *r);
+		return ptpusb_get_status(r);
 		if (r->io_kill_switch) {
 			return PTP_IO_ERR;
 		}
@@ -323,7 +327,7 @@ JNI_FUNC(jint, cConnectFromDiscovery)(JNIEnv *env, jobject thiz) {
 
 	struct PtpRuntime *r = ptp_get();
 
-	struct DiscoverInfo *info = fuji_get(r)->info;
+	struct DiscoverInfo *info = &fuji_discover_struct;
 	if (info == NULL) ptp_panic("info is null");
 
 	return fuji_connect_from_discoverinfo(r, info);
@@ -390,10 +394,9 @@ JNI_FUNC(jint, cStartDiscovery)(JNIEnv *env, jobject thiz, jobject ctx) {
 
 	(*env)->PushLocalFrame(env, 10);
 
-	struct DiscoverInfo *info = malloc(sizeof(struct DiscoverInfo));
-	fuji->info = info;
+	struct DiscoverInfo *info = &fuji_discover_struct;
 
-	int rc = fuji_discover_thread(fuji->info, app_get_client_name(), NULL);
+	int rc = fuji_discover_thread(info, app_get_client_name(), NULL);
 	if (rc > 0) {
 		jstring model = (*env)->NewStringUTF(env, info->camera_model);
 		jstring name = (*env)->NewStringUTF(env, info->camera_name);

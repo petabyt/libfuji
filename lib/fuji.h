@@ -53,8 +53,6 @@ struct DiscoverInfo {
 
 /// @brief Holds runtime info about the camera
 struct FujiDeviceKnowledge {
-	/// @info Pointer to struct being used by discovery service
-	struct DiscoverInfo *info;
 	/// @note applied from struct DiscoverInfo
 	struct NetworkHandle net;
 	/// @note applied from struct DiscoverInfo
