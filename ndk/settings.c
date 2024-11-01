@@ -5,6 +5,7 @@
 #include <string.h>
 #include <dlfcn.h>
 #include <android.h>
+#include <stdlib.h>
 #include "app.h"
 #include "backend.h"
 
@@ -20,14 +21,20 @@ char *app_get_client_name(void) {
 	char *s = jni_get_pref_str(env, "client_name", "Fudge");
 	size_t l = strlen(s);
 	if (l == 0 || l > 25) {
-		return "Fudge";
+		return strdup("Fudge");
 	}
 	return s;
 }
 
 char *app_get_camera_ip(void) {
 	JNIEnv *env = get_jni_env();
-	return jni_get_pref_str(env, "ip_address", "192.168.0.1");
+	char *s = jni_get_pref_str(env, "ip_address", "192.168.0.1");
+	size_t l = strlen(s);
+	if (l == 0 || l > 25) {
+		free(s);
+		return strdup("192.168.0.1");
+	}
+	return s;
 }
 
 char *app_get_wpa2_password(void) {
