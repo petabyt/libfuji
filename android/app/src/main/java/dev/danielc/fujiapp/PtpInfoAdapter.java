@@ -115,7 +115,11 @@ public class PtpInfoAdapter extends BaseAdapter {
         TextView filesize = (TextView)view.findViewById(R.id.item_filesize);
         ImageView icon = (ImageView)view.findViewById(R.id.item_icon);
         name.setText(filename);
-        filesize.setText(Frontend.formatFilesize(size));
+        if (Backend.cGetTransport() == Backend.FUJI_FEATURE_WIRELESS_COMM) {
+            filesize.setText("??");
+        } else {
+            filesize.setText(Frontend.formatFilesize(size));
+        }
         if (format == Backend.PTP_OF_JPEG) {
             icon.setImageResource(R.drawable.baseline_landscape_24);
         } else if (format == Backend.PTP_OF_MOV) {

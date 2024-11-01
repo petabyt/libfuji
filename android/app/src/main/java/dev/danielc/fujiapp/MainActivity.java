@@ -162,6 +162,13 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         };
+        // Start discovery if wifi is disconnected/reconnected
+        wifi.onAvailable = new Runnable() {
+            @Override
+            public void run() {
+                Backend.discoveryThread(MainActivity.this);
+            }
+        };
 
         if (savedInstanceState == null) {
             // Require legacy Android write permissions
