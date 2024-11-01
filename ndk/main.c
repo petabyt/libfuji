@@ -81,7 +81,7 @@ void app_get_tether_file_path(char buffer[256]) {
 	(*env)->PopLocalFrame(env, NULL);
 }
 
-#define VERBOSE
+//#define VERBOSE
 
 void ptp_verbose_log(char *fmt, ...) {
 #ifndef VERBOSE

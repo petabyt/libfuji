@@ -3,7 +3,7 @@
 #include <jni.h>
 #include <android/log.h>
 #include <camlib.h>
-
+#include <fuji.h>
 #include "object.h"
 
 #define PTP_FUNC(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_common_Camlib_##name
@@ -89,6 +89,9 @@ PTP_FUNC(void, cPtpObjectServiceStart)(JNIEnv *env, jclass clazz, jintArray hand
 	jsize length = (*env)->GetArrayLength(env, handles);
 	jint *handles_n = (*env)->GetIntArrayElements(env, handles, NULL);
 
+	if (r->oc != NULL) {
+		ptp_free_object_service(r->oc);
+	}
 	r->oc = ptp_create_object_service(handles_n, length, NULL, NULL);
 }
 
@@ -96,7 +99,7 @@ PTP_FUNC(jobject, cPtpObjectServiceGetFilled)(JNIEnv *env, jclass clazz) {
 	set_jni_env_ctx(env, NULL);
 	struct PtpRuntime *r = ptp_get();
 
-	int count = ptp_object_service_length(r, r->oc);
+	int count = ptp_object_service_length_filled(r, r->oc);
 
 	jclass json_object_class = (*env)->FindClass(env, "org/json/JSONObject");
 	jobjectArray json_object_array = (*env)->NewObjectArray(env, count, json_object_class, NULL);
@@ -123,6 +126,7 @@ PTP_FUNC(jobject, cPtpObjectServiceGet)(JNIEnv *env, jclass clazz, jint handle) 
 	set_jni_env_ctx(env, NULL);
 	struct PtpRuntime *r = ptp_get();
 	struct PtpObjectInfo *oi = ptp_object_service_get(r, r->oc, (int)handle);
+	if (oi == NULL) return NULL;
 
 	char buffer[1024];
 	ptp_object_info_json(oi, buffer, sizeof(buffer));
@@ -134,6 +138,7 @@ PTP_FUNC(jobject, cPtpObjectServiceGetIndex)(JNIEnv *env, jclass clazz, jint ind
 	set_jni_env_ctx(env, NULL);
 	struct PtpRuntime *r = ptp_get();
 	struct PtpObjectInfo *oi = ptp_object_service_get_index(r, r->oc, (int)index);
+	if (oi == NULL) return NULL;
 
 	char buffer[1024];
 	ptp_object_info_json(oi, buffer, sizeof(buffer));
@@ -150,4 +155,17 @@ PTP_FUNC(jint, cPtpObjectServiceStep)(JNIEnv *env, jclass clazz) {
 PTP_FUNC(void, cPtpObjectServiceAddPriority)(JNIEnv *env, jclass clazz, jint handle) {
 	set_jni_env_ctx(env, NULL);
 	// TODO: implement cPtpObjectServiceAddPriority()
+}
+
+PTP_FUNC(jint, cObjectServiceGetHandleAt)(JNIEnv *env, jclass clazz, jint index) {
+	set_jni_env_ctx(env, NULL);
+	struct PtpRuntime *r = ptp_get();
+	return ptp_object_service_get_handle_at(r, r->oc, index);
+}
+
+
+PTP_FUNC(jint, cObjectServiceLength)(JNIEnv *env, jclass clazz) {
+	set_jni_env_ctx(env, NULL);
+	struct PtpRuntime *r = ptp_get();
+	return ptp_object_service_length(r, r->oc);
 }

@@ -263,29 +263,16 @@ jintArray ptpusb_get_object_handles(JNIEnv *env, struct PtpRuntime *r) {
 
 // Return array of valid objects on main storage device
 // TODO: Rename cFujiGetObjectHandles
-JNI_FUNC(jintArray, cGetObjectHandles)(JNIEnv *env, jobject thiz) {
+JNI_FUNC(jintArray, cFujiGetObjectHandles)(JNIEnv *env, jobject thiz) {
 	struct PtpRuntime *r = ptp_get();
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
-	if (backend.r.connection_type == PTP_USB) {
-		return ptpusb_get_object_handles(env, &backend.r);
-	} else {
-		// By this point num_objects should be known - by gain_access
-		if (fuji->num_objects == 0 || fuji->num_objects == -1) {
-			return NULL;
-		}
 
-		// (Object handles 0x0 is invalid, as per spec)
-		int *list = malloc(sizeof(int) * fuji->num_objects);
-		for (int i = 0; i < fuji->num_objects; i++) {
-			list[i] = i + 1;
-		}
+	struct PtpArray *a;
+	int rc = ptp_fuji_get_object_handles(r, &a);
+	if (rc) return NULL;
 
-		jintArray result = (*env)->NewIntArray(env, fuji->num_objects);
-		(*env)->SetIntArrayRegion(env, result, 0, fuji->num_objects, list);
-		free(list);
-
-		return result;
-	}
+	jintArray result = (*env)->NewIntArray(env, a->length);
+	(*env)->SetIntArrayRegion(env, result, 0, a->length, (const jint *)a->data);
+	return result;
 }
 
 JNI_FUNC(jint, cFujiTestSuite)(JNIEnv *env, jobject thiz) {
