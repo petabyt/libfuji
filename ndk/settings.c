@@ -39,7 +39,12 @@ char *app_get_camera_ip(void) {
 
 char *app_get_wpa2_password(void) {
 	JNIEnv *env = get_jni_env();
-	return jni_get_pref_str(env, "wpa_password", "");
+	char *s = jni_get_pref_str(env, "wpa_password", "");
+	size_t l = strlen(s);
+	if (l == 0 || l > 25) {
+		free(s);
+		return strdup("192.168.0.1");
+	}
 }
 
 SETTINGS_FUNC(jobject, getWPA2Password)(JNIEnv *env, jclass thiz, jobject ctx) {
