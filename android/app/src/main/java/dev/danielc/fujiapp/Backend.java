@@ -105,6 +105,7 @@ public class Backend extends Camlib {
 
     static Thread discoveryThread = null;
     public static void discoveryThread(Context ctx) {
+        // Not the greatest thread safety here
         if (discoveryThread != null) {
             Log.d("backend", "Discovery thread already running");
             return;

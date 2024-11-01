@@ -24,7 +24,7 @@ public class FileThumbAdapter extends ThumbAdapter {
     public void imageClickHandler(ImageViewHolder holder) {
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_VIEW);
-        intent.setDataAndType(Uri.parse(holder.filename), "image/*");
+        intent.setDataAndType(Uri.parse("file://" + holder.filename), "image/*");
         holder.image.getContext().startActivity(intent);
     }
 
