@@ -3,14 +3,18 @@
 #include <stdlib.h>
 #include <camlib.h>
 #include <string.h>
+#include <pthread.h>
 #include "object.h"
 
 struct ObjectCache {
+	/// @brief Should be locked while iterating the status list and other fields here
+	pthread_mutex_t mutex;
+
 	/// @brief Array of all objects to be downloaded
-	struct ObjectStatus {
-		/// @brief Has the object been downloaded yet
+	struct CachedObject {
+		/// @brief Has the ObjectInfo been downloaded yet
 		int is_downloaded;
-		/// @brief Tried to get object info, but got error. Do not try to download again.
+		/// @brief 1 if tried to get object info, but got error. Do not try to download again.
 		int is_error;
 		/// @brief Object handle
 		int handle;
@@ -32,26 +36,26 @@ struct ObjectCache {
 
 static int sort_date_newest(const void *a, const void *b) {
 	// TODO: check null
-	return strcmp(((const struct ObjectStatus *)a)->info.date_created, ((const struct ObjectStatus *)a)->info.date_created);
+	return strcmp(((const struct CachedObject *)a)->info.date_created, ((const struct CachedObject *)a)->info.date_created);
 }
 
 static int sort_filename_a_z(const void *a, const void *b) {
 	// TODO: check null
-	return strcmp(((const struct ObjectStatus *)a)->info.filename, ((const struct ObjectStatus *)a)->info.filename);
+	return strcmp(((const struct CachedObject *)a)->info.filename, ((const struct CachedObject *)a)->info.filename);
 }
 
 void ptp_object_service_sort(struct PtpRuntime *r, struct ObjectCache *oc, enum PtpSortBy s) {
-	ptp_mutex_lock(r);
+	pthread_mutex_lock(&oc->mutex);
 
 	if (s == PTP_SORT_BY_ALPHA_A_Z) {
-		qsort(oc->status, sizeof(struct ObjectStatus), oc->status_length, sort_filename_a_z);
+		qsort(oc->status, sizeof(struct CachedObject), oc->status_length, sort_filename_a_z);
 	}
 
-	ptp_mutex_unlock(r);
+	pthread_mutex_unlock(&oc->mutex);
 }
 
 void ptp_object_service_add_priority(struct PtpRuntime *r, struct ObjectCache *oc, int handle) {
-	ptp_mutex_lock(r);
+	pthread_mutex_lock(&oc->mutex);
 
 	for (int i = 0; i < oc->status_length; i++) {
 		if (oc->status[i]->handle == handle) {
@@ -60,15 +64,15 @@ void ptp_object_service_add_priority(struct PtpRuntime *r, struct ObjectCache *o
 		}
 	}
 
-	ptp_mutex_unlock(r);
+	pthread_mutex_unlock(&oc->mutex);
 }
 
 int ptp_object_service_step(struct PtpRuntime *r, struct ObjectCache *oc) {
-	ptp_mutex_lock(r);
+	pthread_mutex_lock(&oc->mutex);
 
-	if (oc->curr >= oc->status_length) abort();
-	if (oc->curr == oc->status_length - 1) {
-		ptp_mutex_unlock(r);
+	if (oc->curr > oc->status_length) ptp_panic("Illegal state oc->curr");
+	if (oc->curr == oc->status_length) {
+		pthread_mutex_unlock(&oc->mutex);
 		return 0;
 	}
 
@@ -80,46 +84,58 @@ int ptp_object_service_step(struct PtpRuntime *r, struct ObjectCache *oc) {
 		}
 	}
 
-	int handle = oc->status[curr]->handle;
+	// Save the object so the list can be modified while downloading
+	struct CachedObject *obj = oc->status[curr];
+	pthread_mutex_unlock(&oc->mutex);
 
-	int rc = ptp_get_object_info(r, handle, &oc->status[curr]->info);
+	int rc = ptp_get_object_info(r, obj->handle, &obj->info);
+
+	pthread_mutex_lock(&oc->mutex);
 	if (rc == PTP_CHECK_CODE) {
-		oc->status[curr]->is_downloaded = 0;
-		oc->status[curr]->is_error = 1;
+		obj->is_downloaded = 0;
+		obj->is_error = 1;
 		oc->curr++;
-		ptp_mutex_unlock(r);
+		pthread_mutex_unlock(&oc->mutex);
 		return 0;
-	}
-	if (rc) {
-		ptp_mutex_unlock(r);
+	} else if (rc) {
+		pthread_mutex_unlock(&oc->mutex);
 		return rc;
 	}
 
-	oc->status[curr]->is_downloaded = 1;
+	obj->is_downloaded = 1;
 	oc->num_downloaded++;
 
 	if (oc->callback) {
-		oc->callback(r, &oc->status[curr]->info, oc->arg);
+		oc->callback(r, &obj->info, oc->arg);
 	}
 
 	oc->curr++;
 
-	ptp_mutex_unlock(r);
+	pthread_mutex_unlock(&oc->mutex);
 
-	return 1; // downloaded 1 object
+	return obj->handle;
+}
+
+int ptp_object_service_length_filled(struct PtpRuntime *r, struct ObjectCache *oc) {
+	return oc->num_downloaded;
 }
 
 int ptp_object_service_length(struct PtpRuntime *r, struct ObjectCache *oc) {
-	return oc->num_downloaded;
+	return oc->status_length;
+}
+
+int ptp_object_service_get_handle_at(struct PtpRuntime *r, struct ObjectCache *oc, int index) {
+	if (index > oc->status_length) return -1;
+	return oc->status[index]->handle;
 }
 
 struct PtpObjectInfo *ptp_object_service_get_index(struct PtpRuntime *r, struct ObjectCache *oc, int req_i) {
 	int count = 0;
-	ptp_mutex_lock(r);
+	pthread_mutex_lock(&oc->mutex);
 	for (int i = 0; i < oc->status_length; i++) {
 		if (oc->status[i]->is_downloaded || oc->status[i]->is_error) {
 			if (req_i == count) {
-				ptp_mutex_unlock(r);
+				pthread_mutex_unlock(&oc->mutex);
 				// Not thread safe here
 				if (oc->status[i]->is_error) return NULL;
 				return &oc->status[i]->info;
@@ -128,24 +144,24 @@ struct PtpObjectInfo *ptp_object_service_get_index(struct PtpRuntime *r, struct 
 		}
 	}
 
-	ptp_mutex_unlock(r);
+	pthread_mutex_unlock(&oc->mutex);
 	return NULL;
 }
 
 struct PtpObjectInfo *ptp_object_service_get(struct PtpRuntime *r, struct ObjectCache *oc, int handle) {
-	ptp_mutex_lock(r);
+	pthread_mutex_lock(&oc->mutex);
 	for (int i = 0; i < oc->status_length; i++) {
 		if (oc->status[i]->handle == handle) {
 			if (oc->status[i]->is_downloaded) {
-				ptp_mutex_unlock(r);
+				pthread_mutex_unlock(&oc->mutex);
 				return &oc->status[i]->info;
 			} else {
-				ptp_mutex_unlock(r);
+				pthread_mutex_unlock(&oc->mutex);
 				return NULL;
 			}
 		}
 	}
-	ptp_mutex_unlock(r);
+	pthread_mutex_unlock(&oc->mutex);
 	return NULL;
 }
 
@@ -155,9 +171,9 @@ struct ObjectCache *ptp_create_object_service(int *handles, int length, ptp_obje
 	oc->status_length = length;
 	oc->curr = 0;
 	oc->num_downloaded = 0;
-	oc->status = malloc(sizeof(struct ObjectStatus *) * length);
+	oc->status = malloc(sizeof(struct CachedObject *) * length);
 	for (int i = 0; i < length; i++) {
-		struct ObjectStatus *os = (struct ObjectStatus *)malloc(sizeof(struct ObjectStatus));
+		struct CachedObject *os = (struct CachedObject *)malloc(sizeof(struct CachedObject));
 		os->handle = handles[i];
 		os->is_downloaded = 0;
 		os->is_error = 0;
@@ -165,13 +181,23 @@ struct ObjectCache *ptp_create_object_service(int *handles, int length, ptp_obje
 		oc->status[i] = os;
 	}
 
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+	if (pthread_mutex_init(&oc->mutex, &attr)) {
+		ptp_panic("Failed to init mutex\n");
+	}
+
 	return oc;
 }
 
 void ptp_free_object_service(struct ObjectCache *oc) {
+	pthread_mutex_lock(&oc->mutex);
 	for (int i = 0; i < oc->status_length; i++) {
 		free(oc->status[i]);
 	}
 	free(oc->status);
 	free(oc);
+	pthread_mutex_unlock(&oc->mutex);
 }

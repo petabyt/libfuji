@@ -23,15 +23,16 @@ struct ObjectCache *ptp_create_object_service(int *handles, int length, ptp_obje
 /// @returns NULL if not downloaded yet by the service.
 struct PtpObjectInfo *ptp_object_service_get(struct PtpRuntime *r, struct ObjectCache *oc, int handle);
 
-/// @brief Use with ptp_object_service_length. Returns object by index.
+/// @brief Use with ptp_object_service_length_filled. Returns object by index.
 /// @returns NULL if the device didn't return an object info. (returned InvalidObjectHandle)
 /// Will skip any objects that haven't been downloaded yet.
 struct PtpObjectInfo *ptp_object_service_get_index(struct PtpRuntime *r, struct ObjectCache *oc, int req_i);
 
 /// @brief Get the current length of the array of downloaded objects
-int ptp_object_service_length(struct PtpRuntime *r, struct ObjectCache *oc);
+int ptp_object_service_length_filled(struct PtpRuntime *r, struct ObjectCache *oc);
 
 /// @brief Step the object service once. This should normally result in one transaction.
+/// @returns Object handle of info that was downloaded
 int ptp_object_service_step(struct PtpRuntime *r, struct ObjectCache *oc);
 
 /// @brief Set an object by handle as priority - it will be downloaded on the next ptp_object_service_step call.
@@ -40,5 +41,14 @@ void ptp_object_service_add_priority(struct PtpRuntime *r, struct ObjectCache *o
 
 /// @brief Sort all objects in the list.
 void ptp_object_service_sort(struct PtpRuntime *r, struct ObjectCache *oc, enum PtpSortBy s);
+
+/// @brief Return length of list
+int ptp_object_service_length(struct PtpRuntime *r, struct ObjectCache *oc);
+
+/// @brief Get object handle at list index
+/// @returns -1 if invalid
+int ptp_object_service_get_handle_at(struct PtpRuntime *r, struct ObjectCache *oc, int index);
+
+void ptp_free_object_service(struct ObjectCache *oc);
 
 #endif
