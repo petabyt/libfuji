@@ -8,6 +8,7 @@
 #include "app.h"
 #include "fuji.h"
 #include "fujiptp.h"
+#include "object.h"
 
 // Test suite verbose logging
 void tester_log(char *fmt, ...);
@@ -186,55 +187,70 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 		if (rc) {
 			return rc;
 		}
-
-		rc = fuji_end_file_download(r);
-		if (rc) {
-			return rc;
-		}
 	}
 
 	return 0;
 }
 
 int fuji_simulate_app(struct PtpRuntime *r) {
-	for (int i = 0; i < 100; i++) {
-		int handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
+	struct PtpArray *a;
+	int rc = ptp_fuji_get_object_handles(r, &a);
+	if (rc) {
+		tester_fail("Failed to get object handles");
+		return rc;
+	}
+	struct ObjectCache *c = ptp_create_object_service((int *)a->data, a->length, NULL, NULL);
+	free(a);
 
-		tester_log("Trying to get thumbnail for %d...", handle);
-		int rc = ptp_get_thumbnail(r, 1);
-		if (rc) {
-			tester_fail("Failed to get thumbnail: %d", rc);
-			return rc;
-		} else {
-			tester_log("Got thumbnail: %u bytes", ptp_get_payload_length(r));
-		}
-
-		handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
-
-		rc = fuji_begin_file_download(r);
-		if (rc) {
+	srand(382);
+	while (1) {
+		rc = ptp_object_service_step(r, c);
+		if (rc < 0) {
+			tester_fail("Failed to step object service");
 			return rc;
 		}
 
-		struct PtpObjectInfo oi;
-		rc = ptp_get_object_info(r, handle, &oi);
-		if (rc == PTP_CHECK_CODE) {
-			goto end;
-		} else if (rc) {
-			return rc;
+		if ((rand() & 3) == 0) {
+			int handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
+			tester_log("Downloading thumb (%d)", handle);
+			rc = ptp_get_thumbnail(r, handle);
+			if (rc == PTP_CHECK_CODE) {
+				// doh
+			} else if (rc) {
+				tester_fail("Failed to download thumb");
+				return rc;
+			}
 		}
 
-		rc = fuji_download_file(r, handle, (int)oi.compressed_size, temp_file_handle, NULL);
-		if (rc) {
-			return rc;
-		}
+		if ((rand() & 7) == 0) {
+			int handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
+			tester_log("Downloading an object (%d)", handle);
 
-		end:;
-		rc = fuji_end_file_download(r);
-		if (rc) {
-			return rc;
+			struct PtpObjectInfo oi;
+			rc = fuji_begin_download_get_object_info(r, handle, &oi);
+			if (rc == PTP_CHECK_CODE) {
+				fuji_end_file_download(r);
+				continue;
+			} else if (rc) {
+				tester_fail("Failed to get object info");
+				return rc;
+			}
+
+			if (oi.compressed_size > (50 * 1000 * 1000)) {
+				tester_log("Filesize too big, skipping file %s", oi.filename);
+				fuji_end_file_download(r);
+				continue;
+			}
+
+			rc = fuji_download_file(r, handle, (int)oi.compressed_size, temp_file_handle, NULL);
+			if (rc) {
+				tester_fail("fuji_download_file");
+				return rc;
+			}
 		}
 	}
+
+	ptp_free_object_service(c);
 
 	return 0;
 }
@@ -273,9 +289,7 @@ int fuji_test_setup(struct PtpRuntime *r) {
 	if (rc) return rc;
 
 	rc = fuji_init_setup(r);
-	if (rc) return rc;
-
-	return 0;
+	return rc;
 }
 
 int fuji_test_usb(struct PtpRuntime *r) {
@@ -339,10 +353,14 @@ int fuji_test_suite(struct PtpRuntime *r) {
 		tester_log("Configured image viewer");
 	}
 
-	rc = fuji_test_filesystem(r);
-	if (rc) return rc;
+	int option = 1;
+	if (option == 1) {
+		rc = fuji_simulate_app(r);
+	} else if (option == 2) {
+		rc = fuji_test_filesystem(r);
+	}
 
-	ptp_report_error(r, "Finished testing", 0);
+	ptp_report_error(r, "Finished testing", rc);
 
-	return 0;
+	return rc;
 }

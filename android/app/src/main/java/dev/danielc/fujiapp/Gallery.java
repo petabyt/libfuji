@@ -54,7 +54,7 @@ public class Gallery extends AppCompatActivity {
     private RecyclerView recyclerView;
     private PtpThumbAdapter imageAdapter;
     private ListView listView;
-    private ObjectInfoAdapter list;
+    private PtpInfoAdapter list;
 
     Handler handler;
 
@@ -223,7 +223,7 @@ public class Gallery extends AppCompatActivity {
         recyclerView = new RecyclerView(this);
         recyclerView.setLayoutManager(new GridLayoutManager(this, GRID_SIZE));
 
-        imageAdapter = new PtpThumbAdapter(this, objectHandles);
+        imageAdapter = new PtpThumbAdapter(this);
 
         handler.post(new Runnable() {
             @Override
@@ -234,6 +234,8 @@ public class Gallery extends AppCompatActivity {
                 recyclerView.setAdapter(imageAdapter);
                 recyclerView.setItemViewCacheSize(150);
                 recyclerView.setNestedScrollingEnabled(false);
+                recyclerView.setPadding(0, 0, 0, 300);
+                recyclerView.setClipToPadding(false);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     recyclerView.setFocusable(View.FOCUSABLE);
                 }
@@ -251,7 +253,9 @@ public class Gallery extends AppCompatActivity {
     void createList() {
         ViewGroup fileView = findViewById(R.id.fileView);
         listView = new ListView(this);
-        list = new ObjectInfoAdapter(objectHandles, listView);
+        listView.setPadding(0, 0, 0, 300);
+        listView.setClipToPadding(false);
+        list = new PtpInfoAdapter(objectHandles, listView);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT
@@ -364,7 +368,7 @@ public class Gallery extends AppCompatActivity {
                     return;
                 }
 
-                objectHandles = Backend.cGetObjectHandles();
+                objectHandles = Backend.cFujiGetObjectHandles();
 
                 if (objectHandles == null || objectHandles.length == 0) {
                     Frontend.print(getString(R.string.noImages1));

@@ -290,7 +290,6 @@ public class MainActivity extends AppCompatActivity {
             if (Backend.cConnectFromDiscovery() != 0) {
                 Backend.discoveryThread(MainActivity.this);
             }
-            //Backend.cClearKillSwitch();
             handler.post(new Runnable() {
                 @Override
                 public void run() {

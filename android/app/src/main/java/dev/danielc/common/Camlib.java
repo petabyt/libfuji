@@ -56,6 +56,10 @@ public class Camlib {
     /// @brief Bump an object handle to a higher priority - so it will be handled immediately by cPtpObjectServiceStep
     public native static void cPtpObjectServiceAddPriority(int handle);
 
+    public native static int cObjectServiceLength();
+
+    public native static int cObjectServiceGetHandleAt(int index);
+
     public final static int PTP_SELET_JPEG = 1;
     public final static int PTP_SELET_RAW = 2;
     public final static int PTP_SELET_MOV = 3;

@@ -5,6 +5,8 @@ abstract public class DownloadQueue<T> extends Idler {
     public final ArrayList<T> requests = new ArrayList<>();
 
     public abstract void perform(T request);
+    /** Return false if action was done, true if no action was done */
+    public abstract boolean nothingToDo();
 
     public void enqueue(T req) {
         synchronized (requests) {
@@ -18,12 +20,13 @@ abstract public class DownloadQueue<T> extends Idler {
         synchronized (requests) {
             while (requests.isEmpty()) {
                 try {
-                    requests.wait();
+                    requests.wait(100);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return false;
                 }
                 if (stopDownloading) return false;
+                nothingToDo();
             }
             req = requests.remove(requests.size() - 1);
         }

@@ -20,6 +20,7 @@ abstract public class Idler {
         notifyAll();
     }
 
+    /** Return false if action was done, true if no action was done */
     public abstract boolean idle();
 
     public void startRequestThread() {

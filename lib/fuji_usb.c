@@ -54,7 +54,7 @@ int fujiusb_setup(struct PtpRuntime *r) {
 
 	app_send_cam_name(di.model);
 
-	// TODO: Determine transport based on product_id? Or other things?
+	// TODO: Determine transport based on PTP setup?
 	//fuji_get(r)->transport = FUJI_FEATURE_USB_CARD_READER;
 
 	return rc;

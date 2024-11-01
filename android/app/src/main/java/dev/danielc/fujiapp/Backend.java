@@ -12,7 +12,6 @@ import java.io.File;
 import java.util.Locale;
 
 import dev.danielc.common.Camlib;
-import dev.danielc.common.WiFiComm;
 
 public class Backend extends Camlib {
     static {
@@ -82,7 +81,7 @@ public class Backend extends Camlib {
     /** Poll for events once */
     public native static int cPtpFujiPing();
     /** Gets a plain list of all object handles on the camera starting from 1 */
-    public native static int[] cGetObjectHandles();
+    public native static int[] cFujiGetObjectHandles();
     /** Setup and configure settings for image gallery (thumbnails, obj info) */
     public native static int cFujiConfigImageGallery();
     /** GetThumb if possible, otherwise grab exif thumb from file header */

@@ -1,17 +1,67 @@
 package dev.danielc.fujiapp;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashSet;
 
 import dev.danielc.views.DownloadQueue;
 import dev.danielc.views.ThumbAdapter;
 
 public class PtpThumbAdapter extends ThumbAdapter {
-    private final int[] object_ids;
-    public PtpThumbAdapter(Context ctx, int[] object_ids) {
+    public PtpThumbAdapter(Context ctx) {
         super(ctx);
-        this.object_ids = object_ids;
         queue = new Queue();
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    public void sort() {
+        notifyDataSetChanged();
+    }
+
+    public void setupHolderFromInfo(ImageViewHolder holder, JSONObject info) {
+        holder.image.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    holder.label.setText(info.getString("filename"));
+                    int format = info.getInt("format_int");
+
+                    if (format == Backend.PTP_OF_JPEG) {
+                        holder.icon.setImageResource(R.drawable.baseline_landscape_24);
+                    } else if (format == Backend.PTP_OF_MOV) {
+                        holder.icon.setImageResource(R.drawable.baseline_movie_24);
+                    } else if (format == Backend.PTP_OF_RAW) {
+                        holder.icon.setImageResource(R.drawable.baseline_data_array_24);
+                    } else {
+                        holder.icon.setImageResource(R.drawable.baseline_question_mark_24);
+                    }
+
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+
+    public void updateInfoOnHolder(int handle, JSONObject info) {
+        for (int i = 0; i < holders.size(); i++) {
+            if (holders.get(i).handle == handle) {
+                setupHolderFromInfo(holders.get(i), info);
+            }
+        }
+    }
+
+    public static class Request {
+        Context ctx;
+        ImageViewHolder holder;
+        int position;
+        int object_id;
     }
 
     Queue queue;
@@ -30,7 +80,19 @@ public class PtpThumbAdapter extends ThumbAdapter {
             }
             loadThumb(req.holder, jpegByteArray);
         }
-        // TODO: Bring in ObjectIDs if idling
+        @Override
+        public boolean nothingToDo() {
+            int rc = Backend.cPtpObjectServiceStep();
+            if (rc < 0) {
+                Backend.reportError(Backend.PTP_IO_ERR, "Failed to get object info");
+                stopRequestThread();
+            }
+            if (rc > 0) {
+                updateInfoOnHolder(rc, Backend.cPtpObjectServiceGet(rc));
+                return false;
+            }
+            return true;
+        }
     }
     @Override
     public void imageClickHandler(ImageViewHolder holder) {
@@ -47,9 +109,16 @@ public class PtpThumbAdapter extends ThumbAdapter {
         req.ctx = context;
         req.holder = holder;
         req.position = position;
-        req.object_id = object_ids[position];
+        req.object_id = Backend.cObjectServiceGetHandleAt(position);
         holder.handle = req.object_id;
         queue.enqueue(req);
+
+        long start = System.nanoTime();
+
+        JSONObject info = Backend.cPtpObjectServiceGet(holder.handle);
+        if (info != null) {
+            setupHolderFromInfo(holder, info);
+        }
     }
 
     @Override
@@ -63,13 +132,6 @@ public class PtpThumbAdapter extends ThumbAdapter {
 
     @Override
     public int getItemCount() {
-        return object_ids.length;
+        return Backend.cObjectServiceLength();
     }
-
-    public static class Request {
-        Context ctx;
-        ImageViewHolder holder;
-        int position;
-        int object_id;
-    };
 }

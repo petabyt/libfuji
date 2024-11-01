@@ -16,14 +16,14 @@ import org.json.JSONObject;
 import dev.danielc.common.Camlib;
 import dev.danielc.views.Idler;
 
-public class ObjectInfoAdapter extends BaseAdapter {
+public class PtpInfoAdapter extends BaseAdapter {
     int[] objectIDs;
     Queue queue;
     ListView lv;
     JSONObject[] list;
     static int lastSelected = 0;
 
-    ObjectInfoAdapter(int[] objectIDs, ListView lv) {
+    PtpInfoAdapter(int[] objectIDs, ListView lv) {
         this.list = Backend.cPtpObjectServiceGetFilled();
         this.lv = lv;
         this.objectIDs = objectIDs;

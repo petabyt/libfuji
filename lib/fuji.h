@@ -71,8 +71,6 @@ struct FujiDeviceKnowledge {
 	int remote_version;
 	int num_objects;
 	int open_capture_trans_id;
-
-	int debug_step;
 };
 struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r);
 
@@ -177,5 +175,7 @@ int fujiusb_download_backup(struct PtpRuntime *r, FILE *f);
 /// @brief Respects cancel signals.
 /// @note If transport is FUJI_FEATURE_WIRELESS_COMM, compression property will be enabled after download
 int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (handle_add)(void *, void *, int, int), void *arg);
+
+int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a);
 
 #endif

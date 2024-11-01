@@ -32,7 +32,6 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 }
 
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
-	//ptp_mutex_unlock_thread(r);
 	if (r->io_kill_switch) return;
 	ptp_mutex_lock(r);
 	if (r->io_kill_switch) {
@@ -915,4 +914,25 @@ int fuji_download_classic(struct PtpRuntime *r) {
 		rc = fuji_get_events(r);
 		if (rc) return 0;
 	}
+}
+
+int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a) {
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	if (r->connection_type == PTP_USB) {
+		return ptp_get_object_handles(r, 0xffffffff, 0x0, 0x0, a);
+	} else {
+		// By this point num_objects should be known
+		if (fuji->num_objects == 0 || fuji->num_objects == -1) {
+			return PTP_RUNTIME_ERR;
+		}
+
+		// (Object handles 0x0 is invalid, as per spec)
+		struct PtpArray *list = malloc(sizeof(int) * fuji->num_objects + sizeof(struct PtpArray));
+		list->length = fuji->num_objects;
+		for (int i = 0; i < fuji->num_objects; i++) {
+			list->data[i] = i + 1;
+		}
+		a[0] = list;
+	}
+	return 0;
 }

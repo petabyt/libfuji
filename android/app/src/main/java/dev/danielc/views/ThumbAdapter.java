@@ -6,13 +6,15 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.ArrayList;
 
 import dev.danielc.fujiapp.Backend;
 import dev.danielc.fujiapp.R;
@@ -23,7 +25,11 @@ public abstract class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.Ima
         this.context = ctx;
     }
 
+    public ArrayList<ImageViewHolder> holders = new ArrayList<>();
+
     public abstract void imageClickHandler(ImageViewHolder holder);
+    public abstract void queueImage(ImageViewHolder holder, int position);
+    public abstract void cancelRequest(ImageViewHolder holder);
 
     // Set up click event - navigate to viewer and send object handle
     @Override
@@ -76,45 +82,46 @@ public abstract class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.Ima
         }
     }
 
-    public abstract void queueImage(ImageViewHolder holder, int position);
-    public abstract void cancelRequest(ImageViewHolder holder);
-
     @SuppressLint("UseCompatLoadingForDrawables")
     @Override
     public void onBindViewHolder(ImageViewHolder holder, int position) {
+        cancelRequest(holder); // Cancel any queued requests on this holder
         holder.image.setForeground(context.getDrawable(R.drawable.ripple));
         holder.image.setBackground(context.getDrawable(R.drawable.light_button));
         holder.image.setImageBitmap(null);
-        cancelRequest(holder); // Cancel any queued requests on this holder
+        holder.icon.setImageBitmap(null);
         position = holder.getAdapterPosition();
+        holders.add(holder);
         queueImage(holder, position);
+    }
+
+    @Override
+    public void onViewRecycled(ImageViewHolder holder) {
+        holders.remove(holder);
     }
 
     public static class ImageViewHolder extends RecyclerView.ViewHolder {
         public ImageView image;
+        public ImageView icon;
         public FrameLayout frame;
         public int handle;
         public String filename;
         public boolean isLoaded;
         public TextView label;
 
-        public ImageViewHolder(FrameLayout frame, View itemView, TextView label) {
+        public ImageViewHolder(FrameLayout frame) {
             super(frame);
-            this.image = (ImageView)itemView;
             this.handle = -1;
             this.isLoaded = false;
-            this.label = label;
         }
 
         public static ImageViewHolder create(ViewGroup parent) {
-            FrameLayout frame = new FrameLayout(parent.getContext());
-            ImageView view = new ImageView(parent.getContext());
-            view.setLayoutParams(new ViewGroup.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 300));
-            view.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            frame.addView(view);
-            TextView text = new TextView(parent.getContext());
-            frame.addView(text);
-            return new ImageViewHolder(frame, view, text);
+            FrameLayout frame = (FrameLayout)LayoutInflater.from(parent.getContext()).inflate(R.layout.item_image, parent, false);
+            ImageViewHolder h = new ImageViewHolder(frame);
+            h.label = frame.findViewById(R.id.frame_label);
+            h.image = frame.findViewById(R.id.frame_image);
+            h.icon = frame.findViewById(R.id.frame_icon);
+            return h;
         }
     }
 }

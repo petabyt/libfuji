@@ -289,6 +289,11 @@ int ptpip_cmd_read(struct PtpRuntime *r, void *data, int size) {
 #endif
 
 	if (result < 0) {
+		// Match the results of USB backends
+		if (errno == 11) {
+			ptp_verbose_log("resource temp unavailable");
+			return 0;
+		}
 		ptp_verbose_log("read(): %d %d\n", result, errno);
 		return -1;
 	} else {
