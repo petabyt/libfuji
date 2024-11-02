@@ -8,6 +8,7 @@
 #include <ui.h>
 #include "app.h"
 #include "backend.h"
+#include <android.h>
 #include "fuji.h"
 
 #define JPEG_LIB_VERSION 62

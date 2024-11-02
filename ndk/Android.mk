@@ -14,7 +14,7 @@ LIBFUDGE_CORE := $(CAMLIB_CORE) $(addprefix $(LIB)/,fuji.c fuji_usb.c tester.c n
 LIB_FILES := main.c backend.c scripts.c camlib.c usb.c liveview.c settings.c
 
 LOCAL_MODULE := fudge
-LOCAL_CFLAGS := -D ANDROID -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations -g
+LOCAL_CFLAGS := -D ANDROID -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations -g -Werror=return-type -Wextra -pedantic-errors
 LOCAL_SRC_FILES := $(LIBFUDGE_CORE) $(LIB_FILES)
 LOCAL_C_INCLUDES += $(LOCAL_PATH) $(CAMLIB)/src $(CAMLIB)/src/lua $(LIB) $(LUA)
 LOCAL_LDLIBS += -llog -landroid -lEGL -lGLESv2 -lGLESv1_CM
