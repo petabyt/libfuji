@@ -45,11 +45,15 @@ char *app_get_wpa2_password(void) {
 		free(s);
 		return strdup("");
 	}
+	return s;
 }
 
 SETTINGS_FUNC(jobject, getWPA2Password)(JNIEnv *env, jclass thiz, jobject ctx) {
 	set_jni_env_ctx(env, ctx);
-	return (*env)->NewStringUTF(env, app_get_wpa2_password());
+	char *x = app_get_wpa2_password();
+	jstring js = (*env)->NewStringUTF(env, x);
+	free(x);
+	return js;
 }
 
 static void input_handler(const char *view_id, const char *setting_id) {
@@ -82,11 +86,11 @@ SETTINGS_FUNC(void, handleSettingsButtons)(JNIEnv *env, jobject thiz, jobject ct
 //	view_set_checked(env, view, x);
 
 	view = view_get_by_id(env, ctx, "ip_address_text");
-	view_add_native_input_listener(env, view, (void *) input_handler, 2, "ip_address_text", "ip_address");
+	view_add_native_input_listener(env, view, (void *)input_handler, 2, "ip_address_text", "ip_address");
 	view_set_text(env, view, app_get_camera_ip());
 
 	view = view_get_by_id(env, ctx, "wpa_password");
-	view_add_native_input_listener(env, view, (void *) input_handler, 2, "wpa_password", "wpa_password");
+	view_add_native_input_listener(env, view, (void *)input_handler, 2, "wpa_password", "wpa_password");
 	view_set_text(env, view, app_get_wpa2_password());
 
 	view = view_get_by_id(env, ctx, "client_name");
