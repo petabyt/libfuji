@@ -1,7 +1,7 @@
 # Fudge
 This is a cross-platform open-source alternative to Fujifilm's official camera app.
 
-<img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20240305-104928.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20240305-104948.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/Screenshot_20240305-105032.png' width='250'>
+<img src='fastlane/metadata/android/en-US/images/phoneScreenshots/1.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/2.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/4.png' width='250'>
 
 This app isn't finished yet, so don't set high expectations. Fuji's implementation of PTP/IP has many different quirks and bugs, so it's not easy to create a stable client that works for all cameras.
 
