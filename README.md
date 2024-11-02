@@ -10,7 +10,7 @@ This app isn't finished yet, so don't set high expectations. Fuji's implementati
 - *Much* more responsive native UI
 - Performance improvements
 - USB-OTG connectivity support
-- Lua plugins API
+- Supports PC AutoSave and Wireless Tether
 
 Beta builds are published on [Google Play](https://play.google.com/store/apps/details?id=dev.danielc.fujiapp). The latest builds are also available on [F-Droid](https://apt.izzysoft.de/fdroid/index/apk/dev.danielc.fujiapp).
 
@@ -24,8 +24,8 @@ Beta builds are published on [Google Play](https://play.google.com/store/apps/de
 - [x] Implement "select multiple / single" mode
 - [x] Implement PTP/USB OTG support
 - [x] Lua scripting
-- [ ] AutoSave and tether mode
-- [ ] Mass photo import (different folder for each camera?)
+- [x] AutoSave and tether mode
+- [x] Basic mass photo import
 - [ ] Camera properties (ISO, white balance, film sim, etc)
 - [ ] Implement Bluetooth communication
 - [ ] Liveview & Remote capture
