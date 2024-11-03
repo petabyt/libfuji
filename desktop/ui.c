@@ -39,10 +39,6 @@ void fuji_discovery_update_progress(void *arg, int progress) {
 	// ...
 }
 
-void app_get_file_path(char buffer[256], const char *filename) {
-	snprintf(buffer, 256, "%s", filename);
-}
-
 void app_downloading_file(const struct PtpObjectInfo *oi) {
 	// ...
 }
@@ -52,6 +48,10 @@ void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path) {
 }
 
 void app_increment_progress_bar(int read) {
+	// ...
+}
+
+void app_report_download_speed(long time, size_t size) {
 	// ...
 }
 
@@ -202,8 +202,10 @@ static void script_run(uiMenuItem *sender, uiWindow *window, void *senderData) {
 }
 
 uiControl *editor_tab() {
+	char *file = read_file("../android/app/src/main/assets/script.lua");
+	if (file == NULL) file = "null";
 	app.script_box = uiNewNonWrappingMultilineEntry();
-	uiMultilineEntrySetText(app.script_box, read_file("../app/src/main/assets/script.lua"));
+	uiMultilineEntrySetText(app.script_box, file);
 	return uiControl(app.script_box);
 }
 
@@ -252,7 +254,7 @@ static uiControl *fudge_screen() {
     uiTabAppend(tab, "Recipes", files_tab());
     uiTabAppend(tab, "Developer", files_tab());
 	uiBoxAppend(box, uiControl(tab), 1);
-	uiControlHide(uiControl(tab));
+	//uiControlHide(uiControl(tab));
 
 	app.main_log = uiNewLabel("Doing things...");
 	uiBoxAppend(box, uiControl(app.main_log), 0);

@@ -22,14 +22,6 @@ struct PtpRuntime *ptp_get() {
 	return ptp;
 }
 
-void network_init() {
-#ifdef WIN32
-	// Windows wants to init this thread for socket stuff
-	WSADATA wsaData = {0};
-	WSAStartup(MAKEWORD(2, 2), &wsaData);
-#endif
-}
-
 void ptp_verbose_log(char *fmt, ...) {
 	printf("PTP: ");
 	va_list args;
@@ -57,8 +49,8 @@ void plat_dbg(char *fmt, ...) {
 	putchar('\n');
 }
 
-int app_bind_socket_wifi(int sockfd) {
-	return 0;
+char *app_get_client_name(void) {
+	return strdup("desktop");
 }
 
 int app_check_thread_cancel(void) {
@@ -91,18 +83,18 @@ int fuji_discovery_check_cancel(void *arg) {
 }
 
 int main(int argc, char **argv) {
-	ptp = ptp_new(PTP_USB);
-
-	for (int i = 0; i < argc; i++) {
+	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "--test-wifi")) {
-			int rc = fudge_test_all_cameras(ptp);
+			int rc = fudge_test_all_cameras();
 			plat_dbg("Result: %d\n", rc);
 			return rc;
 		} else if (!strcmp(argv[i], "--test-usb")) {
 			//return fudge_test(ptp);
 		} else if (!strcmp(argv[i], "--test-discovery")) {
-			fuji_test_discovery(ptp);
+			fuji_test_discovery(ptp_new(PTP_USB));
 			return 1;
+		} else {
+			plat_dbg("Invalid arg");
 		}
 	}
 

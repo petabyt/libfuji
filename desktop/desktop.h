@@ -1,7 +1,7 @@
 #ifndef DESKTOP_H
 #define DESKTOP_H
 
-int fudge_test_all_cameras(struct PtpRuntime *r);
+int fudge_test_all_cameras(void);
 
 /// @brief Setup a thread for networking
 void network_init(void);

@@ -643,14 +643,18 @@ int fuji_config_version_(struct PtpRuntime *r) {
 		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemoteVersion, FUJI_CAM_CONNECT_REMOTE_VER);
 		if (rc) return rc;
 
-		// Don't understand this object yet
+		// Don't understand this object yet - has some kind of important data
 		struct PtpObjectInfo oi;
 		rc = ptp_get_object_info(r, 0xfffffff1, &oi);
-		if (rc == PTP_CHECK_CODE) rc = 0;
-		if (rc) return rc;
-		char buffer[512];
-		ptp_object_info_json(&oi, buffer, sizeof(buffer));
-		plat_dbg(buffer);
+		if (rc == PTP_CHECK_CODE) {
+			ptp_verbose_log("Didn't get valid info for 0xfffffff1\n");
+		} else if (rc) {
+			return rc;
+		} else {
+			char buffer[512];
+			ptp_object_info_json(&oi, buffer, sizeof(buffer));
+			ptp_verbose_log("0xfffffff1: %s\n", buffer);
+		}
 	}
 
 	return 0;

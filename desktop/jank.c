@@ -269,7 +269,7 @@ int fuji_test_discovery(struct PtpRuntime *r) {
 		usleep(100000); // TODO: Kind of have to wait before connecting
 
 		printf("connecting to %s:%d\n", info.camera_ip, info.camera_port);
-		if (ptpip_connect(r, info.camera_ip, info.camera_port)) {
+		if (ptpip_connect(r, info.camera_ip, info.camera_port, 0)) {
 			printf("Error connecting to %s:%d\n", info.camera_ip, info.camera_port);
 			return 0;
 		}
