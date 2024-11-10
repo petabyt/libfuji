@@ -16,6 +16,7 @@ import dev.danielc.common.Camlib;
 public class Backend extends Camlib {
     static {
         System.loadLibrary("fudge");
+        cInit();
     }
 
     // Discovery errors
@@ -53,14 +54,6 @@ public class Backend extends Camlib {
                 reportError(code, reason);
             }
         }).start();
-    }
-
-    private static boolean haveInited = false;
-    public static void init() {
-        if (!haveInited) {
-            cInit();
-        }
-        haveInited = true;
     }
 
     /** Allocates initial memory */
@@ -104,7 +97,7 @@ public class Backend extends Camlib {
     public native static View cFujiScriptsScreen(Context ctx);
 
     static Thread discoveryThread = null;
-    public static void discoveryThread(Context ctx) {
+    public static synchronized void discoveryThread(Context ctx) {
         // Not the greatest thread safety here
         if (discoveryThread != null) {
             Log.d("backend", "Discovery thread already running");

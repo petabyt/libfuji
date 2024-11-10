@@ -178,7 +178,6 @@ public class MainActivity extends AppCompatActivity {
 
             LibUI.buttonBackgroundResource = R.drawable.grey_button;
             LibUI.popupDrawableResource = R.drawable.border;
-            Backend.init();
 
             wifi.setConnectivityManager((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
             wifi.startNetworkListeners(this);
