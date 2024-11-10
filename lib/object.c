@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include "object.h"
 
-struct ObjectCache {
+struct PtpObjectCache {
 	/// @brief Should be locked while iterating the status list and other fields here
 	pthread_mutex_t mutex;
 
@@ -44,7 +44,7 @@ static int sort_filename_a_z(const void *a, const void *b) {
 	return strcmp(((const struct CachedObject *)a)->info.filename, ((const struct CachedObject *)a)->info.filename);
 }
 
-void ptp_object_service_sort(struct PtpRuntime *r, struct ObjectCache *oc, enum PtpSortBy s) {
+void ptp_object_service_sort(struct PtpRuntime *r, struct PtpObjectCache *oc, enum PtpSortBy s) {
 	pthread_mutex_lock(&oc->mutex);
 
 	if (s == PTP_SORT_BY_ALPHA_A_Z) {
@@ -54,7 +54,7 @@ void ptp_object_service_sort(struct PtpRuntime *r, struct ObjectCache *oc, enum 
 	pthread_mutex_unlock(&oc->mutex);
 }
 
-void ptp_object_service_add_priority(struct PtpRuntime *r, struct ObjectCache *oc, int handle) {
+void ptp_object_service_add_priority(struct PtpRuntime *r, struct PtpObjectCache *oc, int handle) {
 	pthread_mutex_lock(&oc->mutex);
 
 	for (int i = 0; i < oc->status_length; i++) {
@@ -67,7 +67,7 @@ void ptp_object_service_add_priority(struct PtpRuntime *r, struct ObjectCache *o
 	pthread_mutex_unlock(&oc->mutex);
 }
 
-int ptp_object_service_step(struct PtpRuntime *r, struct ObjectCache *oc) {
+int ptp_object_service_step(struct PtpRuntime *r, struct PtpObjectCache *oc) {
 	pthread_mutex_lock(&oc->mutex);
 
 	if (oc->curr > oc->status_length) ptp_panic("Illegal state oc->curr");
@@ -116,20 +116,20 @@ int ptp_object_service_step(struct PtpRuntime *r, struct ObjectCache *oc) {
 	return obj->handle;
 }
 
-int ptp_object_service_length_filled(struct PtpRuntime *r, struct ObjectCache *oc) {
+int ptp_object_service_length_filled(struct PtpRuntime *r, struct PtpObjectCache *oc) {
 	return oc->num_downloaded;
 }
 
-int ptp_object_service_length(struct PtpRuntime *r, struct ObjectCache *oc) {
+int ptp_object_service_length(struct PtpRuntime *r, struct PtpObjectCache *oc) {
 	return oc->status_length;
 }
 
-int ptp_object_service_get_handle_at(struct PtpRuntime *r, struct ObjectCache *oc, int index) {
+int ptp_object_service_get_handle_at(struct PtpRuntime *r, struct PtpObjectCache *oc, int index) {
 	if (index > oc->status_length) return -1;
 	return oc->status[index]->handle;
 }
 
-struct PtpObjectInfo *ptp_object_service_get_index(struct PtpRuntime *r, struct ObjectCache *oc, int req_i) {
+struct PtpObjectInfo *ptp_object_service_get_index(struct PtpRuntime *r, struct PtpObjectCache *oc, int req_i) {
 	int count = 0;
 	pthread_mutex_lock(&oc->mutex);
 	for (int i = 0; i < oc->status_length; i++) {
@@ -148,7 +148,7 @@ struct PtpObjectInfo *ptp_object_service_get_index(struct PtpRuntime *r, struct 
 	return NULL;
 }
 
-struct PtpObjectInfo *ptp_object_service_get(struct PtpRuntime *r, struct ObjectCache *oc, int handle) {
+struct PtpObjectInfo *ptp_object_service_get(struct PtpRuntime *r, struct PtpObjectCache *oc, int handle) {
 	pthread_mutex_lock(&oc->mutex);
 	for (int i = 0; i < oc->status_length; i++) {
 		if (oc->status[i]->handle == handle) {
@@ -165,8 +165,8 @@ struct PtpObjectInfo *ptp_object_service_get(struct PtpRuntime *r, struct Object
 	return NULL;
 }
 
-struct ObjectCache *ptp_create_object_service(int *handles, int length, ptp_object_found_callback *callback, void *arg) {
-	struct ObjectCache *oc = malloc(sizeof(struct ObjectCache));
+struct PtpObjectCache *ptp_create_object_service(int *handles, int length, ptp_object_found_callback *callback, void *arg) {
+	struct PtpObjectCache *oc = malloc(sizeof(struct PtpObjectCache));
 	oc->callback = callback;
 	oc->status_length = length;
 	oc->curr = 0;
@@ -192,12 +192,11 @@ struct ObjectCache *ptp_create_object_service(int *handles, int length, ptp_obje
 	return oc;
 }
 
-void ptp_free_object_service(struct ObjectCache *oc) {
-	pthread_mutex_lock(&oc->mutex);
+void ptp_free_object_service(struct PtpObjectCache *oc) {
 	for (int i = 0; i < oc->status_length; i++) {
 		free(oc->status[i]);
 	}
 	free(oc->status);
+	pthread_mutex_destroy(&oc->mutex);
 	free(oc);
-	pthread_mutex_unlock(&oc->mutex);
 }

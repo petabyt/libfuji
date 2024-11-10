@@ -199,7 +199,7 @@ int fuji_simulate_app(struct PtpRuntime *r) {
 		tester_fail("Failed to get object handles");
 		return rc;
 	}
-	struct ObjectCache *c = ptp_create_object_service((int *)a->data, a->length, NULL, NULL);
+	struct PtpObjectCache *c = ptp_create_object_service((int *)a->data, a->length, NULL, NULL);
 	free(a);
 
 	srand(382);
