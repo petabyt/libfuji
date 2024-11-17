@@ -17,10 +17,10 @@ MINGW := x86_64-w64-mingw32
 CC := $(MINGW)-gcc
 CPP := $(MINGW)-c++
 
-LIBWPD_A := /usr/x86_64-w64-mingw32/lib/libwpd.a
-LIBLUA_A := /usr/x86_64-w64-mingw32/lib/liblua.a
-LIBUI_DLL := /usr/x86_64-w64-mingw32/lib/libui_win64.dll
-LIBUI_A := /usr/x86_64-w64-mingw32/lib/libui.a
+LIBWPD_A := /usr/$(ARCH)-w64-mingw32/lib/libwpd.a
+LIBLUA_A := /usr/$(ARCH)-w64-mingw32/lib/liblua.a
+LIBUI_DLL := /usr/$(ARCH)-w64-mingw32/lib/libui_win64.dll
+LIBUI_A := /usr/$(ARCH)-w64-mingw32/lib/libui.a
 
 WIN_LINK_ESSENTIALS += -luser32 -lkernel32 -lgdi32 -lcomctl32 -luxtheme -lmsimg32 -lcomdlg32 -ld2d1 -ldwrite -lole32 -loleaut32 -loleacc -lssp -lurlmon -luuid -lws2_32
 

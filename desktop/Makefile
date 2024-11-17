@@ -3,8 +3,8 @@ include cross.mk
 FUDGE = ../lib
 
 CAMLIB_CORE := transport.o operations.o packet.o enums.o data.o enum_dump.o lib.o canon.o liveview.o bind.o ml.o conv.o generic.o canon_adv.o
-OBJ := main.o ui.o jank.o wifi.o backend.o
-FUDGE_CORE := fuji.o tester.o data.o net.o discovery.o exif.o uilua.o fuji_usb.o object.o
+OBJ := main.o ui.o jank.o os.o backend.o
+FUDGE_CORE := fuji.o tester.o data.o net.o discovery.o exif.o uilua.o fuji_usb.o object.o fuji_lua.o lua_runtime.o
 
 ifeq ($(TARGET),l)
 CAMLIB_CORE += libusb.o
@@ -16,7 +16,7 @@ OBJ += win.o
 endif
 
 OBJ += $(addprefix camlib-,$(CAMLIB_CORE))
-OBJ += $(addprefix camlua-,lua.o runtime.o)
+OBJ += $(addprefix camlua-,lua.o)
 OBJ += $(addprefix camluajson-,lua_cjson.o strbuf.o)
 OBJ += $(addprefix fudge-,$(FUDGE_CORE))
 OBJ := $(call convert_target,$(OBJ))
@@ -28,7 +28,7 @@ CFLAGS := -I$(FUDGE) -I$(CAMLIB_DIR)/src -I$(CAMLIB_DIR)/src/lua -g
 # -fsanitize=address -static-libasan
 
 ifeq ($(TARGET),w) # -----------------------
-WIN_LIBS += $(LIBWPD_A) $(LIBLUA_A) $(LIBUI_DLL)
+WIN_LIBS += $(LIBWPD_A) $(LIBLUA_A) $(LIBUI_A)
 WIN_LIBS += $(WIN_LINK_ESSENTIALS) -lstdc++ -lgcc -lpthread
 
 fudge.exe: $(OBJ) win.res
@@ -36,10 +36,12 @@ fudge.exe: $(OBJ) win.res
 endif # --------------------
 
 ifeq ($(TARGET),l) # ----------------------
-CFLAGS += $(shell pkg-config --libs --cflags lua-5.3 libusb-1.0)
-LDFLAGS += -lm -lui
+CFLAGS += $(shell pkg-config --cflags lua-5.3 libusb-1.0)
+LDFLAGS += -lm -lui $(shell pkg-config --libs lua-5.3)
+LDFLAGS += $(shell pkg-config --libs libusb-1.0)
+#LDFLAGS += -lusb-vcam
 fudge.out: $(OBJ)
-	$(CC) $(OBJ) $(CFLAGS) $(LDFLAGS) -o fudge.out
+	$(CC) $(OBJ) $(LDFLAGS) -o fudge.out
 endif # ----------------------------
 
 # Manual targets to compile in this dir

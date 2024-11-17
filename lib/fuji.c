@@ -41,13 +41,13 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 
 	// Safely disconnect if intentional
 	if (code == 0) {
-		plat_dbg("Closing session");
+		ptp_verbose_log("Closing session\n");
 		ptp_close_session(r);
 	}
 
 	r->operation_kill_switch = 1;
 
-	ptp_verbose_log("Goodbye");
+	ptp_verbose_log("Goodbye\n");
 
 	if (r->connection_type == PTP_IP_USB) {
 		// Send Fuji's 'goodbye' packet - we don't care if this fails or not
@@ -936,7 +936,7 @@ int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a) {
 		for (int i = 0; i < fuji->num_objects; i++) {
 			list->data[i] = i + 1;
 		}
-		a[0] = list;
+		(*a) = list;
 	}
 	return 0;
 }

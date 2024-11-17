@@ -1,0 +1,1 @@
+print(fuji.test())

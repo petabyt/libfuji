@@ -32,9 +32,16 @@ static int discovery_test() {
 	return 0;
 }
 
+void nothing(int x) {}
+
 pid_t child_pid = -1;
 
 int fudge_test_all_cameras_(const char *name) {
+	signal(SIGUSR1, nothing);
+	char thispid[16];
+	sprintf(thispid, "%d", getpid());
+	const char *ip_addr = "0.0.0.0";
+
 	child_pid = fork();
 	if (child_pid == -1) {
 		perror("fork failed");
@@ -42,24 +49,22 @@ int fudge_test_all_cameras_(const char *name) {
 	}
 
 	if (child_pid == 0) {
-		int rc = execlp("/usr/bin/vcam", "vcam", name, "--ip", "0.0.0.0", NULL);
+		int rc = execlp("/usr/bin/vcam", "vcam", name, "--ip", ip_addr, "--sig", thispid, NULL);
 		printf("Return value: %d\n", rc);
 		exit(0);
 	}
 
-	printf("Crappy wait for vcam\n");
-	usleep(10000);
-	printf("Done waiting on vcam\n");
+	printf("Waiting for vcam...\n");
+	pause();
 
 	int rc = 0;
-	char *ip_addr = "0.0.0.0";
 
 	struct PtpRuntime *r = ptp_new(PTP_IP_USB);
 	fuji_reset_ptp(r);
 	fuji_get(r)->transport = FUJI_FEATURE_WIRELESS_COMM;
 	if (ptpip_connect(r, ip_addr, FUJI_CMD_IP_PORT, 0)) {
 		printf("Error connecting to %s:%d\n", ip_addr, FUJI_CMD_IP_PORT);
-		return 0;
+		return -1;
 	}
 	
 	rc = fuji_test_setup(r);

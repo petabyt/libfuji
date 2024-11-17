@@ -16,12 +16,6 @@
 #include <fujiptp.h>
 #include "desktop.h"
 
-static struct PtpRuntime *ptp;
-
-struct PtpRuntime *ptp_get() {
-	return ptp;
-}
-
 void ptp_verbose_log(char *fmt, ...) {
 	printf("PTP: ");
 	va_list args;
@@ -58,21 +52,6 @@ int app_check_thread_cancel(void) {
 	return 0;
 }
 
-void *fudge_usb_connect(void *arg) {
-	struct PtpRuntime *r = ptp_get();
-	int rc;
-	if (ptp_device_init(r)) {
-		puts("Device connection error");
-		return 0;
-	}
-	fuji_reset_ptp(r);
-
-	app_print("Hello, World");
-
-	pthread_exit(NULL);
-	return NULL;
-}
-
 int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info) {
 	// Ask if we want to connect?
 	return 1;
@@ -82,9 +61,28 @@ int fuji_discovery_check_cancel(void *arg) {
 	return 0;
 }
 
+int ptp_list_devices(void) {
+	struct PtpRuntime *r = ptp_new(PTP_USB);
+
+	struct PtpDeviceEntry *list = ptpusb_device_list(r);
+
+	for (; list != NULL; list = list->next) {
+		printf("product id: %04x\n", list->product_id);
+		printf("vendor id: %04x\n", list->vendor_id);
+		printf("Vendor friendly name: '%s'\n", list->manufacturer);
+		printf("Model friendly name: '%s'\n", list->name);
+	}
+
+	return 0;
+}
+
 int main(int argc, char **argv) {
 	for (int i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "--test-wifi")) {
+		if (!strcmp(argv[i], "--list")) {
+			return ptp_list_devices();
+		} else if (!strcmp(argv[i], "--script")) {
+			return fuji_connect_run_script(argv[i + 1]);
+		} else if (!strcmp(argv[i], "--test-wifi")) {
 			int rc = fudge_test_all_cameras();
 			plat_dbg("Result: %d\n", rc);
 			return rc;
