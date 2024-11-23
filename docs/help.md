@@ -2,7 +2,9 @@
 - Look for 'WIRELESS TRANSFER' or 'WIRELESS COMMUNICATION' in 'PLAYBACK MENU'
 - On some older cameras, the 'Fn' button opens up the WiFi menu by default
 
-## Pairing over WiFi
+## WiFi pairing
+- Transfer JPEGs and MOVs at 16mbps
+- Supports GPS sync and liveview
 
 Older cameras will have these options:
 ![](img/old-save-screen.JPG)
@@ -23,3 +25,6 @@ You can setup PC AutoSave from:
 **SIMPLE SETUP**: Press the WPS button on your router for 3 seconds and wait until your camera confirms a connection.
 
 **MANUAL SETUP**: Select your WiFi network and punch in password on the camera.
+
+## Bluetooth
+Sorry, Fudge does not support bluetooth yet.
