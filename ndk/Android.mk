@@ -8,9 +8,9 @@ LIB := $(LOCAL_PATH)/../lib
 CAMLIB := $(LIB)/camlib
 
 CAMLIB_CORE := $(addprefix $(CAMLIB)/src/,transport.c data.c enum_dump.c enums.c canon.c operations.c packet.c lib.c conv.c generic.c)
-CAMLIB_CORE += $(addprefix $(CAMLIB)/src/,lua/lua-cjson/strbuf.c lua/lua-cjson/lua_cjson.c lua/lua.c lua/runtime.c)
+CAMLIB_CORE += $(addprefix $(CAMLIB)/src/,lua/lua-cjson/strbuf.c lua/lua-cjson/lua_cjson.c lua/lua.c)
 
-LIBFUDGE_CORE := $(CAMLIB_CORE) $(addprefix $(LIB)/,fuji.c fuji_usb.c tester.c net.c data.c discovery.c exif.c uilua.c object.c)
+LIBFUDGE_CORE := $(CAMLIB_CORE) $(addprefix $(LIB)/,fuji.c fuji_usb.c tester.c net.c data.c discovery.c exif.c uilua.c object.c fuji_lua.c lua_runtime.c)
 LIB_FILES := main.c backend.c scripts.c camlib.c usb.c liveview.c settings.c
 
 LOCAL_MODULE := fudge

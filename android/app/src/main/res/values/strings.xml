@@ -48,7 +48,7 @@
     <string name="ip_address">IP Address</string>
     <string name="wpa2_password">WPA2 Password</string>
     <string name="start_camera_discovery">Start camera discovery</string>
-    <string name="cancel">cancel</string>
+    <string name="cancel">Cancel</string>
     <string name="raws">RAWs</string>
     <string name="movs">MOVs</string>
     <string name="jpegs">JPEGs</string>

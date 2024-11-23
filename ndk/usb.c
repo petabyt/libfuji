@@ -252,7 +252,6 @@ int ptp_cmd_read(struct PtpRuntime *r, void *to, int length) {
 	ctrl.timeout = PTP_TIMEOUT;
 	int rc = ioctl(priv->fd, USBDEVFS_BULK, &ctrl);
 	if (rc > 0) app_increment_progress_bar(rc);
-
 	return rc;
 }
 
