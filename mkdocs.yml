@@ -23,7 +23,8 @@ markdown_extensions:
       custom_checkbox: true
 
 nav:
-  - FAQ: help.md
+  - About: about.md
+  - Help: help.md
   - News: blog/index.md
   - dev.md
 
