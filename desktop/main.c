@@ -31,7 +31,8 @@ void ptp_panic(char *fmt, ...) {
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
-
+	puts("");
+	fflush(stdout);
 	abort();
 }
 
@@ -61,18 +62,15 @@ int fuji_discovery_check_cancel(void *arg) {
 	return 0;
 }
 
-int ptp_list_devices(void) {
-	struct PtpRuntime *r = ptp_new(PTP_USB);
+// stuff.c
+int ptp_list_devices(void);
 
-	struct PtpDeviceEntry *list = ptpusb_device_list(r);
-
-	for (; list != NULL; list = list->next) {
-		printf("product id: %04x\n", list->product_id);
-		printf("vendor id: %04x\n", list->vendor_id);
-		printf("Vendor friendly name: '%s'\n", list->manufacturer);
-		printf("Model friendly name: '%s'\n", list->name);
-	}
-
+static int help(void) {
+	printf("Fudge 0.1.0\n");
+	printf("Compilation date: " __DATE__ "\n");
+	printf("  --list         List all PTP devices connected to this computer\n");
+	printf("  --dump-usb     Connect to the first available Fuji camera and dump all information\n");
+	printf("  --script <filename>       Execute a Lua script using fudge bindings\n");
 	return 0;
 }
 
@@ -86,13 +84,16 @@ int main(int argc, char **argv) {
 			int rc = fudge_test_all_cameras();
 			plat_dbg("Result: %d\n", rc);
 			return rc;
-		} else if (!strcmp(argv[i], "--test-usb")) {
-			//return fudge_test(ptp);
+		} else if (!strcmp(argv[i], "--dump-usb")) {
+			return fudge_dump_usb();
 		} else if (!strcmp(argv[i], "--test-discovery")) {
 			fuji_test_discovery(ptp_new(PTP_USB));
 			return 1;
+		} else if (!strcmp(argv[i], "--help")) {
+			return help();
 		} else {
-			plat_dbg("Invalid arg");
+			printf("Invalid arg '%s'\n", argv[i]);
+			return -1;
 		}
 	}
 

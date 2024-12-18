@@ -12,32 +12,13 @@
 #include <errno.h>
 #include "desktop.h"
 
-static FILE *shell_pipe = NULL;
-static int shell_pid = 0;
-
-static int run_vcam(const char *model_name, const char *arg) {
-	char shell[256];
-	sprintf(shell, "vcam %s --ip 0.0.0.0 %s & echo $!", model_name, arg);
-	FILE *p = popen(shell, "r");
-	int pid;
-	fscanf(p, "%d", &pid);
-	shell_pipe = p;
-	printf("vcam pid: %d\n", pid);
-	usleep(1000 * 100); // 100ms
-	return pid;
-}
-
-static int discovery_test() {
-	int pid = run_vcam("fuji_x_h1", "--discovery");
-	return 0;
-}
-
 void nothing(int x) {}
 
 pid_t child_pid = -1;
 
 int fudge_test_all_cameras_(const char *name) {
 	signal(SIGUSR1, nothing);
+
 	char thispid[16];
 	sprintf(thispid, "%d", getpid());
 	const char *ip_addr = "0.0.0.0";
@@ -49,12 +30,12 @@ int fudge_test_all_cameras_(const char *name) {
 	}
 
 	if (child_pid == 0) {
-		int rc = execlp("/usr/bin/vcam", "vcam", name, "--ip", ip_addr, "--sig", thispid, NULL);
+		int rc = execlp("/usr/bin/vcam", "vcam", name, "tcp", "--ip", ip_addr, "--sig", thispid, NULL);
 		printf("Return value: %d\n", rc);
 		exit(0);
 	}
 
-	printf("Waiting for vcam...\n");
+	printf("Waiting for vcam sig...\n");
 	pause();
 
 	int rc = 0;

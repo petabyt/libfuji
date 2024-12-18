@@ -11,14 +11,14 @@ enum FujiTransport {
 	FUJI_FEATURE_WIRELESS_TETHER = 2,
 	/// 'WIRELESS COMMUNICATION' or 'WIRELESS TRANSFER'
 	FUJI_FEATURE_WIRELESS_COMM = 3,
-	/// Generic PTP/USB of unknown feature, assume MTP
-	FUJI_FEATURE_USB = 7,
 	/// 'USB CARD READER'
 	FUJI_FEATURE_USB_CARD_READER = 4,
 	/// 'USB TETHER SHOOTING FIXED/AUTO'
 	FUJI_FEATURE_USB_TETHER_SHOOT = 5,
 	/// 'USB RAW CONV./BACKUP RESTORE'
 	FUJI_FEATURE_RAW_CONV = 6,
+	/// Generic PTP/USB of unknown feature, assume MTP
+	FUJI_FEATURE_USB = 7,
 };
 
 #define FUJI_CMD_IP_PORT 55740
@@ -239,6 +239,8 @@ enum FujiStates {
 #define PTP_DPC_FUJI_BCRAppendDelimiter			0xD162
 #define PTP_DPC_FUJI_CommentEx				0xD167
 #define PTP_DPC_FUJI_VideoOutOnOff			0xD168
+// value is 5 when in tether shoot mode, 6 in raw conv mode
+#define PTP_DPC_FUJI_USBMode				0xd16e
 #define PTP_DPC_FUJI_CropMode				0xD16F
 #define PTP_DPC_FUJI_LensZoomPos			0xD170
 #define PTP_DPC_FUJI_FocusPosition			0xD171

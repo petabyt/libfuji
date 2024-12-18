@@ -15,13 +15,12 @@ void fudge_disconnect_all(void);
 void *fudge_usb_connect_thread(void *arg);
 
 void *fudge_backup_settings(void *arg);
-
+int fudge_dump_usb(void);
 int fuji_connect_run_script(const char *filename);
 
 // Tests
 int fuji_test_discovery(struct PtpRuntime *r);
-int fuji_test_filesystem(struct PtpRuntime *r);
-int fuji_test_setup(struct PtpRuntime *r);
-
+//int fuji_test_filesystem(struct PtpRuntime *r);
+//int fuji_test_setup(struct PtpRuntime *r);
 
 #endif

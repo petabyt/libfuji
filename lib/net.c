@@ -184,6 +184,9 @@ static struct PtpIpBackend *init_comm(struct PtpRuntime *r) {
 #endif
 	}
 
+	// Max packet size for TCP
+	r->max_packet_size = 65535;
+
 	return (struct PtpIpBackend *)r->comm_backend;
 }
 

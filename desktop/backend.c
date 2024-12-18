@@ -8,14 +8,14 @@
 #include <app.h>
 #include <fujiptp.h>
 #include <lua.h>
-#include <camlua.h>
+#include <fuji_lua.h>
 #include <pthread.h>
 #include "desktop.h"
 
 static struct PtpRuntime *ptp = NULL;
 
 // TODO: System to manage a list of cameras connected
-struct PtpRuntime *ptp_get() {
+struct PtpRuntime *ptp_get(void) {
 	return ptp;
 }
 
@@ -44,9 +44,6 @@ int fudge_usb_connect(struct PtpRuntime *r) {
 		return rc;
 	}
 	attempts = 0;
-
-	rc = ptp_open_session(r);
-	if (rc != PTP_CHECK_CODE && rc) return rc;
 
 	ptp = r;
 
@@ -110,6 +107,7 @@ void *fudge_usb_connect_thread(void *arg) {
 
 int fudge_run_lua(struct PtpRuntime *r, const char *text) {
 	cam_run_lua_script_async(text);
+	return 0;
 }
 
 static char *read_file(const char *filename) {
@@ -148,4 +146,62 @@ int fuji_connect_run_script(const char *filename) {
 	}
 	return rc;
 	// leak r
+}
+
+int fudge_dump_usb(void) {
+	struct PtpRuntime *r = ptp_new(PTP_USB);
+	int rc = fudge_usb_connect(r);
+	if (rc) return rc;
+
+	rc = fujiusb_setup(r);
+	if (rc) return rc;
+
+	printf("Camera mode: ");
+	switch (fuji_get(r)->transport) {
+	case FUJI_FEATURE_RAW_CONV:
+		printf("USB RAW CONV./BACKUP RESTORE");
+		break;
+	case FUJI_FEATURE_USB_CARD_READER:
+		printf("USB CARD READER");
+		break;
+	case FUJI_FEATURE_USB_TETHER_SHOOT:
+		printf("USB TETHER SHOOTING");
+		break;
+	case FUJI_FEATURE_USB:
+		printf("MTP");
+		break;
+	default:
+		printf("Invalid %d", fuji_get(r)->transport);
+		break;
+	}
+	printf("\n");
+
+	struct PtpDeviceInfo oi;
+	rc = ptp_get_device_info(r, &oi);
+	if (rc) return rc;
+
+	char buffer[4096];
+	ptp_device_info_json(&oi, buffer, sizeof(buffer));
+	printf("%s\n", buffer);
+
+	for (int i = 0; i < oi.props_supported_length; i++) {
+		printf("Get prop value %04x\n", oi.props_supported[i]);
+		rc = ptp_get_prop_value(r, oi.props_supported[i]);
+		if (rc == PTP_CHECK_CODE) continue;
+		if (rc) return rc;
+		printf("%04x = %x\n", oi.props_supported[i], ptp_parse_prop_value(r));
+	}
+
+	struct PtpPropDesc pd;
+	rc = ptp_get_prop_desc(r, 0xd16e, &pd);
+	if (rc != PTP_CHECK_CODE) {
+		if (rc) return rc;
+		ptp_prop_desc_json(&pd, buffer, sizeof(buffer));
+		printf("%s\n", buffer);
+	}
+
+	ptp_close_session(r);
+	ptp_device_close(r);
+
+	return rc;
 }

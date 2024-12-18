@@ -13,6 +13,7 @@
       uiLabel *: (uiControl *)this, \
       uiMultilineEntry *: (uiControl *)this, \
       uiTab *: (uiControl *)this, \
+      uiSeparator *: (uiControl *)this, \
       uiControl *: this \
       )
 

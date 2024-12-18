@@ -303,7 +303,7 @@ int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
 
 	uint16_t dat[] = {value};
 
-	return ptp_generic_send_data(r, &cmd, dat, sizeof(dat));
+	return ptp_send_data(r, &cmd, dat, sizeof(dat));
 }
 
 int fuji_d228(void) {
@@ -435,7 +435,7 @@ int fuji_get_device_info(struct PtpRuntime *r) {
 	cmd.code = PTP_OC_FUJI_GetDeviceInfo;
 	cmd.param_length = 0;
 	// TODO: Parsing should be done here
-	return ptp_generic_send(r, &cmd);
+	return ptp_send(r, &cmd);
 }
 
 static int fuji_tether_download(struct PtpRuntime *r) {

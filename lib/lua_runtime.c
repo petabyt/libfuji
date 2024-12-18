@@ -6,7 +6,6 @@
 #include <lauxlib.h>
 
 #include <camlib.h>
-#include <camlua.h>
 #include "fuji_lua.h"
 
 static char error_buffer[512] = {0};
@@ -73,7 +72,7 @@ static int lua_script_set_status(lua_State *L) {
 }
 
 static int mylua_itoa(lua_State* L) {
-	int number = luaL_checkinteger(L, 1);
+	int number = (int)luaL_checkinteger(L, 1);
 	char buffer[20];
 	snprintf(buffer, sizeof(buffer), "%d", number);
 	lua_pushstring(L, buffer);

@@ -226,7 +226,7 @@ uiControl *create_discovery_ui(void) {
 
 uiControl *about_tab(void) {
 	uiBox *box = uiNewVerticalBox();
-	//uiBoxSetPadded(box, 1);
+	uiBoxSetPadded(box, 1);
 
 	{
 		uiGroup *g = uiNewGroup("Fudge");
@@ -266,12 +266,12 @@ static uiControl *fudge_screen(void) {
 	uiBoxSetPadded(box, 1);
 
 	uiBox *left = uiNewVerticalBox();
-	//uiBoxSetPadded(left, 1);
+	uiBoxSetPadded(left, 1);
 
 	uiGroup *connectivity = uiNewGroup("Connect");
 	{
 		uiBox *hbox = uiNewVerticalBox();
-		//uiBoxSetPadded(hbox, 1);
+		uiBoxSetPadded(hbox, 1);
 		uiButton *btn = uiNewButton("USB");
 		uiControlSetTooltip(uiControl(btn), "Find a camera over USB and connect");
 		uiButtonOnClicked(btn, usb_connect, NULL);

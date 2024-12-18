@@ -54,8 +54,38 @@ int fujiusb_setup(struct PtpRuntime *r) {
 
 	app_send_cam_name(di.model);
 
-	// TODO: Determine transport based on PTP setup?
-	//fuji_get(r)->transport = FUJI_FEATURE_USB_CARD_READER;
+	struct PtpArray *arr;
+	rc = ptp_get_storage_ids(r, &arr);
+	if (rc) return rc;
+
+	uint32_t live_id = 0;
+	uint32_t still_id = 0;
+	for (size_t i = 0; i < arr->length; i++) {
+		struct PtpStorageInfo si;
+		rc = ptp_get_storage_info(r, (int)arr->data[i], &si);
+		if (!strcmp(si.storage_desc, "Still")) {
+			live_id = arr->data[i];
+		} else if (!strcmp(si.storage_desc, "Live")) {
+			still_id = arr->data[i];
+		}
+	}
+
+	if (live_id != 0 && still_id != 0) {
+		fuji_get(r)->transport = FUJI_FEATURE_USB_TETHER_SHOOT;
+
+		// Check for backup file
+		struct PtpObjectInfo oi;
+		rc = ptp_get_object_info(r, 0, &oi);
+		if (rc == PTP_CHECK_CODE) return 0;
+		if (rc) return rc;
+		if (oi.obj_format == 0x5000) {
+			ptp_verbose_log("0x5000 backup object exists\n");
+			fuji_get(r)->transport = FUJI_FEATURE_RAW_CONV;
+		}
+
+	} else {
+		ptp_verbose_log("Not Raw Conv: %d %d\n", still_id, live_id);
+	}
 
 	return rc;
 }

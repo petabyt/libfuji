@@ -1,5 +1,4 @@
 // Jank code from testing Fuji PTP
-// Their protocols SUCK!
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
