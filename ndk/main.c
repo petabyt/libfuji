@@ -113,6 +113,17 @@ void ptp_verbose_log(char *fmt, ...) {
 	backend.log_pos += strlen(buffer2);
 }
 
+void ptp_error_log(char *fmt, ...) {
+	char buffer[512] = {0};
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+
+	__android_log_write(ANDROID_LOG_ERROR, "ptp_error_log", buffer);
+	// TODO: Also write to log buffer?
+}
+
 void ptp_panic(char *fmt, ...) {
 	char buffer[512];
 	va_list args;

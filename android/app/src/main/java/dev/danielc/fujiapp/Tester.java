@@ -4,9 +4,7 @@ package dev.danielc.fujiapp;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 
-import android.Manifest;
 import android.content.ClipData;
 import android.text.Html;
 import android.view.Menu;
@@ -74,7 +72,7 @@ public class Tester extends AppCompatActivity {
         findViewById(R.id.tester_select_wifi).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String password = SettingsActivity.getWPA2Password(Tester.this);
+                String password = MySettings.getWPA2Password(Tester.this);
                 if (password.length() == 0) password = null;
                 if (wifi.connectToAccessPoint(Tester.this, password, Backend.matchAp) != 0) {
                     fail("Didn't select access point.");

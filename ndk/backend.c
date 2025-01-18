@@ -6,7 +6,6 @@
 #include <string.h>
 #include <camlib.h>
 #include <dlfcn.h>
-#include <ui.h>
 #include "app.h"
 #include "backend.h"
 #include "fuji.h"

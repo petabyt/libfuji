@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import dev.danielc.libui.*;
 
 public class Scripts extends AppCompatActivity {
     @Override
@@ -15,6 +14,6 @@ public class Scripts extends AppCompatActivity {
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle(R.string.scripts);
-        setContentView(Backend.cFujiScriptsScreen(this));
+        //setContentView(Backend.cFujiScriptsScreen(this));
     }
 }

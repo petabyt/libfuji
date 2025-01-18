@@ -5,7 +5,6 @@
 #include <errno.h>
 #include <string.h>
 #include <camlib.h>
-#include <ui.h>
 #include "app.h"
 #include "backend.h"
 #include <android.h>

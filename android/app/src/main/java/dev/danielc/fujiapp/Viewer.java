@@ -354,29 +354,28 @@ public class Viewer extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_download:
-                if (notEnoughMemoryToPreview) {
-                    toast(getString(R.string.alreadydownloaded));
-                } else {
-                    if (!threadIsDone) return true;
-                    writeFile();
-                }
-                return true;
-            case R.id.action_share:
-                if (notEnoughMemoryToPreview) {
-                    share();
-                } else {
-                    downloadAndShare();
-                }
-                return true;
-            case android.R.id.home:
-                thread.interrupt();
-                Gallery.resumeAll();
-                finish();
-                return true;
+        int id = item.getItemId();
+        if (id == R.id.action_download) {
+            if (notEnoughMemoryToPreview) {
+                toast(getString(R.string.alreadydownloaded));
+            } else {
+                if (!threadIsDone) return true;
+                writeFile();
+            }
+            return true;
+        } else if (id == R.id.action_share) {
+            if (notEnoughMemoryToPreview) {
+                share();
+            } else {
+                downloadAndShare();
+            }
+            return true;
+        } else if (id == android.R.id.home) {
+            thread.interrupt();
+            Gallery.resumeAll();
+            finish();
+            return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 

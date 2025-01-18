@@ -33,7 +33,7 @@ enum FujiTransport {
 #define PTP_DPC_FUJI_EventsList		0xd212
 #define PTP_DPC_FUJI_SelectedImgsMode	0xd220
 #define PTP_DPC_FUJI_ObjectCount		0xd222
-#define PTP_DPC_FUJI_CameraState		0xdf00 
+#define PTP_DPC_FUJI_CameraState		0xdf00
 #define PTP_DPC_FUJI_ClientState		0xdf01
 /// @info If 1, will heavily compress images into 400kb-800kb. Fuji uses this for downloading a quick preview.
 #define PTP_DPC_FUJI_CompressSmall	0xD226
@@ -53,7 +53,7 @@ enum FujiTransport {
 #define PTP_OC_FUJI_Unknown1	0x9054
 #define PTP_OC_FUJI_Unknown2	0x9055
 
-#define PTP_DPC_FUJI_WirelessTetherThing	0xd21c
+#define PTP_DPC_FUJI_UnknownD21C	0xd21c
 #define PTP_DPC_FUJI_Unknown_D224	0xd224
 // Client sets this in PC Autosave, likely for the camera to update it's database of images the client hasn't downloaded?
 // See `struct FujiD228` - structure appears similar to PTP_DPC_FUJI_BatteryInfo2
@@ -167,6 +167,7 @@ enum FujiStates {
 #define PTP_DPC_FUJI_MovieISO				0xD02B
 #define PTP_DPC_FUJI_WideDynamicRange			0xD02E
 #define PTP_DPC_FUJI_TNumber				0xD02F
+#define PTP_DPC_FUJI_UnknownD040			0xd040
 #define PTP_DPC_FUJI_Comment				0xD100
 #define PTP_DPC_FUJI_SerialMode				0xD101
 #define PTP_DPC_FUJI_ExposureDelay			0xD102
@@ -239,7 +240,8 @@ enum FujiStates {
 #define PTP_DPC_FUJI_BCRAppendDelimiter			0xD162
 #define PTP_DPC_FUJI_CommentEx				0xD167
 #define PTP_DPC_FUJI_VideoOutOnOff			0xD168
-// value is 5 when in tether shoot mode, 6 in raw conv mode
+/// @brief value is 5 when in tether shoot mode, 6 in raw conv mode
+/// TODO: What value is MTP?
 #define PTP_DPC_FUJI_USBMode				0xd16e
 #define PTP_DPC_FUJI_CropMode				0xD16F
 #define PTP_DPC_FUJI_LensZoomPos			0xD170
@@ -256,7 +258,10 @@ enum FujiStates {
 #define PTP_DPC_FUJI_FocusLength			0xD17D
 #define PTP_DPC_FUJI_CropAreaFrameInfo			0xD17E
 #define PTP_DPC_FUJI_ResetSetting			0xD17F /* also clean sensor? */
+// 0xd180
+#define PTP_DPC_FUJI_StartRawConversion			0xD183
 #define PTP_DPC_FUJI_IOPCode				0xD184
+#define PTP_DPC_FUJI_RawConvProfile			0xD185
 #define PTP_DPC_FUJI_TetherRawConditionCode		0xD186
 #define PTP_DPC_FUJI_TetherRawCompatibilityCode		0xD187
 #define PTP_DPC_FUJI_LightTune				0xD200

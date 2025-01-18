@@ -9,6 +9,46 @@
 #include "fuji.h"
 #include "fujiptp.h"
 
+int fuji_send_object_info_ex(struct PtpRuntime *r, int storage_id, int handle, struct PtpObjectInfo *oi) {
+	struct PtpCommand cmd;
+	cmd.code = PTP_OC_FUJI_SendObjectInfo;
+	cmd.param_length = 3;
+	cmd.params[0] = storage_id;
+	cmd.params[1] = handle;
+	cmd.params[2] = 0;
+
+	uint8_t buf[2048];
+	int of = 0;
+	of += ptp_write_u32(buf + of, oi->storage_id);
+	of += ptp_write_u16(buf + of, oi->obj_format);
+	of += ptp_write_u16(buf + of, oi->protection);
+	of += ptp_write_u32(buf + of, oi->compressed_size);
+	of += ptp_write_u16(buf + of, oi->thumb_format);
+	of += ptp_write_u32(buf + of, oi->thumb_compressed_size);
+	of += ptp_write_u32(buf + of, oi->thumb_width);
+	of += ptp_write_u32(buf + of, oi->thumb_height);
+	of += ptp_write_u32(buf + of, oi->img_width);
+	of += ptp_write_u32(buf + of, oi->img_height);
+	of += ptp_write_u32(buf + of, oi->img_bit_depth);
+	of += ptp_write_u32(buf + of, oi->parent_obj);
+	of += ptp_write_u16(buf + of, oi->assoc_type);
+	of += ptp_write_u32(buf + of, oi->assoc_desc);
+	of += ptp_write_u32(buf + of, oi->sequence_num);
+	of += ptp_write_string(buf + of, oi->filename);
+	of += ptp_write_string(buf + of, oi->date_created);
+	of += ptp_write_string(buf + of, oi->date_modified);
+	of += ptp_write_string(buf + of, oi->keywords);
+
+	return ptp_send_data(r, &cmd, buf, of);
+}
+
+int fuji_send_object_ex(struct PtpRuntime *r, const void *data, size_t length) {
+	struct PtpCommand cmd;
+	cmd.code = PTP_OC_FUJI_SendObject2;
+	cmd.param_length = 0;
+	return ptp_send_data(r, &cmd, data, (int)length);
+}
+
 int fujiusb_try_connect(struct PtpRuntime *r) {
 	fuji_reset_ptp(r);
 	r->connection_type = PTP_USB;
@@ -51,6 +91,12 @@ int fujiusb_setup(struct PtpRuntime *r) {
 	struct PtpDeviceInfo di;
 	rc = ptp_get_device_info(r, &di);
 	if (rc) return rc;
+
+	if (strlen(di.manufacturer) > sizeof("FUJIFILM")) {
+		if (strncmp(di.manufacturer, "FUJIFILM", sizeof("FUJIFILM")) != 0) {
+			ptp_verbose_log("Weird - manufac doesn't start with 'fujifilm'??\n");
+		}
+	}
 
 	app_send_cam_name(di.model);
 
@@ -164,6 +210,16 @@ int fujiusb_download_backup(struct PtpRuntime *r, FILE *f) {
 	return rc;
 }
 
+int fuji_get_battery_percent(struct PtpRuntime *r, int *value) {
+	ptp_mutex_lock(r);
+	int rc = ptp_get_prop_value(r, PTP_DPC_FUJI_BatteryInfo1);
+	if (rc == 0) {
+		(*value) = ptp_parse_prop_value(r);
+	}
+	ptp_mutex_unlock(r);
+	return rc;
+}
+
 /*
 
 struct PtpCommand cmd;
@@ -196,3 +252,99 @@ data = ptp_get_payload(&r);
 print_payload(data + 1, sz  - 1, false);
 
 */
+
+int fuji_send_raf(struct PtpRuntime *r, const char *path) {
+	FILE* f = fopen(path, "rb");
+	if (!f) {
+		ptp_verbose_log("'%s' not found\n", path);
+		return PTP_RUNTIME_ERR;
+	}
+
+	fseek(f, 0, SEEK_END);
+	long file_size = ftell(f);
+	fseek(f, 0, SEEK_SET);
+
+	char *buffer = (char *)malloc(file_size + 1);
+	if (!buffer) abort();
+
+	fread(buffer, 1, file_size, f);
+	buffer[file_size] = '\0';
+
+	fclose(f);
+
+	struct PtpObjectInfo oi = {0};
+	oi.obj_format = 0xf802;
+	oi.compressed_size = (uint32_t)file_size;
+	strcpy(oi.filename, "FUP_FILE.dat");
+
+	int rc = fuji_send_object_info_ex(r, 0, 0, &oi);
+	if (rc) {
+		free(buffer);
+		return rc;
+	}
+
+	r->max_packet_size = 261632;
+
+	rc = fuji_send_object_ex(r, buffer, file_size);
+
+	r->max_packet_size = 512;
+
+	free(buffer);
+	return rc;
+}
+
+int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const char *output_path, const char *profile_xml) {
+	int rc;
+	ptp_mutex_lock(r);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_USBMode);
+	if (rc) {
+		ptp_mutex_unlock(r);
+		return rc;
+	}
+	int mode = ptp_parse_prop_value(r);
+	ptp_mutex_unlock(r);
+
+	if (mode != 6) {
+		ptp_verbose_log("Not in Raw Conv mode\n");
+		return PTP_RUNTIME_ERR;
+	} else {
+		ptp_verbose_log("In raw conv mode\n");
+	}
+
+	rc = fuji_send_raf(r, input_raf_path);
+	if (rc) return rc;
+
+	ptp_mutex_lock(r);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RawConvProfile);
+	if (rc) {
+		ptp_mutex_unlock(r);
+		return rc;
+	}
+	int profile_len = ptp_get_payload_length(r);
+	void *profile = malloc(profile_len);
+	memcpy(profile, ptp_get_payload(r), profile_len);
+	ptp_mutex_unlock(r);
+
+	ptp_verbose_log("Got %d bytes of profile\n", profile_len);
+
+	// Make modifications to profile...
+
+	rc = ptp_set_prop_value_data(r, PTP_DPC_FUJI_RawConvProfile, profile, profile_len);
+	if (rc) return rc;
+
+	free(profile);
+
+	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_StartRawConversion, 0);
+	if (rc) return rc;
+
+	struct PtpArray *list;
+	rc = ptp_get_object_handles(r, -1, 0, 0, &list);
+	if (rc) return rc;
+
+	if (list->length == 0) return 0;
+
+	rc = ptp_get_object(r, (int)list->data[0]);
+	if (rc) return rc;
+
+	return 0;
+}

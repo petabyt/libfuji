@@ -5,10 +5,8 @@
 #include <string.h>
 
 #include <camlib.h>
-#include <camlua.h>
-#include <ui.h>
 #include <android.h>
-
+#if 0
 static uiMultilineEntry *script_box = NULL;
 
 int cam_lua_setup(lua_State *L) {
@@ -63,3 +61,4 @@ JNI_FUNC(jobject, cFujiScriptsScreen)(JNIEnv *env, jobject thiz, jobject ctx) {
 	set_jni_env_ctx(env, ctx);
 	return uiViewFromControl(fudge_scripts_screen());
 }
+#endif

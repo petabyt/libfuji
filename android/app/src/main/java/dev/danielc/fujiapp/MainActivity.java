@@ -28,11 +28,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.jsibbold.zoomage.BuildConfig;
+
 import java.io.InputStream;
 
 import dev.danielc.common.WiFiComm;
-import dev.danielc.libui.*;
-import 	java.util.concurrent.Semaphore;
+import java.util.concurrent.Semaphore;
 
 public class MainActivity extends AppCompatActivity {
     public static MainActivity instance;
@@ -175,9 +176,6 @@ public class MainActivity extends AppCompatActivity {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
             }
-
-            LibUI.buttonBackgroundResource = R.drawable.grey_button;
-            LibUI.popupDrawableResource = R.drawable.border;
 
             wifi.setConnectivityManager((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
             wifi.startNetworkListeners(this);
@@ -339,7 +337,7 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                String password = SettingsActivity.getWPA2Password(ctx);
+                String password = MySettings.getWPA2Password(ctx);
                 if (password.length() == 0) password = null;
                 int rc = tryConnect(0);
                 if (rc != 0) {
@@ -392,7 +390,7 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, FileGallery.class);
             startActivity(intent);
         } else if (item.getTitle() == "settings") {
-            Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+            Intent intent = new Intent(MainActivity.this, MySettings.class);
             startActivity(intent);
         }
 

@@ -9,13 +9,20 @@
 #include "app.h"
 #include "backend.h"
 
-#define SETTINGS_FUNC(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_fujiapp_SettingsActivity_##name
+//#define SETTINGS_FUNC(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_fujiapp_SettingsActivity_##name
+
+char *app_get_client_name(void) {
+	return strdup("Fudge");
+}
+char *app_get_camera_ip(void) {
+	return strdup("192.168.0.1");
+}
 
 //int app_do_connect_without_wifi(void) {
 //	JNIEnv *env = get_jni_env();
 //	return jni_get_pref_int(env, "connect_without_wifi", 0);
 //}
-
+#if 0
 char *app_get_client_name(void) {
 	JNIEnv *env = get_jni_env();
 	char *s = jni_get_pref_str(env, "client_name", "Fudge");
@@ -97,3 +104,4 @@ SETTINGS_FUNC(void, handleSettingsButtons)(JNIEnv *env, jobject thiz, jobject ct
 	view_add_native_input_listener(env, view, (void *) input_handler, 2, "client_name", "client_name");
 	view_set_text(env, view, app_get_client_name());
 }
+#endif

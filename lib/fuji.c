@@ -266,7 +266,7 @@ static int ptpip_fuji_init_req_(struct PtpRuntime *r, char *device_name, struct 
 
 	ptp_write_unicode_string(p->device_name, device_name);
 
-	if (ptpip_cmd_write(r, r->data, (int)p->length) != p->length) return PTP_IO_ERR;
+	if (ptpip_cmd_write(r, r->data, (int)p->length) != (int)p->length) return PTP_IO_ERR;
 
 	// Read the packet size, then receive the rest
 	int x = ptpip_cmd_read(r, r->data, 4);
@@ -293,17 +293,6 @@ int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiI
 	int rc = ptpip_fuji_init_req_(r, device_name, resp);
 	ptp_mutex_unlock(r);
 	return rc;
-}
-
-int ptp_set_prop_value16(struct PtpRuntime *r, int code, uint16_t value) {
-	struct PtpCommand cmd;
-	cmd.code = PTP_OC_SetDevicePropValue;
-	cmd.param_length = 1;
-	cmd.params[0] = code;
-
-	uint16_t dat[] = {value};
-
-	return ptp_send_data(r, &cmd, dat, sizeof(dat));
 }
 
 int fuji_d228(void) {
@@ -440,10 +429,10 @@ int fuji_get_device_info(struct PtpRuntime *r) {
 
 static int fuji_tether_download(struct PtpRuntime *r) {
 	struct PtpArray *a;
-	int rc = ptp_get_object_handles(r, 0xffffffff, 0x0, 0x0, &a);
+	int rc = ptp_get_object_handles(r, -1, 0x0, 0x0, &a);
 	if (rc) return rc;
 
-	for (int i = 0; i < a->length; i++) {
+	for (int i = 0; i < (int)a->length; i++) {
 		// oi.filename will always be DSCF0001.JPG
 		struct PtpObjectInfo oi;
 		rc = ptp_get_object_info(r, a->data[i], &oi);
@@ -456,13 +445,13 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 		FILE *f = fopen(buffer, "wb");
 		if (f == NULL) return PTP_RUNTIME_ERR;
 		app_print("Downloading %s", buffer);
-		ptp_download_object(r, a->data[i], f, 0x100000);
+		ptp_download_object(r, (int)a->data[i], f, 0x100000);
 		fclose(f);
 
 		app_downloaded_file(&oi, buffer);
 
 		if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_TETHER) {
-			ptp_delete_object(r, a->data[i], 0x0);
+			ptp_delete_object(r, (int)a->data[i], 0x0);
 		}
 
 		app_print("Done downloading.");
@@ -504,13 +493,13 @@ int fuji_get_events(struct PtpRuntime *r) {
 		ptp_read_u32(&ev->events[i].value, &value);
 		switch (ev->events[i].code) {
 		case PTP_DPC_FUJI_SelectedImgsMode:
-			fuji->selected_imgs_mode = ev->events[i].value;
+			fuji->selected_imgs_mode = (int)ev->events[i].value;
 			break;
 		case PTP_DPC_FUJI_ObjectCount:
-			fuji->num_objects = ev->events[i].value;
+			fuji->num_objects = (int)ev->events[i].value;
 			break;
 		case PTP_DPC_FUJI_CameraState:
-			fuji->camera_state = ev->events[i].value;
+			fuji->camera_state = (int)ev->events[i].value;
 			break;
 		case PTP_DPC_FUJI_FreeSDRAMImages:
 			if (fuji->transport == FUJI_FEATURE_WIRELESS_TETHER)
