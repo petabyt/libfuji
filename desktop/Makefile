@@ -4,8 +4,8 @@ include cross.mk
 FUDGE = ../lib
 
 CAMLIB_CORE := transport.o operations.o packet.o enums.o data.o enum_dump.o lib.o canon.o liveview.o bind.o ml.o conv.o generic.o canon_adv.o stuff.o
-OBJ := main.o ui.o jank.o os.o backend.o
-FUDGE_CORE := fuji.o tester.o data.o net.o discovery.o exif.o uilua.o fuji_usb.o object.o fuji_lua.o lua_runtime.o
+OBJ := main.o jank.o backend.o
+FUDGE_CORE := fuji.o tester.o data.o net.o discovery.o exif.o fuji_usb.o object.o fuji_lua.o lua_runtime.o
 
 ifeq ($(TARGET),l)
 CAMLIB_CORE += libusb.o

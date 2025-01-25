@@ -23,9 +23,7 @@ struct PtpRuntime *luaptp_get_runtime(lua_State *L) {
 	return ptp_get();
 }
 
-int luaopen_libuilua(lua_State *L);
 int cam_lua_setup(lua_State *L) {
-	luaL_requiref(L, "ui", luaopen_libuilua, 1);
 	return 0;
 }
 

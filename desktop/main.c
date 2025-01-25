@@ -71,6 +71,63 @@ int fuji_discovery_check_cancel(void *arg) {
 	return 0;
 }
 
+void app_send_cam_name(const char *name) {
+
+}
+
+void fuji_discovery_update_progress(void *arg, enum DiscoverUpdateMessages progress) {
+}
+
+void app_downloading_file(const struct PtpObjectInfo *oi) {
+	// ...
+}
+
+void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path) {
+	// ...
+}
+
+void app_increment_progress_bar(int read) {
+	// ...
+}
+
+void app_report_download_speed(long time, size_t size) {
+	// ...
+}
+
+void app_log_clear(void) {
+	// ...
+}
+
+void app_print(char *fmt, ...) {
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+}
+
+void tester_log(char *fmt, ...) {
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+	printf("LOG: %s\n", buffer);
+}
+
+void tester_fail(char *fmt, ...) {
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+	printf("FAIL: %s\n", buffer);
+}
+
+void app_update_connected_status(int connected) {
+	
+}
+
 static int help(void) {
 	printf("Fudge 0.1.0\n");
 	printf("Compilation date: " __DATE__ "\n");
@@ -116,5 +173,5 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	return fudge_main_ui();
+	return 0;
 }
