@@ -11,12 +11,21 @@
 	#include <arpa/inet.h>
 #endif
 #include <camlib.h>
+#include <cl_stuff.h>
 #include <fuji.h>
 #include <app.h>
 #include <fujiptp.h>
 #include "desktop.h"
 
 void ptp_verbose_log(char *fmt, ...) {
+	printf("PTP: ");
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+
+void ptp_error_log(char *fmt, ...) {
 	printf("PTP: ");
 	va_list args;
 	va_start(args, fmt);
@@ -62,13 +71,10 @@ int fuji_discovery_check_cancel(void *arg) {
 	return 0;
 }
 
-// stuff.c
-int ptp_list_devices(void);
-
 static int help(void) {
 	printf("Fudge 0.1.0\n");
 	printf("Compilation date: " __DATE__ "\n");
-	printf("  --list         List all PTP devices connected to this computer\n");
+	printf("  --list <device number>        List all PTP devices connected to this computer\n");
 	printf("  --dump-usb     Connect to the first available Fuji camera and dump all information\n");
 	printf("  --script <filename>       Execute a Lua script using fudge bindings\n");
 	return 0;
@@ -76,11 +82,22 @@ static int help(void) {
 
 int main(int argc, char **argv) {
 	for (int i = 1; i < argc; i++) {
+		// Typical camlib CLI stuff
 		if (!strcmp(argv[i], "--list")) {
 			return ptp_list_devices();
-		} else if (!strcmp(argv[i], "--script")) {
+		} else if (!strcmp(argv[i], "--info")) {
+			int dev_id = 0;
+			if (i + 2 <= argc) dev_id = atoi(argv[i + 1]);
+			return ptp_dump_device(dev_id);
+		}
+
+		if (!strcmp(argv[i], "--script")) {
 			return fuji_connect_run_script(argv[i + 1]);
-		} else if (!strcmp(argv[i], "--test-wifi")) {
+		} else if (!strcmp(argv[i], "--raw")) {
+			return fudge_process_raf("/home/daniel/Pictures/DSCF2911.RAF", "output.jpg", NULL);
+		}
+
+		if (!strcmp(argv[i], "--test-wifi")) {
 			int rc = fudge_test_all_cameras();
 			plat_dbg("Result: %d\n", rc);
 			return rc;
@@ -91,6 +108,8 @@ int main(int argc, char **argv) {
 			return 1;
 		} else if (!strcmp(argv[i], "--help")) {
 			return help();
+		} else if (!strcmp(argv[i], "--backup")) {
+
 		} else {
 			printf("Invalid arg '%s'\n", argv[i]);
 			return -1;

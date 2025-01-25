@@ -8,6 +8,7 @@
 #include <ui.h>
 #include "safety.h"
 #include <app.h>
+#include <fuji_lua.h>
 #include "desktop.h"
 
 void uiToast(const char *format, ...) {}
@@ -126,8 +127,7 @@ static char *read_file(const char *filename) {
     return buffer;
 }
 
-static int onClosing(uiWindow *w, void *data)
-{
+static int onClosing(uiWindow *w, void *data) {
 	fudge_disconnect_all();
 	uiQuit();
 	return 1;
@@ -228,6 +228,7 @@ uiControl *about_tab(void) {
 	uiBox *box = uiNewVerticalBox();
 	uiBoxSetPadded(box, 1);
 
+#if 0
 	{
 		uiGroup *g = uiNewGroup("Fudge");
 		uiMultilineEntry *text = uiNewMultilineEntry();
@@ -257,6 +258,7 @@ uiControl *about_tab(void) {
 		uiGroupSetChild(g, uiControl(text));
 		uiBoxAppend(box, uiControl(g), 1);
 	}
+#endif
 
 	return uiControl(box);
 }
@@ -268,19 +270,21 @@ static uiControl *fudge_screen(void) {
 	uiBox *left = uiNewVerticalBox();
 	uiBoxSetPadded(left, 1);
 
-	uiGroup *connectivity = uiNewGroup("Connect");
+	//uiGroup *connectivity = uiNewGroup("Connect");
 	{
 		uiBox *hbox = uiNewVerticalBox();
 		uiBoxSetPadded(hbox, 1);
-		uiButton *btn = uiNewButton("USB");
-		uiControlSetTooltip(uiControl(btn), "Find a camera over USB and connect");
+		uiBoxAppend(hbox, uiControl(uiNewLabel("Connect to a camera to get started.")), 1);
+		uiButton *btn = uiNewButton("Connect to Camera");
+		uiControlSetTooltip(uiControl(btn), "Find a camera over USB or WiFi and connect");
 		uiButtonOnClicked(btn, usb_connect, NULL);
 		uiBoxAppend(hbox, uiControl(btn), 1);
-		uiBoxAppend(hbox, uiControl(uiNewButton("WiFi")), 1);
+//		uiBoxAppend(hbox, uiControl(uiNewButton("WiFi")), 1);
 		uiBoxAppend(hbox, uiControl(uiNewButton("Search for camera")), 1);
-		uiGroupSetChild(connectivity, uiControl(hbox));
+		//uiGroupSetChild(connectivity, uiControl(hbox));
+		uiBoxAppend(left, uiControl(hbox), 0);
 	}
-	uiBoxAppend(left, uiControl(connectivity), 0);
+	//uiBoxAppend(left, uiControl(connectivity), 0);
 
 	app.main_log = uiNewMultilineEntry();
 	uiMultilineEntrySetReadOnly(app.main_log, 1);
@@ -353,6 +357,7 @@ int fudge_main_ui(void) {
 		item = uiMenuAppendItem(menu, "Save");
 		item = uiMenuAppendPreferencesItem(menu);
 		item = uiMenuAppendQuitItem(menu);
+		menu = uiNewMenu("About");
 
 		menu = uiNewMenu("Connect");
 		item = uiMenuAppendItem(menu, "USB");

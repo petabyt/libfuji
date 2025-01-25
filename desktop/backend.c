@@ -148,6 +148,27 @@ int fuji_connect_run_script(const char *filename) {
 	// leak r
 }
 
+int fudge_cli_backup(const char *filename) {
+	struct PtpRuntime *r = ptp_new(PTP_USB);
+	int rc = fudge_usb_connect(r);
+	if (rc) return rc;
+
+	rc = fujiusb_setup(r);
+	if (rc) {
+		ptp_device_close(r);
+		return rc;
+	}
+
+	FILE *f = fopen(filename, "wb");
+	rc = fujiusb_download_backup(r, f);
+	fclose(f);
+
+	ptp_close_session(r);
+	ptp_device_close(r);
+
+	return rc;
+}
+
 int fudge_dump_usb(void) {
 	struct PtpRuntime *r = ptp_new(PTP_USB);
 	int rc = fudge_usb_connect(r);
@@ -199,6 +220,22 @@ int fudge_dump_usb(void) {
 		ptp_prop_desc_json(&pd, buffer, sizeof(buffer));
 		printf("%s\n", buffer);
 	}
+
+	ptp_close_session(r);
+	ptp_device_close(r);
+
+	return rc;
+}
+
+int fudge_process_raf(const char *input, const char *output, const char *profile) {
+	struct PtpRuntime *r = ptp_new(PTP_USB);
+	int rc = fudge_usb_connect(r);
+	if (rc) return rc;
+
+	rc = fujiusb_setup(r);
+	if (rc) return rc;
+
+	rc = fuji_process_raf(r, input, output, NULL);
 
 	ptp_close_session(r);
 	ptp_device_close(r);
