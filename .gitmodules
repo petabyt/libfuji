@@ -9,5 +9,5 @@
 	path = lib/camlib
 	url = git@github.com:petabyt/camlib.git
 [submodule "third_party/fp"]
-	path = third_party/fp
+	path = lib/fp
 	url = git@github.com:petabyt/fp.git
