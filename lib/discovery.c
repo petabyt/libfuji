@@ -94,7 +94,7 @@ static int connect_to_notify_server(struct DiscoveryState *s, char *ip, int port
 	if (select(server_fd + 1, NULL, &fdset, NULL, &tv) == 1) {
 		int so_error = 0;
 		socklen_t len = sizeof(so_error);
-		if (getsockopt(server_fd, SOL_SOCKET, SO_ERROR, &so_error, &len) < 0) {
+		if (getsockopt(server_fd, SOL_SOCKET, SO_ERROR, (void *)&so_error, &len) < 0) {
 			plat_dbg("Sockopt fail");
 			return -1;
 		}
@@ -128,7 +128,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 	server_addr.sin_addr.s_addr = INADDR_ANY;
 
 	int yes = 1;
-	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
+	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (const void *)&yes, sizeof(int)) < 0) {
 		plat_dbg("Failed to set sockopt");
 		return -1;
 	}
@@ -357,7 +357,7 @@ int fuji_open_tether_server(struct DiscoveryState *s, const char *local_ip) {
 	server_addr.sin_addr.s_addr = inet_addr(local_ip);
 
 	int yes = 1;
-	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
+	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (const void *)&yes, sizeof(int)) < 0) {
 		plat_dbg("Failed to set sockopt %d", errno);
 		return -1;
 	}
@@ -442,7 +442,7 @@ static int open_pcss(struct DiscoveryState *s) {
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
 	int b = 1;
-	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &b, sizeof(b)) < 0) {
+	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const void *)&b, sizeof(b)) < 0) {
 		return -1;
 	}
 

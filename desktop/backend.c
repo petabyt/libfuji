@@ -10,6 +10,7 @@
 #include <lua.h>
 #include <fuji_lua.h>
 #include <pthread.h>
+#include <fp.h>
 #include "desktop.h"
 
 static struct PtpRuntime *ptp = NULL;

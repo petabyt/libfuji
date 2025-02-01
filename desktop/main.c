@@ -104,6 +104,7 @@ void app_print(char *fmt, ...) {
 	va_start(args, fmt);
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
+	printf("app_print: %s\n", buffer);	
 }
 
 void tester_log(char *fmt, ...) {
@@ -131,11 +132,16 @@ void app_update_connected_status(int connected) {
 static int help(void) {
 	printf("Fudge 0.1.0\n");
 	printf("Compilation date: " __DATE__ "\n");
-	printf("  --list <device number>        List all PTP devices connected to this computer\n");
-	printf("  --dump-usb     Connect to the first available Fuji camera and dump all information\n");
-	printf("  --script <filename>       Execute a Lua script using fudge bindings\n");
+	printf("  --list <device number>\n");
+	printf("\tList all PTP devices connected to this computer\n");
+	printf("  --dump-usb\n");
+	printf("\tConnect to the first available Fuji camera and dump all information\n");
+	printf("  --script <filename>\n");
+	printf("\tExecute a Lua script using fudge bindings\n");
 	return 0;
 }
+
+int fudge_ui_backend(void);
 
 int main(int argc, char **argv) {
 	for (int i = 1; i < argc; i++) {
@@ -151,7 +157,11 @@ int main(int argc, char **argv) {
 		if (!strcmp(argv[i], "--script")) {
 			return fuji_connect_run_script(argv[i + 1]);
 		} else if (!strcmp(argv[i], "--raw")) {
-			return fudge_process_raf("/home/daniel/Pictures/DSCF2911.RAF", "output.jpg", NULL);
+			if (i + 3 > argc) {
+				printf("Invalid argument\n");
+				return -1;
+			}
+			return fudge_process_raf(argv[i + 1], argv[i + 2], argv[i + 3]);
 		}
 
 		if (!strcmp(argv[i], "--test-wifi")) {
@@ -172,6 +182,10 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 	}
+
+	//printf("TODO: Implement UI\n");
+
+	fudge_ui_backend();
 
 	return 0;
 }

@@ -8,6 +8,7 @@
 #include "app.h"
 #include "fuji.h"
 #include "fujiptp.h"
+#include <fp.h>
 
 int fuji_send_object_info_ex(struct PtpRuntime *r, int storage_id, int handle, struct PtpObjectInfo *oi) {
 	struct PtpCommand cmd;
@@ -327,9 +328,17 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 
 	ptp_verbose_log("Got %d bytes of profile\n", profile_len);
 
-	// Make modifications to profile...
+	uint8_t buffer[1024];
+	struct FujiProfile fp;
+	fp_parse_d185(profile, profile_len, &fp);
+	fp.FilmSimulation = FP_MonochromeG;
+	profile_len = fp_create_d185(&fp, buffer, sizeof(buffer));
+	if (profile_len < 0) {
+		printf("Error creating d185\n");
+		return -1;
+	}
 
-	rc = ptp_set_prop_value_data(r, PTP_DPC_FUJI_RawConvProfile, profile, profile_len);
+	rc = ptp_set_prop_value_data(r, PTP_DPC_FUJI_RawConvProfile, buffer, profile_len);
 	if (rc) return rc;
 
 	free(profile);
@@ -337,14 +346,28 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_StartRawConversion, 0);
 	if (rc) return rc;
 
-	struct PtpArray *list;
-	rc = ptp_get_object_handles(r, -1, 0, 0, &list);
-	if (rc) return rc;
+	for (int i = 0; i < 20; i++) {
+		struct PtpArray *list;
+		rc = ptp_get_object_handles(r, -1, 0, 0, &list);
+		if (rc) return rc;
 
-	if (list->length == 0) return 0;
+		if (list->length == 0) {
+			printf("Waiting..\n");
+			usleep(1000 * 1000);
+			free(list);
+		} else {
+			rc = ptp_get_object(r, (int) list->data[0]);
+			if (rc) return rc;
 
-	rc = ptp_get_object(r, (int)list->data[0]);
-	if (rc) return rc;
+			FILE *f = fopen(output_path, "wb");
+			fwrite(ptp_get_payload(r), 1, ptp_get_payload_length(r), f);
+			fclose(f);
+
+			free(list);
+
+			break;
+		}
+	}
 
 	return 0;
 }

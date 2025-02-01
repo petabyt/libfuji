@@ -97,9 +97,9 @@ static int mylua_send_operation(lua_State *L) {
 
 	int rc = 0;
 	if (data_array == NULL) {
-		rc = ptp_generic_send(r, &cmd);
+		rc = ptp_send(r, &cmd);
 	} else {
-		rc = ptp_generic_send_data(r, &cmd, data_array, data_length);
+		rc = ptp_send_data(r, &cmd, data_array, data_length);
 	}
 
 	lua_newtable(L);

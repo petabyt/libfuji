@@ -1,0 +1,7 @@
+include(FetchContent)
+set(HELLOIMGUI_BUILD_AUTOMATION_TEST OFF)
+set(HELLOIMGUI_ADD_APP_WITH_INSTALL OFF)
+set(HELLOIMGUI_USE_FREETYPE_PLUTOSVG OFF)
+set(HELLOIMGUI_USE_SDL2 ON)
+FetchContent_Declare(hello_imgui GIT_REPOSITORY https://github.com/pthom/hello_imgui.git GIT_TAG master)
+FetchContent_MakeAvailable(hello_imgui)

@@ -37,32 +37,21 @@ struct PtpIpBackend {
 
 //#define DUMP_COMM
 
-#ifdef WIN32
-static int set_nonblocking_io(int fd, int enable) {
-	//u_long mode = enable;
-	//ioctlsocket(fd, FIONBIO, &mode);
-	return 0;
-}
 
-static void set_receive_timeout(int fd, int sec) {
-	DWORD x = sec * 1000;
-	int rc = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &x, sizeof(x));
-	if (rc < 0) {
-		ptp_verbose_log("Failed to set rcvtimeo: %d", errno);
-	}
-}
-#else
 static void set_receive_timeout(int fd, int sec) {
 	struct timeval tv_rcv;
 	tv_rcv.tv_sec = sec;
 	tv_rcv.tv_usec = 0;
-	int rc = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv_rcv, sizeof(tv_rcv));
+	int rc = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const void *)&tv_rcv, sizeof(tv_rcv));
 	if (rc < 0) {
 		ptp_verbose_log("Failed to set rcvtimeo: %d", errno);
 	}
 }
 
 static int set_nonblocking_io(int fd, int enable) {
+#ifdef WIN32
+	return 0;
+#else
 	int flags = fcntl(fd, F_GETFL, 0);
 	if (flags == -1)
 		return -1;
@@ -74,8 +63,9 @@ static int set_nonblocking_io(int fd, int enable) {
 	}
 
 	return fcntl(fd, F_SETFL, flags);
-}
 #endif
+	return 0;
+}
 
 static int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec, struct NetworkHandle *handle) {
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -96,12 +86,12 @@ static int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec
 //		ptp_verbose_log("Failed to set keepalive: %d\n", errno);
 //	}
 
-	rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&yes, sizeof(int));
+	rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (const void *)&yes, sizeof(int));
 	if (rc < 0) {
 		ptp_verbose_log("Failed to set nodelay: %d\n", errno);
 	}
 
-	rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&yes, sizeof(int));
+	rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&yes, sizeof(int));
 	if (rc < 0) {
 		ptp_verbose_log("Failed to set reuseaddr: %d\n", errno);
 	}
@@ -152,7 +142,7 @@ static int ptpip_new_timeout_socket(const char *addr, int port, long timeout_sec
 
 	int so_error = 0;
 	socklen_t len = sizeof(so_error);
-	if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &so_error, &len) < 0) {
+	if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (void *)&so_error, &len) < 0) {
 		close(sockfd);
 		ptp_verbose_log("Failed to get socket options\n");
 		return -1;
