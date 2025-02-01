@@ -14,7 +14,7 @@ jobs:
       with:
         submodules: recursive
     - name: Install deps
-      run: sudo apt install gcc g++ git cmake liblua5.3-dev libusb-1.0-0-dev curl libexif-dev ninja-build libfreetype-dev libvulkan-dev libglfw3-dev libxml2-dev
+      run: sudo apt update && sudo apt install gcc g++ git cmake liblua5.3-dev libusb-1.0-0-dev curl libexif-dev ninja-build libfreetype-dev libvulkan-dev libglfw3-dev libxml2-dev
     - name: Checkout submodules
       run: git submodule update --init --recursive
     - name: Config
