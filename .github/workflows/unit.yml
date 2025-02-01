@@ -14,12 +14,14 @@ jobs:
       with:
         submodules: recursive
     - name: Install deps
-      run: sudo apt install liblua5.3-dev libusb-1.0-0-dev
+      run: sudo apt install gcc g++ git cmake liblua5.3-dev libusb-1.0-0-dev curl libexif-dev ninja-build libfreetype-dev libvulkan-dev libglfw3-dev libxml2-dev
     - name: Checkout submodules
       run: git submodule update --init --recursive
+    - name: Config
+      run: git config --global url."https://github.com/".insteadOf "git@github.com:"
     - name: Get latest vcam
       run: curl https://raw.githubusercontent.com/petabyt/vcam/master/install.sh | bash
     - name: Compile desktop
-      run: cd desktop && make TARGET=l fudge.out
+      run: cd desktop && cmake -G Ninja -B build && cmake --build build_win
     - name: Run desktop unit test
-      run: desktop/fudge.out --test-wifi
+      run: desktop/build/fudge --test-wifi
