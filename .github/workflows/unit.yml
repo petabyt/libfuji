@@ -20,7 +20,7 @@ jobs:
     - name: Config
       run: git config --global url."https://github.com/".insteadOf "git@github.com:"
     - name: Get latest vcam
-      run: sudo curl https://raw.githubusercontent.com/petabyt/vcam/master/install.sh | bash
+      run: sudo bash -c "curl https://raw.githubusercontent.com/petabyt/vcam/master/install.sh | bash"
     - name: Compile desktop
       run: cd desktop && cmake -G Ninja -B build && cmake --build build_win
     - name: Run desktop unit test
