@@ -22,6 +22,6 @@ jobs:
     - name: Get latest vcam
       run: sudo bash -c "curl https://raw.githubusercontent.com/petabyt/vcam/master/install.sh | bash"
     - name: Compile desktop
-      run: cd desktop && cmake -G Ninja -B build && cmake --build build_win
+      run: cd desktop && cmake -G Ninja -B build && cmake --build build
     - name: Run desktop unit test
       run: desktop/build/fudge --test-wifi
