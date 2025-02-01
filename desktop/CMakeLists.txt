@@ -25,7 +25,7 @@ elseif(UNIX)
     pkg_check_modules(LUA REQUIRED lua-5.3)
     pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
     pkg_check_modules(LIBXML2 REQUIRED libxml-2.0)
-    pkg_check_modules(SDL REQUIRED sdl3)
+    #pkg_check_modules(SDL REQUIRED sdl3)
     set(PLATFORM_SOURCES unix.c ci.c)
     if(NOT ANDROID)
         include(hello_imgui.cmake)
@@ -34,7 +34,9 @@ elseif(UNIX)
 endif()
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ ${CMAKE_CURRENT_BINARY_DIR}/lib)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/lua ${CMAKE_CURRENT_BINARY_DIR}/lua)
+#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/lua ${CMAKE_CURRENT_BINARY_DIR}/lua)
+
+#list(TRANSFORM FILES_TO_TRANSLATE PREPEND ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(SOURCES
     main.c jank.c backend.c imgui.cpp
