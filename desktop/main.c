@@ -141,23 +141,34 @@ static int help(void) {
 	return 0;
 }
 
-int fudge_ui_backend(void);
+int fudge_ui(void);
 
 int main(int argc, char **argv) {
+	int sel_dev = -1;
 	for (int i = 1; i < argc; i++) {
 		// Typical camlib CLI stuff
 		if (!strcmp(argv[i], "--list")) {
 			return ptp_list_devices();
-		} else if (!strcmp(argv[i], "--info")) {
+		}
+		if (!strcmp(argv[i], "--dev")) {
+			if (i + 1 >= argc) {
+				printf("Invalid argument\n");
+				return -1;
+			}
+			sel_dev = strtol(argv[i + 1], NULL, 10);
+			i++;
+			continue;
+		}
+		if (!strcmp(argv[i], "--info")) {
 			int dev_id = 0;
 			if (i + 2 <= argc) dev_id = atoi(argv[i + 1]);
 			return ptp_dump_device(dev_id);
 		}
-
 		if (!strcmp(argv[i], "--script")) {
 			return fuji_connect_run_script(argv[i + 1]);
-		} else if (!strcmp(argv[i], "--raw")) {
-			if (i + 3 > argc) {
+		}
+		if (!strcmp(argv[i], "--raw")) {
+			if (i + 3 >= argc) {
 				printf("Invalid argument\n");
 				return -1;
 			}
@@ -168,24 +179,24 @@ int main(int argc, char **argv) {
 			int rc = fudge_test_all_cameras();
 			plat_dbg("Result: %d\n", rc);
 			return rc;
-		} else if (!strcmp(argv[i], "--dump-usb")) {
+		}
+		if (!strcmp(argv[i], "--dump-usb")) {
 			return fudge_dump_usb();
-		} else if (!strcmp(argv[i], "--test-discovery")) {
+		}
+		if (!strcmp(argv[i], "--test-discovery")) {
 			fuji_test_discovery(ptp_new(PTP_USB));
 			return 1;
-		} else if (!strcmp(argv[i], "--help")) {
+		}
+		if (!strcmp(argv[i], "--help")) {
 			return help();
-		} else if (!strcmp(argv[i], "--backup")) {
-
-		} else {
-			printf("Invalid arg '%s'\n", argv[i]);
+		}
+		if (!strcmp(argv[i], "--backup")) {
 			return -1;
 		}
+
+		printf("Invalid arg '%s'\n", argv[i]);
+		return -1;
 	}
 
-	//printf("TODO: Implement UI\n");
-
-	fudge_ui_backend();
-
-	return 0;
+	return fudge_ui();
 }

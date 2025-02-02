@@ -1,12 +1,29 @@
-#include <hello_imgui/hello_imgui.h>
+#include <imgui.h>
+#include <stdlib.h>
+
+extern "C" int fudge_ui_backend(void *(*init_state)(), void (*renderer)(void *));
 
 struct State {
-	int x;
+	int state;
 };
 
-void render_gui(struct State *state) {
+extern "C" void *fudge_init_state(void) {
+	struct State *state = (struct State *)calloc(1, sizeof(struct State));
+	return state;
+}
+
+extern "C" void fudge_render_gui(void *arg) {
+	struct State *state = (struct State *)arg;
 	if (ImGui::BeginTabBar("Hello")) {
 		if (ImGui::BeginTabItem("Raw Conversion")) {
+			if (ImGui::BeginTable("split", 1))
+			{
+				ImGui::TableNextColumn();
+				ImGui::Text("Hello1");
+				ImGui::EndTable();
+			}
+
+#if 0
 			float avail_x = ImGui::GetContentRegionAvail().x;
 			float avail_y = ImGui::GetContentRegionAvail().y;
 
@@ -25,7 +42,7 @@ void render_gui(struct State *state) {
 			ImGui::BeginChild("RightPanel", ImVec2(avail_x * 0.2f - (ImGui::GetStyle().ItemSpacing.x * 2), avail_y), true);
 			ImGui::Text("Right panel content");
 			ImGui::EndChild();
-
+#endif
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("Connections")) {
@@ -35,16 +52,7 @@ void render_gui(struct State *state) {
 	}
 }
 
-void render_ctx(void) {
-	static struct State state = {0};
-	render_gui(&state);
-}
-
-extern "C" int fudge_ui_backend(void) {
-	HelloImGui::Run(
-		render_ctx,
-		"Fudge desktop",
-		false
-	);
+extern "C" int fudge_ui(void) {
+	fudge_ui_backend(fudge_init_state, fudge_render_gui);
 	return 0;
 }

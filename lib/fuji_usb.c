@@ -50,6 +50,11 @@ int fuji_send_object_ex(struct PtpRuntime *r, const void *data, size_t length) {
 	return ptp_send_data(r, &cmd, data, (int)length);
 }
 
+int fujiusb_dump_info(struct PtpRuntime *r) {
+	// TODO: move from backend.c
+	return 0;
+}
+
 int fujiusb_try_connect(struct PtpRuntime *r) {
 	fuji_reset_ptp(r);
 	r->connection_type = PTP_USB;
@@ -101,37 +106,24 @@ int fujiusb_setup(struct PtpRuntime *r) {
 
 	app_send_cam_name(di.model);
 
-	struct PtpArray *arr;
-	rc = ptp_get_storage_ids(r, &arr);
-	if (rc) return rc;
-
-	uint32_t live_id = 0;
-	uint32_t still_id = 0;
-	for (size_t i = 0; i < arr->length; i++) {
-		struct PtpStorageInfo si;
-		rc = ptp_get_storage_info(r, (int)arr->data[i], &si);
-		if (!strcmp(si.storage_desc, "Still")) {
-			live_id = arr->data[i];
-		} else if (!strcmp(si.storage_desc, "Live")) {
-			still_id = arr->data[i];
-		}
-	}
-
-	if (live_id != 0 && still_id != 0) {
-		fuji_get(r)->transport = FUJI_FEATURE_USB_TETHER_SHOOT;
-
-		// Check for backup file
-		struct PtpObjectInfo oi;
-		rc = ptp_get_object_info(r, 0, &oi);
-		if (rc == PTP_CHECK_CODE) return 0;
-		if (rc) return rc;
-		if (oi.obj_format == 0x5000) {
-			ptp_verbose_log("0x5000 backup object exists\n");
-			fuji_get(r)->transport = FUJI_FEATURE_RAW_CONV;
-		}
-
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_USBMode);
+	if (rc == PTP_CHECK_CODE) {
+		// This could also be FUJI_FEATURE_MOVIE_SHOOT
+		fuji_get(r)->transport = FUJI_FEATURE_USB_CARD_READER;
+	} else if (rc) {
+		return rc;
 	} else {
-		ptp_verbose_log("Not Raw Conv: %d %d\n", still_id, live_id);
+		int mode = ptp_parse_prop_value(r);
+		if (mode == 5) {
+			fuji_get(r)->transport = FUJI_FEATURE_USB_TETHER_SHOOT;
+		} else if (mode == 6) {
+			fuji_get(r)->transport = FUJI_FEATURE_RAW_CONV;
+		} else if (mode == 8) {
+			fuji_get(r)->transport = FUJI_FEATURE_WEBCAM;
+		} else {
+			ptp_verbose_log("Unknown Fuji USB mode %d, assuming MTP\n", mode);
+			fuji_get(r)->transport = FUJI_FEATURE_USB;
+		}
 	}
 
 	return rc;
@@ -296,20 +288,11 @@ int fuji_send_raf(struct PtpRuntime *r, const char *path) {
 
 int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const char *output_path, const char *profile_xml) {
 	int rc;
-	ptp_mutex_lock(r);
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_USBMode);
-	if (rc) {
-		ptp_mutex_unlock(r);
-		return rc;
-	}
-	int mode = ptp_parse_prop_value(r);
-	ptp_mutex_unlock(r);
 
-	if (mode != 6) {
-		ptp_verbose_log("Not in Raw Conv mode\n");
+	struct FujiDeviceKnowledge *f = fuji_get(r);
+	if (f->transport != FUJI_FEATURE_RAW_CONV) {
+		ptp_error_log("Not in raw transfer mode\n");
 		return PTP_RUNTIME_ERR;
-	} else {
-		ptp_verbose_log("In raw conv mode\n");
 	}
 
 	rc = fuji_send_raf(r, input_raf_path);
@@ -331,7 +314,22 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 	uint8_t buffer[1024];
 	struct FujiProfile fp;
 	fp_parse_d185(profile, profile_len, &fp);
-	fp.FilmSimulation = FP_MonochromeG;
+
+	struct FujiProfile user_fp;
+	rc = fp_parse_fp1(profile_xml, &user_fp);
+	if (rc == 0) {
+		fp.FilmSimulation = user_fp.FilmSimulation;
+		fp.Sharpness = user_fp.Sharpness;
+		fp.GrainEffect = user_fp.GrainEffect;
+		fp.HighlightTone = user_fp.HighlightTone;
+		fp.WhiteBalance = user_fp.WhiteBalance;
+		fp.GrainEffectSize = user_fp.GrainEffectSize;
+		fp.ChromeEffect = user_fp.ChromeEffect;
+	} else {
+		ptp_error_log("Failed to parse %s\n", profile_xml);
+		return 0;
+	}
+
 	profile_len = fp_create_d185(&fp, buffer, sizeof(buffer));
 	if (profile_len < 0) {
 		printf("Error creating d185\n");
@@ -362,6 +360,9 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 			FILE *f = fopen(output_path, "wb");
 			fwrite(ptp_get_payload(r), 1, ptp_get_payload_length(r), f);
 			fclose(f);
+
+			rc = ptp_delete_object(r, (int)list->data[0]);
+			if (rc) return rc;
 
 			free(list);
 

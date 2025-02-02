@@ -451,7 +451,7 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 		app_downloaded_file(&oi, buffer);
 
 		if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_TETHER) {
-			ptp_delete_object(r, (int)a->data[i], 0x0);
+			ptp_delete_object(r, (int)a->data[i]);
 		}
 
 		app_print("Done downloading.");

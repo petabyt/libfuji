@@ -212,14 +212,6 @@ int fudge_dump_usb(void) {
 		printf("%04x = %x\n", oi.props_supported[i], ptp_parse_prop_value(r));
 	}
 
-	struct PtpPropDesc pd;
-	rc = ptp_get_prop_desc(r, 0xd16e, &pd);
-	if (rc != PTP_CHECK_CODE) {
-		if (rc) return rc;
-		ptp_prop_desc_json(&pd, buffer, sizeof(buffer));
-		printf("%s\n", buffer);
-	}
-
 	ptp_close_session(r);
 	ptp_device_close(r);
 
@@ -234,7 +226,7 @@ int fudge_process_raf(const char *input, const char *output, const char *profile
 	rc = fujiusb_setup(r);
 	if (rc) return rc;
 
-	rc = fuji_process_raf(r, input, output, NULL);
+	rc = fuji_process_raf(r, input, output, profile);
 
 	ptp_close_session(r);
 	ptp_device_close(r);

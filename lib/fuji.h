@@ -155,6 +155,7 @@ int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port);
 
 /// Main entry function for all USB connections
 int fujiusb_try_connect(struct PtpRuntime *r);
+/// @brief Sets up PTP session and tries to detect USB mode (fills in f->transport)
 int fujiusb_setup(struct PtpRuntime *r);
 int fujitether_setup(struct PtpRuntime *r);
 
