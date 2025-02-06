@@ -3,12 +3,6 @@ app/release/*
 .gradle
 .idea
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
 .DS_Store
 /build
 /captures
@@ -22,3 +16,4 @@ local.properties
 *.exe
 *.d
 compile_commands.json
+desktop/build

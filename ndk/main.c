@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <string.h>
 #include <camlib.h>
-#include <android.h>
+#include "android.h"
 #include "fuji.h"
 #include "app.h"
 #include "backend.h"

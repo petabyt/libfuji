@@ -7,10 +7,17 @@ import android.content.Context;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
+import android.content.SharedPreferences;
 
 public class MySettings extends AppCompatActivity {
     //native static void handleSettingsButtons(Context x);
-    native static String getWPA2Password(Context x);
+    static String getWPA2Password(Context x) {
+        return ""; // TODO
+    }
+
+    static void setSetting(String key, String value) {
+        // TODO: Either bindings to jni_* functions or write them manually
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include <camlib.h>
-#include <android.h>
+#include "android.h"
 #if 0
 static uiMultilineEntry *script_box = NULL;
 

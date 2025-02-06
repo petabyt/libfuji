@@ -1,6 +1,5 @@
 // NDK backend for camlib
 // Copyright 2024 (c) Daniel C
-// TODO: ptpusb_free_device_list
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -11,7 +10,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include "app.h"
-#include <android.h>
+#include "android.h"
 
 struct PrivUSB {
 	jobject obj;

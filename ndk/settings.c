@@ -4,8 +4,8 @@
 #include <time.h>
 #include <string.h>
 #include <dlfcn.h>
-#include <android.h>
 #include <stdlib.h>
+#include "android.h"
 #include "app.h"
 #include "backend.h"
 
