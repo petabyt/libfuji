@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 include(ExternalProject)
 
-include(lua.cmake)
+include(cmake/lua.cmake)
 
-option(FUDGE_GET_HELLO_IMGUI "Download and compile using hello_imgui" ON)
-option(FUDGE_USE_SYSTEM_IMGUI "Use imgui and glfw/vulkan from OS" OFF)
+option(FUDGE_GET_HELLO_IMGUI "Download and compile using hello_imgui" OFF)
+option(FUDGE_USE_SYSTEM_IMGUI "Use imgui and glfw/vulkan from OS" ON)
 project(fudge)
 
 set(FUDGE ../lib)
@@ -23,7 +23,6 @@ if(WIN32)
         win.c
         win.rc
     )
-    include(libxml2.cmake)
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
@@ -31,7 +30,7 @@ elseif(UNIX)
 endif()
 
 if(FUDGE_GET_HELLO_IMGUI AND NOT ANDROID)
-    include(hello_imgui.cmake)
+    include(cmake/hello_imgui.cmake)
     set(IMGUI_LIBRARIES hello-imgui::hello_imgui)
     set(PLATFORM_SOURCES ${PLATFORM_SOURCES} hello_imgui.cpp)
 endif()
@@ -72,7 +71,7 @@ option(LIBXML2_WITH_XPATH "Add the XPATH support" OFF)
 option(LIBXML2_WITH_ZLIB "Use libz" OFF)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libxml2 ${CMAKE_CURRENT_BINARY_DIR}/libxml2)
 set(LIBXML2_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libxml2/include ${CMAKE_CURRENT_BINARY_DIR}/libxml2)
-set(LIBXML2_LIBRARIES ${CMAKE_CURRENT_BINARY_DIR}/libxml2/libxml2.a)
+set(LIBXML2_LIBRARIES LibXml2::LibXml2)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
@@ -87,7 +86,7 @@ set(SOURCES
 )
 
 add_executable(fudge ${SOURCES})
-target_link_libraries(fudge m stdc++ libfudge ${LIBUSB_LIBRARIES} ${LIBXML2_LIBRARIES} ${LUA_LIBRARIES} ${IMGUI_LIBRARIES} ${GLFW3_LIBRARIES} ${VULKAN_LIBRARIES})
+target_link_libraries(fudge m pthread stdc++ libfudge ${LIBUSB_LIBRARIES} ${LIBXML2_LIBRARIES} ${LUA_LIBRARIES} ${IMGUI_LIBRARIES} ${GLFW3_LIBRARIES} ${VULKAN_LIBRARIES})
 target_include_directories(fudge PRIVATE ${LIBUSB_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIRS} ${IMGUI_INCLUDE_DIRS})
 
 set(CMAKE_C_FLAGS
