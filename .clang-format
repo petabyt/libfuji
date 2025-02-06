@@ -1,59 +1,16 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
 UseTab: Always
-IndentWidth: 8
-TabWidth: 8
-ColumnLimit: 140
-AccessModifierOffset: -4
-BreakInheritanceList: AfterColon
-AlignAfterOpenBracket: Align
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: None
+ColumnLimit: 0
+IndentCaseLabels: false
+SpacesBeforeTrailingComments: 1
+SpaceAfterCStyleCast: false
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
-AlignEscapedNewlines: Left
-AlignOperands: false
-AllowAllArgumentsOnNextLine: true
-AllowAllParametersOfDeclarationOnNextLine: true
 AlignTrailingComments: false
-AllowShortBlocksOnASingleLine: true
-AllowShortFunctionsOnASingleLine: None
-AllowShortIfStatementsOnASingleLine: true
-AllowShortLoopsOnASingleLine: true
-AlwaysBreakAfterDefinitionReturnType: None
-AlwaysBreakAfterReturnType: None
-AlwaysBreakBeforeMultilineStrings: false
-AlwaysBreakTemplateDeclarations: false
-BinPackArguments: false
 BinPackParameters: false
-BraceWrapping:
-  AfterClass: false
-  AfterControlStatement: false
-  AfterEnum: false
-  AfterNamespace: true
-  AfterStruct: false
-  AfterUnion: false
-  AfterExternBlock: false
-  BeforeCatch: false
-  BeforeElse: false
-  IndentBraces: false
-  SplitEmptyFunction: true
-  SplitEmptyRecord: true
-  SplitEmptyNamespace: true
-BreakBeforeBinaryOperators: None
-BreakBeforeBraces: Custom
-BreakAfterJavaFieldAnnotations: false
-BreakStringLiterals: false
-ConstructorInitializerAllOnOneLineOrOnePerLine: false
-ConstructorInitializerIndentWidth: 8
-ContinuationIndentWidth: 8
-Cpp11BracedListStyle: false
-DerivePointerAlignment: false
-DisableFormat: false
-FixNamespaceComments: false
-IndentCaseLabels: false
-IndentGotoLabels: false
-IndentPPDirectives: None
-IndentWidth: 8
-IndentWrappedFunctionNames: false
-KeepEmptyLinesAtTheStartOfBlocks: false
-MacroBlockBegin: ''
-MacroBlockEnd: ''
-MaxEmptyLinesToKeep: 1
-NamespaceIndentation: None
+BinPackArguments: false
+PointerAlignment: Left
