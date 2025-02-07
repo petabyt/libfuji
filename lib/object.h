@@ -42,12 +42,15 @@ void ptp_object_service_add_priority(struct PtpRuntime *r, struct PtpObjectCache
 /// @brief Sort all objects in the list.
 void ptp_object_service_sort(struct PtpRuntime *r, struct PtpObjectCache *oc, enum PtpSortBy s);
 
-/// @brief Return length of list
+/// @brief Return length of list of objects the service is handling
 int ptp_object_service_length(struct PtpRuntime *r, struct PtpObjectCache *oc);
 
 /// @brief Get object handle at list index
 /// @returns -1 if invalid
 int ptp_object_service_get_handle_at(struct PtpRuntime *r, struct PtpObjectCache *oc, int index);
+
+/// @brief Updates the object info structure for a handle. Will call the update handler since it assumes the structure will be different.
+void ptp_object_service_set(struct PtpRuntime *r, struct PtpObjectCache *oc, int handle, struct PtpObjectInfo *oi);
 
 void ptp_free_object_service(struct PtpObjectCache *oc);
 

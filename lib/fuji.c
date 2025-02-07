@@ -230,7 +230,6 @@ int fuji_setup_remote_mode(struct PtpRuntime *r) {
 
 	const char *ip = fuji_get(r)->ip_address;
 
-	// TODO: Do this on another thread
 	rc = ptpip_connect_events(r, ip, FUJI_EVENT_IP_PORT);
 	if (rc) return rc;
 

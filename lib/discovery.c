@@ -15,6 +15,7 @@
 	#include <poll.h>
 	#include <arpa/inet.h>
 #endif
+#include <ptp.h>
 #include "app.h"
 #include "fuji.h"
 

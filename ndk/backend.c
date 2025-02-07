@@ -10,6 +10,7 @@
 #include "backend.h"
 #include "fuji.h"
 #include "fujiptp.h"
+#include "object.h"
 
 static struct DiscoverInfo fuji_discover_struct;
 
@@ -190,8 +191,15 @@ JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 
 		return ret;
 	} else {
+		// Patch for X-T30. ptp_get_thumbnail blocks forever unless this is called.
+		struct PtpObjectInfo oi;
+		int rc = ptp_get_object_info(r, (int)handle, &oi);
+		if (rc) return NULL;
+
+		ptp_object_service_set(r, r->oc, handle, &oi);
+
 		ptp_mutex_lock(r);
-		int rc = ptp_get_thumbnail(r, (int)handle);
+		rc = ptp_get_thumbnail(r, (int)handle);
 		if (rc == PTP_CHECK_CODE) {
 			plat_dbg("Thumbnail get failed: %x", ptp_get_return_code(r));
 			ptp_mutex_unlock(r);

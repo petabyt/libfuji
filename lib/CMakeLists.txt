@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 2.4.4...3.5.0)
 
 project(libfudge)
-option(LIBFUDGE_IMPORT_LIBXML "" ON)
-option(LIBFUDGE_IMPORT_LUA "" ON)
+option(LIBFUDGE_IMPORT_LIBXML "Include libxml2 from subrepo" ON)
+option(LIBFUDGE_IMPORT_LUA "Include Lua 5.3 from lua.cmake" ON)
+option(LIBFUDGE_IMPORT_FP "Include libfp from subrepo" ON)
 
 set(FUDGE_CORE
     fuji.c
@@ -58,8 +59,11 @@ if(LIBFUDGE_IMPORT_LIBXML)
     set(LIBXML2_LIBRARIES LibXml2::LibXml2)
 endif()
 
+if(LIBFUDGE_IMPORT_FP)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/fp ${CMAKE_CURRENT_BINARY_DIR}/fp)
+endif()
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/camlib ${CMAKE_CURRENT_BINARY_DIR}/camlib)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/fp ${CMAKE_CURRENT_BINARY_DIR}/fp)
 
 target_include_directories(libfudge PUBLIC ${PROJECT_SOURCE_DIR} ${LUA_INCLUDE_DIRS})
 target_link_libraries(libfudge PUBLIC libcamlib fp lua ${LUA_LIBRARIES})

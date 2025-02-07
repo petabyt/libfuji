@@ -35,12 +35,10 @@ struct PtpObjectCache {
 };
 
 static int sort_date_newest(const void *a, const void *b) {
-	// TODO: check null
 	return strcmp(((const struct CachedObject *)a)->info.date_created, ((const struct CachedObject *)a)->info.date_created);
 }
 
 static int sort_filename_a_z(const void *a, const void *b) {
-	// TODO: check null
 	return strcmp(((const struct CachedObject *)a)->info.filename, ((const struct CachedObject *)a)->info.filename);
 }
 
@@ -163,6 +161,23 @@ struct PtpObjectInfo *ptp_object_service_get(struct PtpRuntime *r, struct PtpObj
 	}
 	pthread_mutex_unlock(&oc->mutex);
 	return NULL;
+}
+
+void ptp_object_service_set(struct PtpRuntime *r, struct PtpObjectCache *oc, int handle, struct PtpObjectInfo *oi) {
+	pthread_mutex_lock(&oc->mutex);
+	for (int i = 0; i < oc->status_length; i++) {
+		if (oc->status[i]->handle == handle) {
+			memcpy(&oc->status[i]->info, oi, sizeof(struct PtpObjectInfo));
+			if (oc->status[i]->is_downloaded == 0) {
+				oc->num_downloaded++;
+				oc->status[i]->is_downloaded = 1;
+			}
+			// This assumes the new object info is different, so update the list
+			oc->callback(r, &oc->status[i]->info, oc->arg);
+			break;
+		}
+	}
+	pthread_mutex_unlock(&oc->mutex);
 }
 
 struct PtpObjectCache *ptp_create_object_service(int *handles, int length, ptp_object_found_callback *callback, void *arg) {

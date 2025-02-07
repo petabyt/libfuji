@@ -17,13 +17,15 @@ static int get_prop_size(uint16_t code) {
 }
 
 int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data) {
+	// 'Device info' holds all the different limits for different properties
+	// TODO: Seems like 'device info' should be renamed to something like PropLimits?
 	int of = 0;
 
 	uint32_t length;
 	of += ptp_read_u32(data + of, &length);
 
 	if (length > 500) {
-		ptp_panic("TOo many properties");
+		ptp_panic("Too many properties");
 		return -1;
 	}
 
