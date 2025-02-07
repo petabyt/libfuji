@@ -28,7 +28,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.jsibbold.zoomage.BuildConfig;
+import dev.danielc.fujiapp.BuildConfig;
 
 import java.io.InputStream;
 

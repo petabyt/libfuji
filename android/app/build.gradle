@@ -6,6 +6,10 @@ android {
     namespace 'dev.danielc.fujiapp'
     compileSdk 34
 
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId "dev.danielc.fujiapp"
         minSdk 23
