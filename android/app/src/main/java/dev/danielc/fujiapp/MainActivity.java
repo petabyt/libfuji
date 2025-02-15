@@ -337,7 +337,7 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                String password = MySettings.getWPA2Password(ctx);
+                String password = MySettings.getWPA2Password();
                 if (password.length() == 0) password = null;
                 int rc = tryConnect(0);
                 if (rc != 0) {

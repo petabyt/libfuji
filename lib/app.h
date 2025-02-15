@@ -1,7 +1,7 @@
 #ifndef APP_H
 #define APP_H
 
-#include <ptp.h>
+#include <camlib.h>
 
 /// @brief Send current camera name to UI
 void app_send_cam_name(const char *name);

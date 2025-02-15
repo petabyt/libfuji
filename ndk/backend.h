@@ -82,4 +82,8 @@ static inline jclass get_tester_class(JNIEnv *env) {
 	return (*env)->FindClass(env, "dev/danielc/fujiapp/Tester");
 }
 
+static inline jclass get_mysettings_class(JNIEnv *env) {
+	return (*env)->FindClass(env, "dev/danielc/fujiapp/MySettings");
+}
+
 #endif

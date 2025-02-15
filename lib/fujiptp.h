@@ -80,9 +80,11 @@ enum FujiTransport {
 #define PTP_DPC_FUJI_Unknown17		0xD621
 
 // Most of 0xdfxx appear to be version/revision properties
-#define PTP_DPC_FUJI_ImageGetVersion	0xdf21 // Another prop used for image related things
-#define PTP_DPC_FUJI_GetObjectVersion	0xdf22 // version for GetObjectInfo and GetObject behavior
-#define PTP_DPC_FUJI_AutoSaveVersion		0xdf23
+/// @brief Prop checked before doing image related things
+#define PTP_DPC_FUJI_ImageGetVersion	0xdf21
+/// @brief Property that differentiates behavior for GetObjectInfo and GetObject
+#define PTP_DPC_FUJI_GetObjectVersion	0xdf22
+#define PTP_DPC_FUJI_AutoSaveVersion	0xdf23
 #define PTP_DPC_FUJI_RemoteVersion	0xdf24
 #define PTP_DPC_FUJI_RemoteGetObjectVersion	0xdf25 // same as GetObjectVersion, but for cams that support remote mode
 // 0xdf26 and 0xdf27 appear to be unused
@@ -122,7 +124,7 @@ enum ClientStates {
 // Modes for SelectedImgsMode
 #define FUJI_SELECT_MULTIPLE_MODE_1 1
 
-// Camera states
+/// @brief Possible values of PTP_DPC_FUJI_CameraState
 enum FujiStates {
 	// We need to wait and poll camera for access
 	FUJI_WAIT_FOR_ACCESS = 0,
@@ -137,7 +139,14 @@ enum FujiStates {
 	FUJI_REMOTE_ACCESS = 6,
 };
 
-// ECs and PCs stuff from libgphoto2 ptp.h - most are inaccurate
+/// @brief Possible values for PTP_DPC_FUJI_USBMode
+enum FujiUSBModes {
+	FUJI_USB_MODE_TETHER = 5,
+	FUJI_USB_MODE_RAWCONV = 6,
+	FUJI_USB_MODE_WEBCAM = 8,
+};
+
+// ECs and PCs stuff from libgphoto2 ptp.h - most appear to be inaccurate or misplaced
 #define PTP_EC_FUJI_PreviewAvailable		0xC001
 #define PTP_EC_FUJI_ObjectAdded			0xC004
 
@@ -377,10 +386,9 @@ enum FujiStates {
 
 #define PTP_OF_FUJI_FFF1 0xFFF1
 
-// Packed structs mostly for reference
 #pragma pack(push, 1)
 
-struct FujiInitPacket {
+struct __attribute__((packed)) FujiInitPacket {
 	uint32_t length;
 	uint32_t type;
 	uint32_t version;
@@ -392,7 +400,7 @@ struct FujiInitPacket {
 };
 
 // Response to struct FujiInitPacket
-struct PtpFujiInitResp {
+struct __attribute__((packed)) PtpFujiInitResp {
 	uint32_t x1;
 	uint32_t x2;
 	uint32_t x3;
@@ -401,7 +409,7 @@ struct PtpFujiInitResp {
 };
 
 // Appears to be an array for events
-struct PtpFujiEvents {
+struct __attribute__((packed)) PtpFujiEvents {
 	uint16_t length;
 	struct PtpFujiEventsEntry {
 		uint16_t code;
@@ -411,7 +419,7 @@ struct PtpFujiEvents {
 
 // Looks very similar to standard ISO ObjectInfo, but random bits moved around.
 // variable data starts at same location.
-struct PtpFujiObjectInfo {
+struct __attribute__((packed)) PtpFujiObjectInfo {
 	uint32_t storage_id;
 	uint16_t obj_format;
 	uint16_t protection;
@@ -437,11 +445,11 @@ struct PtpFujiObjectInfo {
 	char meta[32];
 };
 
-struct PtpFujiObjectInfoTag {
+struct __attribute__((packed)) PtpFujiObjectInfoTag {
 	uint32_t file_sizes[22];
 };
 
-struct FujiD228 {
+struct __attribute__((packed)) FujiD228 {
 	// @note Max length is 64.
 	uint8_t length;
 	// @note Last item must be 0x0

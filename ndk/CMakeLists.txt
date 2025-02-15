@@ -22,7 +22,6 @@ add_library(fudge SHARED
 	camlib.c
 	usb.c
 	liveview.c
-	settings.c
 	android.c
 )
 target_compile_options(fudge

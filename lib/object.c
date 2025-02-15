@@ -76,13 +76,24 @@ int ptp_object_service_step(struct PtpRuntime *r, struct PtpObjectCache *oc) {
 
 	int curr = oc->curr;
 	for (int i = 0; i < oc->status_length; i++) {
+		if (curr == i) {
+			if (oc->status[i]->is_downloaded) {
+				// If current object has already been downloaded, skip to next
+				curr++;
+				if (!(curr < oc->status_length)) {
+					// If exhausted options, just give up
+					pthread_mutex_unlock(&oc->mutex);
+					return 0;
+				}
+			}
+		}
 		if (oc->status[i]->is_priority) {
 			curr = i;
 			break;
 		}
 	}
 
-	// Save the object so the list can be modified while downloading
+	// Save struct addr so the list can be modified while downloading
 	struct CachedObject *obj = oc->status[curr];
 	pthread_mutex_unlock(&oc->mutex);
 
@@ -173,7 +184,9 @@ void ptp_object_service_set(struct PtpRuntime *r, struct PtpObjectCache *oc, int
 				oc->status[i]->is_downloaded = 1;
 			}
 			// This assumes the new object info is different, so update the list
-			oc->callback(r, &oc->status[i]->info, oc->arg);
+			if (oc->callback) {
+				oc->callback(r, &oc->status[i]->info, oc->arg);
+			}
 			break;
 		}
 	}

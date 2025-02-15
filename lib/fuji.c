@@ -391,6 +391,39 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 	return rc;
 }
 
+int fuji_get_thumb(struct PtpRuntime *r, int handle, int *offset, int *length) {
+	(*offset) = 0;
+	(*length) = 0;
+	if (fuji_get(r)->transport == FUJI_FEATURE_AUTOSAVE) {
+		return ptp_get_partial_exif(r, handle, offset, length);
+	} else {
+		plat_dbg("fuji_get(r)->remote_version: %x", fuji_get(r)->remote_version);
+		if (fuji_get(r)->remote_version == 0x20007) {
+			// Patch for X-T30. ptp_get_thumbnail blocks forever unless this is called.
+			struct PtpObjectInfo oi;
+			int rc = ptp_get_object_info(r, (int) handle, &oi);
+			if (rc) return rc;
+
+			// Give it to the object service so it can be shown in UI
+			ptp_object_service_set(r, r->oc, handle, &oi);
+		}
+
+		int rc = ptp_get_thumbnail(r, (int)handle);
+		if (rc == PTP_CHECK_CODE) {
+			ptp_verbose_log("Thumbnail get failed: %x", ptp_get_return_code(r));
+			return 0;
+		} else if (rc) {
+			return rc;
+		} else if (ptp_get_payload_length(r) < 100) {
+			return 0; // ???, assume comms are okay
+		} else {
+			(*offset) = 0x0;
+			(*length) = ptp_get_payload_length(r);
+		}
+		return 0;
+	}
+}
+
 int fuji_begin_file_download(struct PtpRuntime *r) {
 	ptp_verbose_log("Beginning file download\n");
 	int rc = fuji_get_events(r);
@@ -617,7 +650,7 @@ int fuji_config_version_(struct PtpRuntime *r) {
 
 		int version = ptp_parse_prop_value(r);
 
-		fuji->image_view_version = version;
+		//fuji->image_view_version = version;
 
 		// The property must be set again (to it's own value) to tell the camera
 		// that the current version is supported - Fuji's app does this, so we assume it's necessary

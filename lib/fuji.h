@@ -64,10 +64,15 @@ struct FujiDeviceKnowledge {
 	int camera_state;
 	int selected_imgs_mode;
 
+	/// @brief Camera's initial value of PTP_DPC_FUJI_GetObjectVersion
 	int get_object_version;
+	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteGetObjectVersion
 	int remote_image_view_version;
-	int image_view_version;
+	/// @brief Camera's initial value of PTP_DPC_FUJI_GetObjectVersion
+	//int image_view_version;
+	/// @brief Camera's initial value of PTP_DPC_FUJI_ImageGetVersion
 	int image_get_version;
+	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteVersion
 	int remote_version;
 	int num_objects;
 	int open_capture_trans_id;
@@ -79,6 +84,11 @@ int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *in
 /// @brief Do a weird hack where we GetPartialObject on the first few kb of a file, then grab the thumbnail
 /// from the exif data. Not reliable.
 int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *length);
+
+/// @brief Get a jpeg thumbnail for an object, through whatever means possible
+/// Caller must wrap this in a mutex lock. Once returns, r->data will hold the thumb
+/// with bounds set by `offset` and `length`
+int fuji_get_thumb(struct PtpRuntime *r, int handle, int *offset, int *length);
 
 /// @brief Shut down a connection with an error code from struct PtpGeneralError. reason can be NULL. code can be zero for intentional disconnect
 /// @note Not a part of camlib
@@ -154,7 +164,8 @@ int fuji_download_classic(struct PtpRuntime *r);
 int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port);
 
 /// Main entry function for all USB connections
-int fujiusb_try_connect(struct PtpRuntime *r);
+/// @param num Index of device to connect to, -1 to connect to first available device
+int fujiusb_try_connect(struct PtpRuntime *r, int num);
 /// @brief Sets up PTP session and tries to detect USB mode (fills in f->transport)
 int fujiusb_setup(struct PtpRuntime *r);
 int fujitether_setup(struct PtpRuntime *r);
@@ -194,6 +205,6 @@ int fuji_send_object_ex(struct PtpRuntime *r, const void *data, size_t length);
 int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const char *output_path, const char *profile_xml);
 
 /// @brief CLI function to do quick conversion
-int fudge_process_raf(const char *input, const char *output, const char *profile);
+int fudge_process_raf(int devnum, const char *input, const char *output, const char *profile);
 
 #endif

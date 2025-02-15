@@ -11,13 +11,6 @@
 
 //#define SETTINGS_FUNC(ret, name) JNIEXPORT ret JNICALL Java_dev_danielc_fujiapp_SettingsActivity_##name
 
-char *app_get_client_name(void) {
-	return strdup("Fudge");
-}
-char *app_get_camera_ip(void) {
-	return strdup("192.168.0.1");
-}
-
 //int app_do_connect_without_wifi(void) {
 //	JNIEnv *env = get_jni_env();
 //	return jni_get_pref_int(env, "connect_without_wifi", 0);

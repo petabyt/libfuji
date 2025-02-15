@@ -176,48 +176,22 @@ JNI_FUNC(jstring, cFujiBeginDownloadGetObjectInfo)(JNIEnv *env, jobject thiz, ji
 JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 	set_jni_env(env);
 	struct PtpRuntime *r = ptp_get();
-	if (fuji_get(r)->transport == FUJI_FEATURE_AUTOSAVE) {
-		ptp_mutex_lock(r);
-		int length, offset;
-		int rc = ptp_get_partial_exif(r, handle, &offset, &length);
-		if (rc) {
-			ptp_mutex_unlock(r);
-			return (*env)->NewByteArray(env, 0);
-		}
 
-		jbyteArray ret = (*env)->NewByteArray(env, length);
-		(*env)->SetByteArrayRegion(env, ret, 0, length, (const jbyte *) ptp_get_payload(r) + offset);
-		ptp_mutex_unlock(r);
+	int offset, length;
+	ptp_mutex_lock(r);
 
-		return ret;
-	} else {
-		// Patch for X-T30. ptp_get_thumbnail blocks forever unless this is called.
-		struct PtpObjectInfo oi;
-		int rc = ptp_get_object_info(r, (int)handle, &oi);
-		if (rc) return NULL;
-
-		ptp_object_service_set(r, r->oc, handle, &oi);
-
-		ptp_mutex_lock(r);
-		rc = ptp_get_thumbnail(r, (int)handle);
-		if (rc == PTP_CHECK_CODE) {
-			plat_dbg("Thumbnail get failed: %x", ptp_get_return_code(r));
-			ptp_mutex_unlock(r);
-			return (*env)->NewByteArray(env, 0);
-		} else if (rc) {
-			ptp_mutex_unlock(r);
-			return NULL;
-		} else if (ptp_get_payload_length(r) < 100) {
-			ptp_mutex_unlock(r);
-			return (*env)->NewByteArray(env, 0);
-		}
-
-		jbyteArray ret = (*env)->NewByteArray(env, ptp_get_payload_length(r));
-		(*env)->SetByteArrayRegion(env, ret, 0, ptp_get_payload_length(r), (const jbyte *)(ptp_get_payload(r)));
-		ptp_mutex_unlock(r);
-
-		return ret;
+	int rc = fuji_get_thumb(r, handle, &offset, &length);
+	if (rc) {
+		return NULL;
 	}
+
+	// If error from fuji_get_thumb, array will be zero
+	jbyteArray ret = (*env)->NewByteArray(env, length);
+	(*env)->SetByteArrayRegion(env, ret, 0, length, (const jbyte *) ptp_get_payload(r) + offset);
+
+	ptp_mutex_unlock(r);
+
+	return ret;
 }
 
 JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz) {
@@ -312,7 +286,7 @@ JNI_FUNC(jint, cTryConnectWiFi)(JNIEnv *env, jobject thiz, jint extra_tmout) {
 JNI_FUNC(jint, cTryConnectUSB)(JNIEnv *env, jclass thiz, jobject ctx) {
 	set_jni_env_ctx(env, ctx);
 	struct PtpRuntime *r = ptp_get();
-	int rc = fujiusb_try_connect(r);
+	int rc = fujiusb_try_connect(r, 0);
 	return rc;
 }
 

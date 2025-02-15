@@ -72,7 +72,7 @@ public class Tester extends AppCompatActivity {
         findViewById(R.id.tester_select_wifi).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String password = MySettings.getWPA2Password(Tester.this);
+                String password = MySettings.getWPA2Password();
                 if (password.length() == 0) password = null;
                 if (wifi.connectToAccessPoint(Tester.this, password, Backend.matchAp) != 0) {
                     fail("Didn't select access point.");

@@ -306,3 +306,24 @@ void app_report_download_speed(long time, size_t size) {
 	(*env)->CallStaticVoidMethod(env, f, id, mbps);
 	(*env)->PopLocalFrame(env, NULL);
 }
+
+char *app_get_client_name(void) {
+	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 5);
+	jmethodID method = (*env)->GetStaticMethodID(env, get_mysettings_class(env), "getClientName", "()Ljava/lang/String;");
+	jstring res = (*env)->CallStaticObjectMethod(env, get_mysettings_class(env), method);
+	const char *res_cstr = (*env)->GetStringUTFChars(env, res, 0);
+	char *dup = strdup(res_cstr);
+	(*env)->PopLocalFrame(env, NULL);
+	return dup;
+}
+char *app_get_camera_ip(void) {
+	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 5);
+	jmethodID method = (*env)->GetStaticMethodID(env, get_mysettings_class(env), "getIPAddress", "()Ljava/lang/String;");
+	jstring res = (*env)->CallStaticObjectMethod(env, get_mysettings_class(env), method);
+	const char *res_cstr = (*env)->GetStringUTFChars(env, res, 0);
+	char *dup = strdup(res_cstr);
+	(*env)->PopLocalFrame(env, NULL);
+	return dup;
+}
