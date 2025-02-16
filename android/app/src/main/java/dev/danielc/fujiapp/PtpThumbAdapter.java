@@ -21,6 +21,7 @@ public class PtpThumbAdapter extends ThumbAdapter {
 
     @SuppressLint("NotifyDataSetChanged")
     public void sort() {
+        // TODO:
         notifyDataSetChanged();
     }
 

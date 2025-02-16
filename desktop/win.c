@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <winsock2.h>
+#include <windows.h>
 #include <ws2tcpip.h>
 #include <app.h>
 #include "desktop.h"

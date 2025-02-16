@@ -15,9 +15,9 @@ void fudge_disconnect_all(void);
 void *fudge_usb_connect_thread(void *arg);
 
 void *fudge_backup_settings(void *arg);
-int fudge_dump_usb(void);
-int fuji_connect_run_script(const char *filename);
-int fudge_cli_backup(const char *filename);
+int fudge_dump_usb(int devnum);
+int fuji_connect_run_script(int devnum, const char *filename);
+int fudge_cli_backup(int devnum, const char *filename);
 
 // Tests
 int fuji_test_discovery(struct PtpRuntime *r);

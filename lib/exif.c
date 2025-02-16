@@ -61,13 +61,13 @@ int exif_parse_ifd(struct ExifC *c, int of) {
 
 		switch (tag) {
 		case 0x0201:
-			c->thumb_of = c->exif_start + value_offset;
+			c->thumb_of = (int)(c->exif_start + value_offset);
 			continue;
 		case 0x0202:
-			c->thumb_size = value_offset;
+			c->thumb_size = (int)value_offset;
 			continue;
 		case 0x8769:
-			c->subifd = value_offset;
+			c->subifd = (int)value_offset;
 			continue;
 		}
 
@@ -113,7 +113,7 @@ int exif_start_entries(struct ExifC *c, int of) {
 	of += read_u16(c->buf + of, &version);
 	of += read_u32(c->buf + of, &offset);
 
-	of += offset - 8;
+	of += (int)offset - 8;
 
 	int rc = exif_parse_ifd(c, of);
 	if (rc < 0) return rc;

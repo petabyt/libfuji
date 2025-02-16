@@ -175,7 +175,7 @@ static struct PtpIpBackend *init_comm(struct PtpRuntime *r) {
 	}
 
 	// Max packet size for TCP
-	r->max_packet_size = 65535;
+	r->max_packet_size = 0xffff;
 
 	return (struct PtpIpBackend *)r->comm_backend;
 }
@@ -223,6 +223,7 @@ int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port) {
 }
 
 int ptpip_close(struct PtpRuntime *r) {
+	ptp_verbose_log("%s", __func__);
 	struct PtpIpBackend *b = init_comm(r);
 	if (b->fd) close(b->fd);
 	b->fd = 0;
@@ -234,6 +235,7 @@ int ptpip_close(struct PtpRuntime *r) {
 }
 
 int ptpip_cmd_write(struct PtpRuntime *r, void *data, int size) {
+	ptp_verbose_log("%s: %d\n", __func__, size);
 	if (r->io_kill_switch) {
 		ptp_verbose_log("WARN: kill switch on\n");
 		return -1;
@@ -270,6 +272,7 @@ int ptpip_cmd_write(struct PtpRuntime *r, void *data, int size) {
 }
 
 int ptpip_cmd_read(struct PtpRuntime *r, void *data, int size) {
+	ptp_verbose_log("%s: %d\n", __func__, size);
 	if (r->io_kill_switch) {
 		ptp_verbose_log("WARN: kill switch on\n");
 		return -1;

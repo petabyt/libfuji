@@ -1,29 +1,23 @@
 #include <imgui.h>
 #include <stdlib.h>
+#include <pthread.h>
+#include "backends/imgui_impl_glfw.h"
 
 extern "C" {
 	#include <fp.h>
+	#include <camlib.h>
+	#include "fudge_ui.h"
+	struct State fuji_state = {0};
 
-	struct State {
-		int state;
-		int selected_film_sim;
-	};
-
-	int fudge_ui_backend(void *(*init_state)(), void (*renderer)(void *));
+	int fudge_ui_backend(void (*renderer)());
 }
 
-extern "C" void *fudge_init_state(void) {
-	struct State *state = (struct State *)calloc(1, sizeof(struct State));
-	state->selected_film_sim = 0;
-	return state;
-}
-
-static void option(const char *name, struct FujiLookup *tbl, int *index) {
+static void option(const char *name, struct FujiLookup *tbl, uint32_t *index) {
 	if (ImGui::BeginCombo(name, tbl[(*index)].key, 0)) {
 		for (int i = 0; tbl[i].key != NULL; i++) {
 			const bool is_selected = ((*index) == i);
 			if (ImGui::Selectable(tbl[i].key, is_selected)) {
-				(*index) = i;
+				(*index) = (uint32_t)i;
 			}
 
 			if (is_selected) {
@@ -34,17 +28,17 @@ static void option(const char *name, struct FujiLookup *tbl, int *index) {
 	}
 }
 
-extern "C" void fudge_render_gui(void *arg) {
-	struct State *state = (struct State *)arg;
+void fudge_rawconv_screen(struct State *state) {
 	if (ImGui::BeginTabBar("Hello")) {
 		if (ImGui::BeginTabItem("Raw Conversion")) {
-			if (ImGui::BeginTable("split", 2))
-			{
+			if (ImGui::BeginTable("split", 2)) {
 				if (ImGui::TableNextColumn()) {
-					option("Film Simulation", fp_film_sim, &state->selected_film_sim);
-					option("Exposure Bias", fp_exposure_bias, &state->selected_film_sim);
-					option("Color", fp_range, &state->selected_film_sim);
-					option("Sharpness", fp_range, &state->selected_film_sim);
+					option("Film Simulation", fp_film_sim, &state->fp.FilmSimulation);
+					option("Exposure Bias", fp_exposure_bias, &state->fp.ExposureBias);
+					option("Color", fp_range, &state->fp.Color);
+					option("Sharpness", fp_range, &state->fp.Sharpness);
+					option("Grain Effect", fp_range, &state->fp.GrainEffect);
+					option("White Balance", fp_range, &state->fp.WhiteBalance);
 				}
 
 				if (ImGui::TableNextColumn()) {
@@ -83,7 +77,62 @@ extern "C" void fudge_render_gui(void *arg) {
 	}
 }
 
+extern "C" void fudge_render_gui(void) {
+	struct State *state = &fuji_state;
+	pthread_mutex_lock(state->mutex);
+
+	if (state->is_camera_connected) {
+		ImGui::Button("Disconnect");
+	} else {
+		ImGui::Button("Connect");
+		ImGui::BeginDisabled();
+	}
+
+	if (ImGui::BeginTable("table_share_lineheight", 1, ImGuiTableFlags_Borders)) {
+		ImGui::TableNextColumn();
+		ImGui::Text("Camera One");
+		ImGui::Text("Line 2");
+		ImGui::TableNextColumn();
+		ImGui::Text("Line 1");
+		ImGui::Text("Line 2");
+		ImGui::EndTable();
+	}
+
+	ImGui::Begin("JPEG preview");
+
+
+	ImGui::Text("TODO: Render");
+
+	ImGui::End();
+
+
+	if (ImGui::Button("Backup camera settings")) {
+
+	}
+	ImGui::Button("Backup camera settings");
+
+	if (!state->is_camera_connected) {
+		ImGui::EndDisabled();
+	}
+
+	pthread_mutex_unlock(state->mutex);
+}
+
 extern "C" int fudge_ui(void) {
-	fudge_ui_backend(fudge_init_state, fudge_render_gui);
+	fuji_state.is_camera_connected = false;
+	fuji_state.mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
+
+	struct PtpDeviceEntry *fake_entry1 = (struct PtpDeviceEntry *)malloc(sizeof(struct PtpDeviceEntry));
+	fake_entry1->endpoint_in = 0x81;
+	fake_entry1->endpoint_int = 0x81;
+	fake_entry1->endpoint_out = 0x1;
+	strcpy(fake_entry1->manufacturer, "Fuji Photo Film");
+	strcpy(fake_entry1->name, "X-T30 II");
+	fake_entry1->next = NULL;
+
+	fuji_state.camlib_entries = fake_entry1;
+
+	pthread_mutex_init(fuji_state.mutex, NULL);
+	fudge_ui_backend(fudge_render_gui);
 	return 0;
 }

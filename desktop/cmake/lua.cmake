@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 2.4.4...3.5.0)
 set(LUA_PATH ../third_party/lua/)
 project(lua)
 set(LUA_SRC lbaselib.c lauxlib.c lapi.c lcode.c lctype.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c ltests.c)

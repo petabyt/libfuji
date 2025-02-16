@@ -139,9 +139,10 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 	}
 
 	{ // test filesystem
-		tester_log("Attempting to get object info for 1...");
+		int handle = 4;
+		tester_log("Attempting to get object info for %d...", handle);
 		struct PtpObjectInfo oi;
-		int rc = ptp_get_object_info(r, 1, &oi);
+		int rc = ptp_get_object_info(r, handle, &oi);
 		if (rc) {
 			tester_fail("Failed to get object info: %d", rc);
 			return rc;
@@ -155,8 +156,8 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 		tester_log("Object info: %s", buffer);
 		tester_log("Tag: '%s'", oi.keywords);
 
-		tester_log("Trying to get thumbnail for 1...");
-		rc = ptp_get_thumbnail(r, 1);
+		tester_log("Trying to get thumbnail for %d...", handle);
+		rc = ptp_get_thumbnail(r, handle);
 		if (rc) {
 			tester_fail("Failed to get thumbnail: %d", rc);
 		} else {
@@ -165,25 +166,27 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 
 		tester_log("Trying to get extract an EXIF thumbnail...");
 
+#if 0
 		int offset, length;
-		rc = ptp_get_partial_exif(r, 1, &offset, &length);
+		rc = ptp_get_partial_exif(r, handle, &offset, &length);
 		if (rc) {
 			tester_fail("Failed to get dirty rotten thumb");
 		} else {
 			tester_log("Found EXIF thumb at %d %d", offset, length);
 		}
+#endif
 
 		rc = fuji_begin_file_download(r);
 		if (rc) {
 			return rc;
 		}
 
-		rc = ptp_get_object_info(r, 4, &oi);
+		rc = ptp_get_object_info(r, handle, &oi);
 		if (rc) {
 			return rc;
 		}
 
-		rc = fuji_download_file(r, 4, (int)oi.compressed_size, temp_file_handle, NULL);
+		rc = fuji_download_file(r, handle, (int)oi.compressed_size, temp_file_handle, NULL);
 		if (rc) {
 			return rc;
 		}

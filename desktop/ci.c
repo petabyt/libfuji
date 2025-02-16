@@ -30,7 +30,7 @@ int fudge_test_all_cameras_(const char *name) {
 	}
 
 	if (child_pid == 0) {
-		int rc = execlp("/usr/bin/vcam", "vcam", name, "tcp", "--ip", ip_addr, "--sig", thispid, NULL);
+		int rc = execlp("vcam", "vcam", name, "tcp", "--ip", ip_addr, "--sig", thispid, "--fs", "/home/daniel/Downloads/fuji_sd", NULL);
 		printf("Return value: %d\n", rc);
 		exit(0);
 	}

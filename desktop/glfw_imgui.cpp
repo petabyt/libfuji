@@ -379,17 +379,15 @@ static void FramePresent(ImGui_ImplVulkanH_Window* wd)
     wd->SemaphoreIndex = (wd->SemaphoreIndex + 1) % wd->ImageCount; // Now we can use the next set of semaphores
 }
 
-extern "C" int fudge_ui_backend(void *(*init_state)(), void (*renderer)(void *))
+extern "C" int fudge_ui_backend(void (*renderer)())
 {
-	void *state = init_state();
-
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
         return 1;
 
     // Create window with Vulkan context
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+Vulkan example", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "Fudge glfw", nullptr, nullptr);
     if (!glfwVulkanSupported())
     {
         printf("GLFW: Vulkan Not Supported\n");
@@ -506,7 +504,7 @@ extern "C" int fudge_ui_backend(void *(*init_state)(), void (*renderer)(void *))
 #endif
     	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     	ImGui::Begin("...", &open, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize);
-    	renderer(state);
+    	renderer();
 		ImGui::End();
     	ImGui::PopStyleVar(1);
 

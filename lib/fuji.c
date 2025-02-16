@@ -321,7 +321,7 @@ void app_report_download_speed(long i, size_t size);
 
 static uint8_t *my_add(void *arg, uint8_t *buffer, int new_len, int old_len) {
 	// Needs to be a new buffer
-	ptp_verbose_log("downloading more exif %d %d", new_len, old_len);
+	ptp_verbose_log("downloading more exif %d %d\n", new_len, old_len);
 	struct MyAddInfo *i = (struct MyAddInfo *)arg;
 	i->buffer = realloc(i->buffer, new_len);
 
@@ -364,7 +364,7 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 	c.get_more = my_add;
 
 	rc = exif_start_raw(&c);
-	ptp_verbose_log("Exif: %d", rc);
+	ptp_verbose_log("Exif: %d\n", rc);
 
 	if (c.thumb_of == 0 || c.thumb_size == 0) {
 		rc = PTP_RUNTIME_ERR;
@@ -373,7 +373,7 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 
 	*offset = c.thumb_of;
 	*length = c.thumb_size;
-	ptp_verbose_log("Exif thumb offset: %u size: %u", c.thumb_of, c.thumb_size);
+	ptp_verbose_log("Exif thumb offset: %u size: %u\n", c.thumb_of, c.thumb_size);
 
 	// Given transfer speed/camera speed 5 event calls is generally enough for the camera
 	// to not stop responding to object-related PTP commands
@@ -410,7 +410,7 @@ int fuji_get_thumb(struct PtpRuntime *r, int handle, int *offset, int *length) {
 
 		int rc = ptp_get_thumbnail(r, (int)handle);
 		if (rc == PTP_CHECK_CODE) {
-			ptp_verbose_log("Thumbnail get failed: %x", ptp_get_return_code(r));
+			ptp_verbose_log("Thumbnail get failed: %x\n", ptp_get_return_code(r));
 			return 0;
 		} else if (rc) {
 			return rc;
@@ -845,6 +845,9 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 	int rc = 0;
 
 	ptp_verbose_log("Going to download object #%d\n", handle);
+
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_CompressionCutOff);
+	if (rc) return rc;
 
 	ptp_mutex_lock(r);
 

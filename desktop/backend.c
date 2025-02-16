@@ -13,6 +13,8 @@
 #include <fp.h>
 #include "desktop.h"
 
+// todo: separate thread/desktop cli code, move pthread code to frontend
+
 static struct PtpRuntime *ptp = NULL;
 
 // TODO: System to manage a list of cameras connected
@@ -28,10 +30,10 @@ int cam_lua_setup(lua_State *L) {
 	return 0;
 }
 
-int fudge_usb_connect(struct PtpRuntime *r) {
+int fudge_usb_connect(struct PtpRuntime *r, int num) {
 	static int attempts = 0;
 	app_log_clear();
-	int rc = fujiusb_try_connect(r);
+	int rc = fujiusb_try_connect(r, num);
 	if (rc) {
 		const char *msg = "No Fujifilm device found";
 		if (attempts) {
@@ -70,6 +72,7 @@ int fudge_main_app_thread(struct PtpRuntime *r) {
 
 	struct PtpArray *arr;
 	rc = ptp_fuji_get_object_handles(r, &arr);
+	if (rc) return rc;
 	app_print("%d files on card", arr->length);
 
 	while (r->io_kill_switch == 0) {
@@ -89,7 +92,7 @@ void *fudge_backup_settings(void *arg) {
 
 void *fudge_usb_connect_thread(void *arg) {
 	struct PtpRuntime *r = ptp_new(PTP_USB);
-	int rc = fudge_usb_connect(r);
+	int rc = fudge_usb_connect(r, -1);
 	if (rc) goto exit;
 
 	app_update_connected_status(1);
@@ -127,7 +130,7 @@ static char *read_file(const char *filename) {
     return buffer;
 }
 
-int fuji_connect_run_script(const char *filename) {
+int fuji_connect_run_script(int devnum, const char *filename) {
 	const char *text = read_file(filename);
 	if (text == NULL) {
 		printf("%s not found\n", filename);
@@ -135,7 +138,7 @@ int fuji_connect_run_script(const char *filename) {
 	}
 
 	struct PtpRuntime *r = ptp_new(PTP_USB);	
-	int rc = fudge_usb_connect(r);
+	int rc = fudge_usb_connect(r, devnum);
 	if (rc) return rc;
 
 	rc = cam_run_lua_script_async(text);
@@ -147,9 +150,9 @@ int fuji_connect_run_script(const char *filename) {
 	// leak r
 }
 
-int fudge_cli_backup(const char *filename) {
+int fudge_cli_backup(int devnum, const char *filename) {
 	struct PtpRuntime *r = ptp_new(PTP_USB);
-	int rc = fudge_usb_connect(r);
+	int rc = fudge_usb_connect(r, devnum);
 	if (rc) return rc;
 
 	rc = fujiusb_setup(r);
@@ -168,9 +171,9 @@ int fudge_cli_backup(const char *filename) {
 	return rc;
 }
 
-int fudge_dump_usb(void) {
+int fudge_dump_usb(int devnum) {
 	struct PtpRuntime *r = ptp_new(PTP_USB);
-	int rc = fudge_usb_connect(r);
+	int rc = fudge_usb_connect(r, devnum);
 	if (rc) return rc;
 
 	rc = fujiusb_setup(r);
@@ -218,9 +221,9 @@ int fudge_dump_usb(void) {
 	return rc;
 }
 
-int fudge_process_raf(const char *input, const char *output, const char *profile) {
+int fudge_process_raf(int devnum, const char *input, const char *output, const char *profile) {
 	struct PtpRuntime *r = ptp_new(PTP_USB);
-	int rc = fudge_usb_connect(r);
+	int rc = fudge_usb_connect(r, devnum);
 	if (rc) return rc;
 
 	rc = fujiusb_setup(r);

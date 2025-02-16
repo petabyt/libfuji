@@ -132,10 +132,23 @@ void app_update_connected_status(int connected) {
 static int help(void) {
 	printf("Fudge 0.1.0\n");
 	printf("Compilation date: " __DATE__ "\n");
-	printf("  --list <device number>\n");
+	printf("  --list\n");
 	printf("\tList all PTP devices connected to this computer\n");
+	printf("  --dev <device number>\n");
+	printf("\tSelect a device to connect to instead of choosing the first available one.\n");
+
+	printf("  --dump-usb <input raf> <output jpeg path> <profile file>\n");
+	printf("\tDoes a Raw conversion based on information parsed from a FP1/FP2/FP3 file.\n");
+
+	printf("  --backup <output dat path>\n");
+	printf("\tBacks up camera settings to file.\n");
+
+	printf("  --restore <input dat path>\n");
+	printf("\tLoad camera settings from file.\n");
+
 	printf("  --dump-usb\n");
-	printf("\tConnect to the first available Fuji camera and dump all information\n");
+	printf("\tDump all info on a camera. If something goes wrong you may want to send this info to developers.\n");
+
 	printf("  --script <filename>\n");
 	printf("\tExecute a Lua script using fudge bindings\n");
 	return 0;
@@ -144,7 +157,7 @@ static int help(void) {
 int fudge_ui(void);
 
 int main(int argc, char **argv) {
-	int sel_dev = -1;
+	int devnum = -1;
 	for (int i = 1; i < argc; i++) {
 		// Typical camlib CLI stuff
 		if (!strcmp(argv[i], "--list")) {
@@ -155,7 +168,7 @@ int main(int argc, char **argv) {
 				printf("Invalid argument\n");
 				return -1;
 			}
-			sel_dev = strtol(argv[i + 1], NULL, 10);
+			devnum = strtol(argv[i + 1], NULL, 10);
 			i++;
 			continue;
 		}
@@ -165,14 +178,14 @@ int main(int argc, char **argv) {
 			return ptp_dump_device(dev_id);
 		}
 		if (!strcmp(argv[i], "--script")) {
-			return fuji_connect_run_script(argv[i + 1]);
+			return fuji_connect_run_script(devnum, argv[i + 1]);
 		}
 		if (!strcmp(argv[i], "--raw")) {
 			if (i + 3 >= argc) {
 				printf("Invalid argument\n");
 				return -1;
 			}
-			return fudge_process_raf(argv[i + 1], argv[i + 2], argv[i + 3]);
+			return fudge_process_raf(devnum, argv[i + 1], argv[i + 2], argv[i + 3]);
 		}
 
 		if (!strcmp(argv[i], "--test-wifi")) {
@@ -181,7 +194,7 @@ int main(int argc, char **argv) {
 			return rc;
 		}
 		if (!strcmp(argv[i], "--dump-usb")) {
-			return fudge_dump_usb();
+			return fudge_dump_usb(devnum);
 		}
 		if (!strcmp(argv[i], "--test-discovery")) {
 			fuji_test_discovery(ptp_new(PTP_USB));
