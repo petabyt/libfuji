@@ -81,13 +81,6 @@ int ptp_object_service_step(struct PtpRuntime *r, struct PtpObjectCache *oc) {
 				pthread_mutex_unlock(&oc->mutex);
 				oc->curr++;
 				return oc->status[i]->handle;
-//				// If current object has already been downloaded, skip to next
-//				curr++;
-//				if (!(curr < oc->status_length)) {
-//					// If exhausted options, just give up
-//					pthread_mutex_unlock(&oc->mutex);
-//					return 0;
-//				}
 			}
 		}
 		if (oc->status[i]->is_priority) {

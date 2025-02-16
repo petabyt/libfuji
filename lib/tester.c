@@ -139,11 +139,14 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 	}
 
 	{ // test filesystem
-		int handle = 4;
+		int handle = 1;
 		tester_log("Attempting to get object info for %d...", handle);
 		struct PtpObjectInfo oi;
 		int rc = ptp_get_object_info(r, handle, &oi);
-		if (rc) {
+		if (rc == PTP_CHECK_CODE && ptp_get_return_code(r) == PTP_RC_InvalidObjectHandle) {
+			tester_log("This object doesn't exist, exiting...");
+			return 0;
+		} else if (rc) {
 			tester_fail("Failed to get object info: %d", rc);
 			return rc;
 		} else {
