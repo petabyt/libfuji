@@ -26,3 +26,21 @@ Beta builds are published on [Google Play](https://play.google.com/store/apps/de
 - [ ] Implement Bluetooth communication
 - [ ] iOS port (see ios/)
 - [ ] Support landscape mode/chromeOS/etc
+
+## Compiling
+master branch may not compile, clone from the latest release instead.  
+### Compiling desktop app
+Desktop utility is still a work in progress.
+```
+cd desktop
+cmake -B build -G Ninja
+cmake --build build
+```
+Cross-compiling for Windows with mingw:
+```
+cmake -DCMAKE_TOOLCHAIN_FILE=cmake/mingw.cmake -G Ninja -B build_win
+cmake --build build_win
+```
+
+### Compiling Android
+Open android/ in Android Studio.
