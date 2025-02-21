@@ -24,6 +24,12 @@ add_library(fudge SHARED
 	liveview.c
 	android.c
 )
+
+message(${CMAKE_BUILD_TYPE})
+if(${CMAKE_BUILD_TYPE} STREQUAL "Release" OR ${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
+	target_compile_definitions(fudge PUBLIC BUILD_TYPE_RELEASE=1)
+endif()
+
 target_compile_options(fudge
     PRIVATE -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations
 )

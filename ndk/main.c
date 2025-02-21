@@ -81,7 +81,12 @@ void app_get_tether_file_path(char buffer[256]) {
 	(*env)->PopLocalFrame(env, NULL);
 }
 
-#define VERBOSE
+//#define VERBOSE
+#ifdef BUILD_TYPE_RELEASE
+	#ifdef VERBOSE
+		#error "Dev forgot to uncomment VERBOSE"
+	#endif
+#endif
 
 void ptp_verbose_log(char *fmt, ...) {
 #ifndef VERBOSE
