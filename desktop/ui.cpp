@@ -84,27 +84,17 @@ extern "C" void fudge_render_gui(void) {
 	if (state->is_camera_connected) {
 		ImGui::Button("Disconnect");
 	} else {
-		ImGui::Button("Connect");
+		if (ImGui::BeginTable("table_share_lineheight", 1, ImGuiTableFlags_Borders)) {
+			ImGui::TableNextColumn();
+			ImGui::Text("Camera One");
+			ImGui::Button("Connect");
+			ImGui::TableNextColumn();
+			ImGui::Text("Line 1");
+			ImGui::Button("Connect");
+			ImGui::EndTable();
+		}
 		ImGui::BeginDisabled();
 	}
-
-	if (ImGui::BeginTable("table_share_lineheight", 1, ImGuiTableFlags_Borders)) {
-		ImGui::TableNextColumn();
-		ImGui::Text("Camera One");
-		ImGui::Text("Line 2");
-		ImGui::TableNextColumn();
-		ImGui::Text("Line 1");
-		ImGui::Text("Line 2");
-		ImGui::EndTable();
-	}
-
-	ImGui::Begin("JPEG preview");
-
-
-	ImGui::Text("TODO: Render");
-
-	ImGui::End();
-
 
 	if (ImGui::Button("Backup camera settings")) {
 

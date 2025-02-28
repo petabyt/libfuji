@@ -112,7 +112,7 @@ void fuji_discovery_update_progress(void *arg, enum DiscoverUpdateMessages progr
 /// @brief Initializes allocations for Fuji PTP session
 int fuji_reset_ptp(struct PtpRuntime *r);
 
-/// @brief Setup the event/liveview sockets for remote mode
+/// @brief Set up the event/liveview sockets for remote mode
 int fuji_setup_remote_mode(struct PtpRuntime *r);
 
 /// @brief Main entry function for PTP/IP

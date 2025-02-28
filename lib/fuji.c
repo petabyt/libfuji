@@ -947,7 +947,7 @@ int fuji_download_classic(struct PtpRuntime *r) {
 int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 	if (r->connection_type == PTP_USB) {
-		return ptp_get_object_handles(r, 0xffffffff, 0x0, 0x0, a);
+		return ptp_get_object_handles(r, -1, 0x0, 0x0, a);
 	} else {
 		// By this point num_objects should be known
 		if (fuji->num_objects == 0 || fuji->num_objects == -1) {

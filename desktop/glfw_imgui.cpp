@@ -421,7 +421,7 @@ extern "C" int fudge_ui_backend(void (*renderer)())
 
 	io.IniFilename = NULL;
 	io.LogFilename = NULL;
-	io.FontGlobalScale = 1.7f;
+//	io.FontGlobalScale = 1.0f;
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -454,12 +454,8 @@ extern "C" int fudge_ui_backend(void (*renderer)())
     // - Read 'docs/FONTS.md' for more instructions and details.
     // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
     //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
-    //IM_ASSERT(font != nullptr);
+//    io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
+    io.Fonts->AddFontFromFileTTF("/usr/share/fonts/truetype/open-sans/OpenSans-Regular.ttf", 30.0f);
 
 	bool open = true;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);

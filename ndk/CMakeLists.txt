@@ -2,11 +2,6 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project(fudge)
 
-message(STATUS ${ANDROID})
-if(NOT ANDROID)
-	message(FATAL_ERROR "Platform is not android (${ANDROID}) (${CMAKE_ANDROID_ARCH_ABI})")
-endif()
-
 # libfudge
 option(PTP_USE_LIBUSB "" OFF)
 option(PTP_DEFAULT_LOGGING "" OFF)
@@ -25,7 +20,7 @@ add_library(fudge SHARED
 	android.c
 )
 
-message(${CMAKE_BUILD_TYPE})
+# Define BUILD_TYPE_RELEASE for release builds
 if(${CMAKE_BUILD_TYPE} STREQUAL "Release" OR ${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
 	target_compile_definitions(fudge PUBLIC BUILD_TYPE_RELEASE=1)
 endif()
@@ -39,8 +34,11 @@ find_library(android-lib android)
 find_library(egl-lib EGL)
 find_library(glesv2-lib GLESv2)
 find_library(glesv1-lib GLESv1_CM)
-target_link_libraries(fudge PRIVATE libfudge libjpeg-turbo ${log-lib}
-		${android-lib}
-		${egl-lib}
-		${glesv2-lib}
-		${glesv1-lib})
+target_link_libraries(fudge PRIVATE libfudge
+	libjpeg-turbo
+	${log-lib}
+	${android-lib}
+	${egl-lib}
+	${glesv2-lib}
+	${glesv1-lib}
+)

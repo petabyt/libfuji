@@ -211,5 +211,6 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	return fudge_ui();
+	//return fudge_ui();
+	return 0;
 }

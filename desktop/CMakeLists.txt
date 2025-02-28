@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
-option(FUDGE_GET_HELLO_IMGUI "Download and compile using hello_imgui" ON)
-option(FUDGE_USE_SYSTEM_IMGUI "Use imgui and glfw/vulkan from OS" OFF)
+option(FUDGE_GET_HELLO_IMGUI "Download and compile using hello_imgui" OFF)
+option(FUDGE_USE_SYSTEM_IMGUI "Use imgui and glfw/vulkan from OS" ON)
 project(fudge)
 
 set(FUDGE ../lib)
@@ -38,14 +38,14 @@ if(FUDGE_USE_SYSTEM_IMGUI AND UNIX)
     pkg_check_modules(IMGUI REQUIRED imgui)
     pkg_check_modules(GLFW3 REQUIRED glfw3)
     pkg_check_modules(VULKAN REQUIRED vulkan)
-    set(PLATFORM_SOURCES ${PLATFORM_SOURCES} glfw_imgui.cpp)
+    set(PLATFORM_SOURCES ${PLATFORM_SOURCES} glfw_imgui.cpp im.cpp)
 endif()
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 set(CAMLIB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/camlib/src)
 set(SOURCES
-    main.c jank.c backend.c ui.cpp
+    main.c jank.c backend.c ui2.c
     ${PLATFORM_SOURCES}
     ${CAMLIB_SOURCE_DIR}/lua/lua.c
     ${CAMLIB_SOURCE_DIR}/lua/lua-cjson/lua_cjson.c

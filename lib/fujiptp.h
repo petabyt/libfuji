@@ -399,6 +399,8 @@ struct __attribute__((packed)) FujiInitPacket {
 	char device_name[54]; // unicode string
 };
 
+_Static_assert(sizeof(struct FujiInitPacket) == 82, "fail");
+
 // Response to struct FujiInitPacket
 struct __attribute__((packed)) PtpFujiInitResp {
 	uint32_t x1;
@@ -407,6 +409,8 @@ struct __attribute__((packed)) PtpFujiInitResp {
 	uint32_t x4;
 	char cam_name[54];
 };
+
+_Static_assert(sizeof(struct PtpFujiInitResp) == 70, "fail");
 
 // Appears to be an array for events
 struct __attribute__((packed)) PtpFujiEvents {
@@ -444,6 +448,8 @@ struct __attribute__((packed)) PtpFujiObjectInfo {
 	char settings[32];
 	char meta[32];
 };
+
+_Static_assert(sizeof(struct PtpFujiObjectInfo) == 208, "fail");
 
 struct __attribute__((packed)) PtpFujiObjectInfoTag {
 	uint32_t file_sizes[22];
