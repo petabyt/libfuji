@@ -1,12 +1,12 @@
 # Fudge
-This is a cross-platform open-source alternative to Fujifilm's official camera app.
+This is a cross-platform open-source alternative to Fujifilm's official camera app.  
 
 <img src='fastlane/metadata/android/en-US/images/phoneScreenshots/1.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/2.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/4.png' width='250'>
 
 This app isn't finished yet, so don't set high expectations. Fuji's implementation of PTP/IP has many different quirks and bugs, so it's not easy to create a stable client that works for all cameras.
 
 ## Improvements over XApp / Camera Connect
-- Location and notification permissions are *not* required or requested
+- Location and notification permissions are *not* required or even requested
 - More responsive native UI
 - Slight performance improvements
 - USB-OTG connectivity support
@@ -28,9 +28,16 @@ Beta builds are published on [Google Play](https://play.google.com/store/apps/de
 - [ ] Support landscape mode/chromeOS/etc
 
 ## Compiling
-master branch may not compile, clone from the latest release instead.  
+master branch may not compile or may have unfinished changes. Clone from the last release instead.
+```
+git clone https://github.com/petabyt/fudge.git --depth 1 --branch 0.2.2 --recurse-submodules
+```
 ### Compiling desktop app
 Desktop utility is still a work in progress.
+```
+# Ubuntu deps:
+sudo apt install libusb-1.0-0-dev libimgui-dev libvulkan-dev libglfw3-dev
+```
 ```
 cd desktop
 cmake -B build -G Ninja
