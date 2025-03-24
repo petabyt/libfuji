@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-option(FUDGE_GET_HELLO_IMGUI "Download and compile using hello_imgui" OFF)
-option(FUDGE_USE_SYSTEM_IMGUI "Use imgui and glfw/vulkan from OS" ON)
+option(FUDGE_GET_HELLO_IMGUI "Download and compile using hello_imgui" ON)
 project(fudge)
 
 set(FUDGE ../lib)
@@ -29,33 +28,39 @@ elseif(UNIX)
 endif()
 
 if(FUDGE_GET_HELLO_IMGUI)
-    include(cmake/hello_imgui.cmake)
+    set(HELLOIMGUI_BUILD_AUTOMATION_TEST OFF)
+    set(HELLOIMGUI_ADD_APP_WITH_INSTALL OFF)
+    set(HELLOIMGUI_USE_FREETYPE_PLUTOSVG OFF)
+    set(HELLOIMGUI_USE_SDL2 OFF)
+    set(HELLOIMGUI_USE_GLFW3 ON)
+    set(HELLOIMGUI_HAS_VULKAN OFF)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/../../hello_imgui")
+        add_subdirectory(../../hello_imgui/ ${CMAKE_CURRENT_BINARY_DIR}/hello_imgui)
+        set(PLATFORM_SOURCES ${PLATFORM_SOURCES} hello_imgui.cpp)
+    else()
+        include(FetchContent)
+        FetchContent_Declare(hello_imgui GIT_REPOSITORY https://github.com/pthom/hello_imgui.git GIT_TAG master)
+        FetchContent_MakeAvailable(hello_imgui)
+    endif()
     set(IMGUI_LIBRARIES hello-imgui::hello_imgui)
-    set(PLATFORM_SOURCES ${PLATFORM_SOURCES} hello_imgui.cpp)
-endif()
-if(FUDGE_USE_SYSTEM_IMGUI AND UNIX)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(IMGUI REQUIRED imgui)
-    pkg_check_modules(GLFW3 REQUIRED glfw3)
-    pkg_check_modules(VULKAN REQUIRED vulkan)
-    set(PLATFORM_SOURCES ${PLATFORM_SOURCES} glfw_imgui.cpp im.cpp)
 endif()
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 set(CAMLIB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/camlib/src)
 set(SOURCES
-    main.c jank.c backend.c ui2.c
+    main.c jank.c backend.c ui.c im.cpp
     ${PLATFORM_SOURCES}
     ${CAMLIB_SOURCE_DIR}/lua/lua.c
     ${CAMLIB_SOURCE_DIR}/lua/lua-cjson/lua_cjson.c
     ${CAMLIB_SOURCE_DIR}/lua/lua-cjson/strbuf.c
 )
 
-set(CMAKE_C_FLAGS
-    "${CMAKE_C_FLAGS} -g -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations -Wstrict-aliasing=3"
-)
-
 add_executable(fudge ${SOURCES})
-target_link_libraries(fudge m libfudge ${PLATFORM_LIBS} ${LIBUSB_LIBRARIES} ${LIBXML2_LIBRARIES} ${LUA_LIBRARIES} ${IMGUI_LIBRARIES} ${GLFW3_LIBRARIES} ${VULKAN_LIBRARIES})
+target_compile_options(fudge PRIVATE
+    $<$<COMPILE_LANGUAGE:C>:
+        -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=implicit-function-declaration -Werror=incompatible-pointer-types -Werror=return-type -Werror=deprecated-declarations -Wstrict-aliasing=3
+    >
+)
+target_link_libraries(fudge m libfudge ${PLATFORM_LIBS} ${LIBUSB_LIBRARIES} ${LIBXML2_LIBRARIES} ${LUA_LIBRARIES} ${IMGUI_LIBRARIES})
 target_include_directories(fudge PRIVATE ${LIBUSB_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIRS} ${IMGUI_INCLUDE_DIRS})

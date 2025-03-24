@@ -1,22 +1,12 @@
 #ifndef IM_H
 #define IM_H
 
-#if 0
-
-im_combo_box("Choose an item");
-im_combo_box_item("1", &selected);
-im_combo_box_item("2", &selected);
-im_combo_box_item("3", &selected);
-im_end_combo_box();
-
-#endif
-
 int im_push_disabled(void);
 int im_pop_disabled(void);
 
-int im_combo_box(const char *label, int *selected);
-int im_combo_box_item(const char *label);
-int im_combo_box_end(void);
+int im_combo_box(const char *label, const char *preview);
+int im_add_combo_box_item(const char *label, int *selected);
+void im_end_combo_box(void);
 
 int im_checkbox_label(const char *label, int *checked);
 
