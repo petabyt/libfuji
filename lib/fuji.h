@@ -1,3 +1,5 @@
+/** \file */
+// Fudge implementations and app logic
 #ifndef FUJIAPP_FUJI_H
 #define FUJIAPP_FUJI_H
 #include <camlib.h>
@@ -24,7 +26,7 @@ enum DiscoverUpdateMessages {
 	FUJI_UM_GOT_FIRST_MESSAGE,
 	FUJI_UM_CONNECTING_TO_NOTIFY_SERVER,
 	FUJI_UM_STARTING_INVITE_SERVER,
-	FUJI_UM_CAMERA_CONNETED_TO_INVITE_SERVER,
+	FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER,
 	FUJI_UM_ALL_DONE,
 };
 
@@ -33,7 +35,8 @@ enum DiscoverRet {
 	FUJI_D_GO_PTP = 2,
 	FUJI_D_CANCELED = 3,
 	FUJI_D_IO_ERR = 4,
-	// TODO: In the case that Fuji's software prevents us from listening to the camera, let the user know to kill it
+	/// TODO: This should only be returned if Fuji's software (X Acquire, PC AutoSave) on another device connected to the camera before we could.
+	/// In that case, the app should let the user know that and how to prevent it (uninstall the software, etc)
 	FUJI_D_OPEN_DENIED = 5,
 	FUJI_D_INVALID_NETWORK = 6,
 };
@@ -68,8 +71,6 @@ struct FujiDeviceKnowledge {
 	int get_object_version;
 	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteGetObjectVersion
 	int remote_image_view_version;
-	/// @brief Camera's initial value of PTP_DPC_FUJI_GetObjectVersion
-	//int image_view_version;
 	/// @brief Camera's initial value of PTP_DPC_FUJI_ImageGetVersion
 	int image_get_version;
 	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteVersion
@@ -79,7 +80,7 @@ struct FujiDeviceKnowledge {
 };
 struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r);
 
-int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info);
+//int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info);
 
 /// @brief Do a weird hack where we GetPartialObject on the first few kb of a file, then grab the thumbnail
 /// from the exif data. Not reliable.
@@ -201,8 +202,8 @@ int fuji_send_object_info_ex(struct PtpRuntime *r, int storage_id, int handle, s
 int fuji_send_object_ex(struct PtpRuntime *r, const void *data, size_t length);
 
 /// @param input_raf_path Path for RAF file
-/// @param profile_xml String data for XML profile to be parsed by fp
-int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const char *output_path, const char *profile_xml);
+/// @param profile_xml_path String data for XML profile to be parsed by fp
+int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const char *output_path, const char *profile_xml_path);
 
 /// @brief CLI function to do quick conversion
 int fudge_process_raf(int devnum, const char *input, const char *output, const char *profile);

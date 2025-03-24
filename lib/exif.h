@@ -1,3 +1,5 @@
+/** \file */
+// Custom stream-based EXIF parser
 #ifndef EXIF_H
 #define EXIF_H
 

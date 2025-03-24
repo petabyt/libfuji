@@ -293,7 +293,7 @@ int fuji_send_raf(struct PtpRuntime *r, const char *path) {
 	return rc;
 }
 
-int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const char *output_path, const char *profile_xml) {
+int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const char *output_path, const char *profile_xml_path) {
 	int rc;
 
 	struct FujiDeviceKnowledge *f = fuji_get(r);
@@ -305,6 +305,7 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 	rc = fuji_send_raf(r, input_raf_path);
 	if (rc) return rc;
 
+	// Download the profile
 	ptp_mutex_lock(r);
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RawConvProfile);
 	if (rc) {
@@ -323,18 +324,16 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 	fp_parse_d185(profile, profile_len, &fp);
 
 	struct FujiProfile user_fp;
-	rc = fp_parse_fp1(profile_xml, &user_fp);
+	rc = fp_parse_fp1(profile_xml_path, &user_fp);
 	if (rc == 0) {
-		fp.FilmSimulation = user_fp.FilmSimulation;
-		fp.Sharpness = user_fp.Sharpness;
-		fp.GrainEffect = user_fp.GrainEffect;
-		fp.HighlightTone = user_fp.HighlightTone;
-		fp.WhiteBalance = user_fp.WhiteBalance;
-		fp.GrainEffectSize = user_fp.GrainEffectSize;
-		fp.ChromeEffect = user_fp.ChromeEffect;
+		rc = fp_apply_profile(&user_fp, &fp);
+		if (rc) {
+			ptp_error_log("Failed to merge profile\n");
+			return PTP_RUNTIME_ERR;
+		}
 	} else {
-		ptp_error_log("Failed to parse %s\n", profile_xml);
-		return 0;
+		ptp_error_log("Failed to parse %s\n", profile_xml_path);
+		return PTP_RUNTIME_ERR;
 	}
 
 	profile_len = fp_create_d185(&fp, buffer, sizeof(buffer));

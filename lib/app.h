@@ -1,3 +1,6 @@
+/// @file
+/// Layer for Fudge frontend
+
 #ifndef APP_H
 #define APP_H
 
@@ -40,14 +43,15 @@ void app_get_tether_file_path(char buffer[256]);
 /// @brief Check if the current downloader thread has been marked as canceled
 int app_check_thread_cancel(void);
 
-/// @brief Pings the frontned when a file is going to be downloaded
+/// @brief For backend to notify frontend a file is being downloaded
 void app_downloading_file(const struct PtpObjectInfo *oi);
 
-/// @brief Pings the frontend when a file has been downloaded
+/// @brief For backend to notify frontend a file has been downloaded
 void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path);
 
 struct NetworkHandle {
 	long long android_fd;
+	/// @brief 1 if this handle should be ignored and the default socket state should be used instead
 	int ignore;
 };
 

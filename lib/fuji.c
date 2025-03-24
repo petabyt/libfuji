@@ -74,6 +74,7 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	}
 }
 
+// New function to connect from struct instead of passing in IP/port/etc
 int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info) {
 	fuji_reset_ptp(r);
 	strncpy(fuji_get(r)->ip_address, info->camera_ip, 64);
@@ -572,7 +573,7 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 			return 0;
 		}
 
-		CAMLIB_SLEEP(100);
+		PTP_SLEEP(100);
 	}
 }
 

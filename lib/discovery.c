@@ -175,7 +175,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 
 	plat_dbg("invite server: Connection accepted from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-	fuji_discovery_update_progress(NULL, FUJI_UM_CAMERA_CONNETED_TO_INVITE_SERVER);
+	fuji_discovery_update_progress(NULL, FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER);
 
 	// We don't really care about this info
 	char buffer[1024];

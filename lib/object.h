@@ -1,3 +1,5 @@
+/// @file
+/// ObjectInfo cache and download background service
 #ifndef OBJECT_H
 #define OBJECT_H
 

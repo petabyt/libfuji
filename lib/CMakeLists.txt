@@ -66,6 +66,6 @@ endif()
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/camlib ${CMAKE_CURRENT_BINARY_DIR}/camlib)
 
 target_include_directories(libfudge PUBLIC ${PROJECT_SOURCE_DIR} ${LUA_INCLUDE_DIRS})
-target_link_libraries(libfudge PUBLIC libcamlib fp lua ${LUA_LIBRARIES})
+target_link_libraries(libfudge PUBLIC libpict fp lua ${LUA_LIBRARIES})
 target_compile_definitions(libfudge PUBLIC ${LUA_CFLAGS_OTHER})
 set_target_properties(libfudge PROPERTIES OUTPUT_NAME libfudge)

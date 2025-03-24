@@ -1,27 +1,29 @@
-// Fuji PTP extension defs
+/// @file
+/// This file (tries to) describes all of Fuji's PTP vendor extensions
 #ifndef FUJIPTP_H
 #define FUJIPTP_H
 
 #define FUJI_PROTOCOL_VERSION 0x8f53e4f2
 
+/// @brief All of Fuji's protocols/transport features
 enum FujiTransport {
-	/// 'PLAY BACK MENU' -> 'PC AUTO SAVE'
+	/// @brief 'PLAY BACK MENU' -> 'PC AUTO SAVE'
 	FUJI_FEATURE_AUTOSAVE = 1,
-	/// 'WIRELESS TETHER SHOOTING FIXED'
+	/// @brief 'WIRELESS TETHER SHOOTING FIXED'
 	FUJI_FEATURE_WIRELESS_TETHER = 2,
-	/// 'WIRELESS COMMUNICATION' or 'WIRELESS TRANSFER'
+	/// @brief 'WIRELESS COMMUNICATION' or 'WIRELESS TRANSFER'
 	FUJI_FEATURE_WIRELESS_COMM = 3,
-	/// 'USB CARD READER'
+	/// @brief 'USB CARD READER'
 	FUJI_FEATURE_USB_CARD_READER = 4,
-	/// 'USB TETHER SHOOTING FIXED/AUTO'
+	/// @brief 'USB TETHER SHOOTING FIXED/AUTO'
 	FUJI_FEATURE_USB_TETHER_SHOOT = 5,
-	/// 'USB RAW CONV./BACKUP RESTORE'
+	/// @brief 'USB RAW CONV./BACKUP RESTORE'
 	FUJI_FEATURE_RAW_CONV = 6,
-	/// Generic PTP/USB of unknown feature, assume MTP
+	/// @brief Generic PTP/USB of unknown feature, assume MTP
 	FUJI_FEATURE_USB = 7,
-	/// Recently added 'X WEBCAM' mode
+	/// @brief Recently added 'X WEBCAM' mode
 	FUJI_FEATURE_WEBCAM = 8,
-	/// 'USB MOVIE SHOOTING FIXED/AUTO'
+	/// @brief 'USB MOVIE SHOOTING FIXED/AUTO'
 	FUJI_FEATURE_MOVIE_SHOOT = 9,
 };
 
@@ -33,6 +35,12 @@ enum FujiTransport {
 #define PTP_OC_FUJI_SendObjectInfo	0x900c // create file
 #define PTP_OC_FUJI_SendObject2		0x900d // Appears to be the same as 901d
 #define PTP_OC_FUJI_SendObject		0x901d // write to file
+
+
+/// @defgroup Device Property Codes
+/// @brief All the Fuji vendor codes defined in libfudge
+/// @addtogroup DPC
+/// @{
 
 #define PTP_DPC_FUJI_EventsList		0xd212
 #define PTP_DPC_FUJI_SelectedImgsMode	0xd220
@@ -383,6 +391,8 @@ enum FujiUSBModes {
 #define PTP_OC_FUJI_FmSendObjectInfo			0x9040
 #define PTP_OC_FUJI_FmSendObject			0x9041
 #define PTP_OC_FUJI_FmSendPartialObject			0x9042
+
+/** @}*/
 
 #define PTP_OF_FUJI_FFF1 0xFFF1
 

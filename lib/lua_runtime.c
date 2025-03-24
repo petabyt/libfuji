@@ -101,7 +101,7 @@ lua_State *cam_lua_state(void) {
 int cam_run_lua_script(const char *buffer) {
 	lua_State *L = cam_lua_state();
 	if (L == NULL) {
-		snprintf(error_buffer, sizeof(error_buffer), "Reached max concurrent Lua tasks");
+		snprintf(error_buffer, sizeof(error_buffer), "Failed to init lua");
 		return -1;
 	}
 

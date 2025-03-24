@@ -270,22 +270,20 @@ int fuji_test_setup(struct PtpRuntime *r) {
 	if (rc) {
 		tester_fail("Failed to initialize command socket");
 		return rc;
-	} else {
-		tester_log("Initialized command socket");
 	}
+	tester_log("Initialized command socket");
 
 	tester_log("Connected to %s", resp.cam_name);
 
 	tester_log("sleep 500ms for good measure...");
-	CAMLIB_SLEEP(500);
+	PTP_SLEEP(500);
 
 	rc = ptp_open_session(r);
 	if (rc) {
 		tester_fail("Failed to open session");
 		return rc;
-	} else {
-		tester_log("Opened session");
 	}
+	tester_log("Opened session");
 
 	// This has already been tested extensively, no need
 	rc = fuji_test_get_props(r);
