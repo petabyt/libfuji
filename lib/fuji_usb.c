@@ -175,19 +175,6 @@ int fujiusb_download_backup(struct PtpRuntime *r, FILE *f) {
 		return PTP_UNSUPPORTED;
 	}
 
-	/*
-	For some bizarre reason, Fuji X Acquire ended up doing something like:
-	struct PtpDeviceInfo di;
-	for (int i = 0; i < 20; i++) {
-		rc = ptp_get_device_info(r, &di);
-		rc = ptp_get_prop_value(r, 0xd20b);
-	}
-	struct PtpObjectInfo oi;
-	rc = ptp_get_object_info(r, 0, &oi);
-	rc = ptp_get_object_info(r, 0, &oi);
-	Before running GetObject. I'm guessing they have a background thread running GetDeviceInfo and GetPropValue 0xd20b.
-	*/
-
 	ptp_mutex_lock(r);
 
 	struct PtpObjectInfo oi;
@@ -200,13 +187,53 @@ int fujiusb_download_backup(struct PtpRuntime *r, FILE *f) {
 
 	rc = ptp_get_object(r, 0);
 	if (rc) goto end;
-	plat_dbg("Downloaded payload %d bytes\n", ptp_get_payload_length(r));
+	plat_dbg("Downloaded payload %d bytes", ptp_get_payload_length(r));
 
 	fwrite(ptp_get_payload(r), 1, ptp_get_payload_length(r), f);
 
 	end:;
 	ptp_mutex_lock(r);
 
+	return rc;
+}
+
+int fujiusb_restore_backup(struct PtpRuntime *r, FILE *input) {
+	fseek(input, 0, SEEK_END);
+	long file_size = ftell(input);
+	fseek(input, 0, SEEK_SET);
+	if (file_size > 100000) {
+		printf("Backup file seems to be too big, is the path correct?\n");
+		return -1;
+	}
+
+	struct PtpObjectInfo oi = {0};
+	oi.obj_format = 0x5000;
+	oi.compressed_size = (uint32_t)file_size;
+
+	uint8_t buf[1088] = {0};
+	int of = 0;
+	of += ptp_write_u32(buf + of, 0);
+	of += ptp_write_u16(buf + of, 0x5000);
+	of += ptp_write_u16(buf + of, 0);
+	of += ptp_write_u32(buf + of, (uint32_t)file_size);
+
+	//int rc = ptp_send_object_info(r, 0, 0, &oi);
+	struct PtpCommand cmd;
+	cmd.code = PTP_OC_SendObjectInfo;
+	cmd.param_length = 2;
+	cmd.params[0] = 0;
+	cmd.params[1] = 0;
+	int rc = ptp_send_data(r, &cmd, buf, 1088);
+	if (rc) return rc;
+
+	void *buffer = (void *)malloc(file_size + 1);
+	if (buffer == NULL) abort();
+
+	if (fread(buffer, 1, file_size, input) != file_size) {
+		ptp_error_log("Error reading backup file");
+	}
+
+	rc = ptp_send_object(r, buffer, file_size);
 	return rc;
 }
 
@@ -296,8 +323,8 @@ int fuji_send_raf(struct PtpRuntime *r, const char *path) {
 int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const char *output_path, const char *profile_xml_path) {
 	int rc;
 
-	struct FujiDeviceKnowledge *f = fuji_get(r);
-	if (f->transport != FUJI_FEATURE_RAW_CONV) {
+	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	if (fuji->transport != FUJI_FEATURE_RAW_CONV) {
 		ptp_error_log("Not in raw transfer mode\n");
 		return PTP_RUNTIME_ERR;
 	}

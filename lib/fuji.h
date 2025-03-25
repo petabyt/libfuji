@@ -208,4 +208,9 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 /// @brief CLI function to do quick conversion
 int fudge_process_raf(int devnum, const char *input, const char *output, const char *profile);
 
+int fudge_download_backup(int devnum, const char *output);
+int fudge_restore_backup(int devnum, const char *output);
+
+int fujiusb_restore_backup(struct PtpRuntime *r, FILE *input);
+
 #endif

@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include <camlib.h>
 #include <fuji.h>
 #include <app.h>
@@ -9,7 +8,6 @@
 #include <signal.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <errno.h>
 #include "desktop.h"
 
 void nothing(int x) {}

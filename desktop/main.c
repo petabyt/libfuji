@@ -17,6 +17,8 @@
 #include <fujiptp.h>
 #include "desktop.h"
 
+#include <fp.h>
+
 void ptp_verbose_log(char *fmt, ...) {
 	printf("PTP: ");
 	va_list args;
@@ -72,7 +74,7 @@ int fuji_discovery_check_cancel(void *arg) {
 }
 
 void app_send_cam_name(const char *name) {
-
+	printf("Camera name: %s\n", name);
 }
 
 void fuji_discovery_update_progress(void *arg, enum DiscoverUpdateMessages progress) {
@@ -180,14 +182,29 @@ int main(int argc, char **argv) {
 		if (!strcmp(argv[i], "--script")) {
 			return fuji_connect_run_script(devnum, argv[i + 1]);
 		}
+		if (!strcmp(argv[i], "--parse-fp")) {
+			if (i + 1 >= argc) {
+				printf("Invalid argument\n");
+				return -1;
+			}
+			struct FujiProfile fp;
+			int rc = fp_parse_fp1(argv[i + 1], &fp);
+			if (rc) {
+				printf("Error parsing profile: '%s'\n", fp_get_error());
+				return rc;
+			}
+			fp_dump_struct(stdout, &fp);
+			printf("\n");
+
+			return 0;
+		}
 		if (!strcmp(argv[i], "--raw")) {
 			if (i + 3 >= argc) {
-				printf("Invalid argument\n");
+				printf("%s --raw <input> <output> <profile>\n", argv[0]);
 				return -1;
 			}
 			return fudge_process_raf(devnum, argv[i + 1], argv[i + 2], argv[i + 3]);
 		}
-
 		if (!strcmp(argv[i], "--test-wifi")) {
 			int rc = fudge_test_all_cameras();
 			plat_dbg("Result: %d\n", rc);
@@ -204,6 +221,19 @@ int main(int argc, char **argv) {
 			return help();
 		}
 		if (!strcmp(argv[i], "--backup")) {
+			if (i + 1 >= argc) {
+				printf("%s --backup <backup file>\n", argv[0]);
+				return -1;
+			}
+			fudge_download_backup(devnum, argv[i + 1]);
+			return -1;
+		}
+		if (!strcmp(argv[i], "--restore")) {
+			if (i + 1 >= argc) {
+				printf("%s --restore <backup file>\n", argv[0]);
+				return -1;
+			}
+			fudge_restore_backup(devnum, argv[i + 1]);
 			return -1;
 		}
 

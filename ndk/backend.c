@@ -339,7 +339,7 @@ void fuji_discovery_update_progress(void *arg, enum DiscoverUpdateMessages progr
 		app_print("Exchanging a loving greeting..."); return;
 	case FUJI_UM_STARTING_INVITE_SERVER:
 		app_print("Please start touching your camera..."); return;
-	case FUJI_UM_CAMERA_CONNETED_TO_INVITE_SERVER:
+	case FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER:
 		app_print("Waiting for the camera to tell us her secrets..."); return;
 	case FUJI_UM_ALL_DONE:
 		app_print("Starting a relationship with the camera..."); return;

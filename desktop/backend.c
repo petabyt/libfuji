@@ -13,7 +13,7 @@
 #include <fp.h>
 #include "desktop.h"
 
-// todo: separate thread/desktop cli code, move pthread code to frontend
+// todo: move _thread routines to frontend
 
 static struct PtpRuntime *ptp = NULL;
 
@@ -104,7 +104,6 @@ void *fudge_usb_connect_thread(void *arg) {
 	exit:;
 	ptp_close(r);
 	pthread_exit(NULL);
-	return NULL;
 }
 
 int fudge_run_lua(struct PtpRuntime *r, const char *text) {
@@ -234,5 +233,66 @@ int fudge_process_raf(int devnum, const char *input, const char *output, const c
 	ptp_close_session(r);
 	ptp_device_close(r);
 
+	return rc;
+}
+
+int fudge_download_backup(int devnum, const char *output) {
+	FILE *f = fopen(output, "wb");
+	if (f == NULL) {
+		printf("Failed to open %s for writing\n", output);
+		return -1;
+	}
+
+	struct PtpRuntime *r = ptp_new(PTP_USB);
+	int rc = fudge_usb_connect(r, devnum);
+	if (rc) return rc;
+
+	rc = fujiusb_setup(r);
+	if (rc) return rc;
+
+	rc = fujiusb_download_backup(r, f);
+	if (rc) {
+		goto exit;
+	}
+
+	printf("Backup file downloaded to %s\n", output);
+
+	ptp_close_session(r);
+	exit:;
+	ptp_device_close(r);
+	ptp_close(r);
+
+	fclose(f);
+	return rc;
+}
+
+int fudge_restore_backup(int devnum, const char *output) {
+	FILE *f = fopen(output, "rb");
+	if (f == NULL) {
+		printf("Failed to open %s for reading\n", output);
+		return -1;
+	}
+
+	struct PtpRuntime *r = ptp_new(PTP_USB);
+	int rc = fudge_usb_connect(r, devnum);
+	if (rc) return rc;
+
+	rc = fujiusb_setup(r);
+	if (rc) return rc;
+
+	rc = fujiusb_restore_backup(r, f);
+	if (rc == PTP_CHECK_CODE) {
+		printf("Failed to restore backup\n");
+	} else if (rc) {
+		printf("IO error while restoring backup\n");
+		goto exit;
+	}
+
+	ptp_close_session(r);
+	exit:;
+	ptp_device_close(r);
+	ptp_close(r);
+
+	fclose(f);
 	return rc;
 }

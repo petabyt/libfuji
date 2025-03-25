@@ -40,8 +40,7 @@ sudo apt install libusb-1.0-0-dev libimgui-dev libvulkan-dev libglfw3-dev
 ```
 ```
 cd desktop
-cmake -B build -G Ninja
-cmake --build build
+cmake -B build -G Ninja && cmake --build build
 ```
 Cross-compiling for Windows with mingw:
 ```
