@@ -14,13 +14,16 @@ jobs:
       with:
         submodules: recursive
     - name: Install deps
-      run: apt update && apt install gcc g++ git cmake liblua5.3-dev libusb-1.0-0-dev curl libexif-dev ninja-build libfreetype-dev libvulkan-dev libglfw3-dev libxml2-dev libimgui-dev
+      run: sudo apt update && sudo apt install gcc g++ git cmake liblua5.3-dev libusb-1.0-0-dev curl libexif-dev ninja-build libfreetype-dev libvulkan-dev libglfw3-dev libxml2-dev libimgui-dev
     - name: Checkout submodules
       run: git submodule update --init --recursive
     - name: Config to use https in case ssh isn't setup
       run: git config --global url."https://github.com/".insteadOf "git@github.com:"
     - name: Get latest vcam
-      run: bash -c "curl https://raw.githubusercontent.com/petabyt/vcam/master/install.sh | bash"
+      run: |
+        git clone https://github.com/petabyt/vcam --depth 1 --recurse-submodules /tmp/vcam
+        cd /tmp/vcam
+        sudo make install
     - name: Compile desktop
       run: cd desktop && cmake -G Ninja -B build && cmake --build build
     - name: Run desktop unit test
