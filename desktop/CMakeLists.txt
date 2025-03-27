@@ -5,12 +5,6 @@ project(fudge)
 
 set(FUDGE ../lib)
 set(CAMLIB_DIR ../lib/camlib)
-include_directories(
-    ${FUDGE}
-    ${CAMLIB_DIR}/src
-    ${CAMLIB_DIR}/src/lua
-    ${FUDGE}/fp/src
-)
 
 if(WIN32)
     set(PLATFORM_SOURCES
@@ -20,6 +14,16 @@ if(WIN32)
     set(PLATFORM_LIBS
         -luser32 -lkernel32 -lgdi32 -lcomctl32 -luxtheme -lmsimg32 -lcomdlg32 -ld2d1 -ldwrite -lole32 -loleaut32 -loleacc -lssp -lurlmon -luuid -lws2_32 -static-libgcc -static-libstdc++ -lpthread
     )
+
+    if(EXISTS "${CMAKE_SOURCE_DIR}/../../libwpd")
+        add_subdirectory(../../libwpd/ ${CMAKE_CURRENT_BINARY_DIR}/libwpd)
+    else()
+        include(FetchContent)
+        FetchContent_Declare(libwpd GIT_REPOSITORY https://github.com/petabyt/libwpd.git GIT_TAG master GIT_SHALLOW 1)
+        FetchContent_MakeAvailable(libwpd)
+    endif()
+    list(APPEND PLATFORM_LIBS wpd_static)
+
     set(CMAKE_EXE_LINKER_FLAGS "-static -s")
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)
@@ -39,7 +43,7 @@ if(FUDGE_GET_HELLO_IMGUI)
         set(PLATFORM_SOURCES ${PLATFORM_SOURCES} hello_imgui.cpp)
     else()
         include(FetchContent)
-        FetchContent_Declare(hello_imgui GIT_REPOSITORY https://github.com/pthom/hello_imgui.git GIT_TAG master)
+        FetchContent_Declare(hello_imgui GIT_REPOSITORY https://github.com/pthom/hello_imgui.git GIT_TAG master GIT_SHALLOW 1)
         FetchContent_MakeAvailable(hello_imgui)
     endif()
     set(IMGUI_LIBRARIES hello-imgui::hello_imgui)

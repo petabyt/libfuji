@@ -104,6 +104,7 @@ void *fudge_usb_connect_thread(void *arg) {
 	exit:;
 	ptp_close(r);
 	pthread_exit(NULL);
+	return 0;
 }
 
 int fudge_run_lua(struct PtpRuntime *r, const char *text) {
@@ -255,7 +256,7 @@ int fudge_download_backup(int devnum, const char *output) {
 		goto exit;
 	}
 
-	printf("Backup file downloaded to %s\n", output);
+	app_print("Backup file saved to %s", output);
 
 	ptp_close_session(r);
 	exit:;
@@ -282,11 +283,13 @@ int fudge_restore_backup(int devnum, const char *output) {
 
 	rc = fujiusb_restore_backup(r, f);
 	if (rc == PTP_CHECK_CODE) {
-		printf("Failed to restore backup\n");
+		printf("Failed to restore backup - camera rejected it (%04x)\n", ptp_get_return_code(r));
 	} else if (rc) {
 		printf("IO error while restoring backup\n");
 		goto exit;
 	}
+
+	app_print("Successfully restored from backup file.");
 
 	ptp_close_session(r);
 	exit:;

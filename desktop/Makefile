@@ -1,11 +1,15 @@
-cmake_linux: build
+b:
+	cmake -G Ninja -B build
 	cmake --build build
 
-build:
-	cmake -G Ninja -B build
-
-cmake_win: build_win
+bw:
+	cmake -DCMAKE_TOOLCHAIN_FILE=/home/$$USER/dotfiles/mingw.cmake -G Ninja -B build_win
 	cmake --build build_win
 
-build_win:
-	cmake -DCMAKE_TOOLCHAIN_FILE=cmake/mingw.cmake -G Ninja -B build_win
+bx:
+	@echo "Toolchain file /home/$$USER/dotfiles/osx.cmake"
+	cmake -DCMAKE_TOOLCHAIN_FILE=/home/$$USER/dotfiles/osx.cmake -G Ninja -B build_osx
+	cmake --build build_osx
+
+clean:
+	rm -rf build_osx build_win build

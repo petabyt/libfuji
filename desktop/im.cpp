@@ -28,6 +28,10 @@ void im_end_tab() {
 	ImGui::EndTabBar();
 }
 
+void im_multiline_entry(char *buffer, size_t size) {
+	ImGui::InputTextMultiline("##source", buffer, size, ImVec2(-FLT_MIN, -FLT_MIN), ImGuiInputTextFlags_ReadOnly);
+}
+
 int im_combo_box(const char *label, const char *preview) {
 	int rc = ImGui::BeginCombo(label, preview, 0);
 	if (rc) {

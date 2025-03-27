@@ -18,4 +18,6 @@ int im_label(const char *label);
 int im_window(const char *name, int width, int height, int flags);
 int im_window_end(void);
 
+void im_multiline_entry(char *buffer, size_t size);
+
 #endif
