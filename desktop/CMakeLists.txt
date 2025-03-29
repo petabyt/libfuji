@@ -15,8 +15,6 @@ else()
     FetchContent_Declare(hello_imgui GIT_REPOSITORY https://github.com/pthom/hello_imgui.git GIT_TAG master GIT_SHALLOW 1)
     FetchContent_MakeAvailable(hello_imgui)
 endif()
-list(APPEND PLATFORM_SOURCES hello_imgui.cpp)
-list(APPEND PLATFORM_LIBS hello-imgui::hello_imgui)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
@@ -29,6 +27,7 @@ endif()
 
 set(LIBPICT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/camlib/src)
 add_executable(fudge
+    hello_imgui.cpp
     main.c jank.c backend.c ui.c im.cpp
     ${PLATFORM_SOURCES}
     ${LIBPICT_SOURCE_DIR}/lua/lua.c
@@ -41,7 +40,7 @@ target_compile_options(fudge PRIVATE
     >
 )
 target_link_libraries(fudge m libfudge
-    ${PLATFORM_LIBS} ${LIBUSB_LIBRARIES} ${LIBXML2_LIBRARIES} ${LUA_LIBRARIES} ${IMGUI_LIBRARIES}
+    hello-imgui::hello_imgui
     $<$<BOOL:${WIN32}>:-static -s>
 )
 target_include_directories(fudge PRIVATE ${LIBUSB_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIRS})
