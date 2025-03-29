@@ -20,6 +20,8 @@ int im_label(const char *label);
 int im_window(const char *name, int width, int height, int flags);
 int im_window_end(void);
 
+/// @param buffer Buffer that the text will be read from, and where characters will be written to
+/// @param size Size of buffer
 void im_multiline_entry(char *buffer, size_t size);
 
 #endif

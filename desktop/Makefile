@@ -8,7 +8,7 @@ bw:
 
 bx:
 	@echo "Toolchain file /home/$$USER/dotfiles/osx.cmake"
-	cmake -DCMAKE_TOOLCHAIN_FILE=/home/$$USER/dotfiles/osx.cmake -G Ninja -B build_osx
+	cmake -DFUDGE_CREATE_MAC_APP=ON -DCMAKE_TOOLCHAIN_FILE=/home/$$USER/dotfiles/osx.cmake -G Ninja -B build_osx
 	cmake --build build_osx
 
 clean:

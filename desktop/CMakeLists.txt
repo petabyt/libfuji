@@ -2,29 +2,6 @@ cmake_minimum_required(VERSION 3.10)
 
 project(fudge)
 
-if(WIN32)
-    set(PLATFORM_SOURCES
-        win.c
-        win.rc
-    )
-    set(PLATFORM_LIBS
-        -luser32 -lkernel32 -lgdi32 -lcomctl32 -luxtheme -lmsimg32 -lcomdlg32 -ld2d1 -ldwrite -lole32 -loleaut32 -loleacc -lssp -lurlmon -luuid -lws2_32 -static-libgcc -static-libstdc++ -lpthread
-    )
-
-    if(EXISTS "${CMAKE_SOURCE_DIR}/../../libwpd")
-        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../libwpd/ ${CMAKE_CURRENT_BINARY_DIR}/libwpd)
-    else()
-        include(FetchContent)
-        FetchContent_Declare(libwpd GIT_REPOSITORY https://github.com/petabyt/libwpd.git GIT_TAG master GIT_SHALLOW 1)
-        FetchContent_MakeAvailable(libwpd)
-    endif()
-    list(APPEND PLATFORM_LIBS wpd_static)
-elseif(UNIX)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
-    set(PLATFORM_SOURCES unix.c ci.c)
-endif()
-
 set(HELLOIMGUI_BUILD_AUTOMATION_TEST OFF)
 set(HELLOIMGUI_ADD_APP_WITH_INSTALL OFF)
 set(HELLOIMGUI_USE_FREETYPE_PLUTOSVG OFF)
@@ -43,19 +20,24 @@ list(APPEND PLATFORM_LIBS hello-imgui::hello_imgui)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
-set(CAMLIB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/camlib/src)
-set(SOURCES
+if(WIN32)
+    set(PLATFORM_SOURCES win.c win.rc)
+    set(PLATFORM_LIBS -luser32 -lkernel32 -lgdi32 -lcomctl32 -luxtheme -lmsimg32 -lcomdlg32 -ld2d1 -ldwrite -lole32 -loleaut32 -loleacc -lssp -lurlmon -luuid -lws2_32 -static-libgcc -static-libstdc++ -lpthread)
+elseif(UNIX)
+    set(PLATFORM_SOURCES unix.c ci.c)
+endif()
+
+set(LIBPICT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/camlib/src)
+add_executable(fudge
     main.c jank.c backend.c ui.c im.cpp
     ${PLATFORM_SOURCES}
-    ${CAMLIB_SOURCE_DIR}/lua/lua.c
-    ${CAMLIB_SOURCE_DIR}/lua/lua-cjson/lua_cjson.c
-    ${CAMLIB_SOURCE_DIR}/lua/lua-cjson/strbuf.c
+    ${LIBPICT_SOURCE_DIR}/lua/lua.c
+    ${LIBPICT_SOURCE_DIR}/lua/lua-cjson/lua_cjson.c
+    ${LIBPICT_SOURCE_DIR}/lua/lua-cjson/strbuf.c
 )
-
-add_executable(fudge ${SOURCES})
 target_compile_options(fudge PRIVATE
     $<$<COMPILE_LANGUAGE:C>:
-        -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=implicit-function-declaration -Werror=incompatible-pointer-types -Werror=return-type -Werror=deprecated-declarations -Wstrict-aliasing=3
+        -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=implicit-function-declaration -Werror=incompatible-pointer-types -Werror=return-type -Werror=deprecated-declarations
     >
 )
 target_link_libraries(fudge m libfudge
@@ -94,5 +76,38 @@ if(FUDGE_CREATE_APPIMAGE)
         TARGET fudge
         ICON ${CMAKE_CURRENT_SOURCE_DIR}/assets/fudge.png
         DESKTOP ${CMAKE_CURRENT_SOURCE_DIR}/assets/fudge.desktop
+    )
+endif()
+
+if(FUDGE_CREATE_MAC_APP)
+    function(create_mac_app)
+        cmake_parse_arguments(PARSE_ARGV 0 ARG "" "TARGET;APP_NAME;PLIST_PATH;DYLIBS" "")
+        if(DYLIBS)
+            message(FATAL_ERROR "TODO: use install_name_tool on dylibs")
+        endif()
+        file(MAKE_DIRECTORY
+            "${CMAKE_CURRENT_BINARY_DIR}/${ARG_APP_NAME}.app/Contents/MacOS"
+            "${CMAKE_CURRENT_BINARY_DIR}/${ARG_APP_NAME}.app/Contents/Resources"
+            "${CMAKE_CURRENT_BINARY_DIR}/${ARG_APP_NAME}.app/Contents/Frameworks"
+        )
+        add_custom_target(${ARG_APP_NAME}_AppBundle ALL
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${ARG_TARGET}> "${CMAKE_CURRENT_BINARY_DIR}/${ARG_APP_NAME}.app/Contents/MacOS/${ARG_APP_NAME}"
+            COMMAND chmod +x "${CMAKE_CURRENT_BINARY_DIR}/${ARG_APP_NAME}.app/Contents/MacOS/${ARG_APP_NAME}"
+            COMMAND ${CMAKE_COMMAND} -E copy ${ARG_PLIST_PATH} "${CMAKE_CURRENT_BINARY_DIR}/${ARG_APP_NAME}.app/Contents/Info.plist"
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            DEPENDS ${ARG_TARGET}
+        )
+        add_custom_target(${ARG_APP_NAME}_Package ALL
+            COMMAND tar -czf "${CMAKE_CURRENT_BINARY_DIR}/${ARG_APP_NAME}.tar.gz" -C "${CMAKE_CURRENT_BINARY_DIR}" "${ARG_APP_NAME}.app"
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            DEPENDS ${ARG_APP_NAME}_AppBundle
+        )
+    endfunction()
+
+    create_mac_app(
+        TARGET fudge
+        APP_NAME fudge
+        ICON ${CMAKE_CURRENT_SOURCE_DIR}/assets/fudge.png
+        PLIST_PATH ${CMAKE_CURRENT_SOURCE_DIR}/assets/Info.plist
     )
 endif()
