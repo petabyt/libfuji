@@ -1,3 +1,4 @@
+// Any functionality specific to the desktop/cli utility
 #ifndef DESKTOP_H
 #define DESKTOP_H
 

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=fudge
+Exec=fudge
+Icon=fudge
+Type=Application
+Categories=Utility
+StartupNotify=true

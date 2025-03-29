@@ -1,3 +1,5 @@
+// Dear-ImGUI wrapper
+// I have some future plans with this API I want to try.
 #ifndef IM_H
 #define IM_H
 

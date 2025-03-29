@@ -63,7 +63,36 @@ target_link_libraries(fudge m libfudge
     $<$<BOOL:${WIN32}>:-static -s>
 )
 target_include_directories(fudge PRIVATE ${LIBUSB_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIRS})
+install(TARGETS fudge)
 
-install(
-    TARGETS fudge
-)
+if(FUDGE_CREATE_APPIMAGE)
+    function(create_appimage)
+        cmake_parse_arguments(PARSE_ARGV 0 ARG "" "TARGET;ICON;DESKTOP" "")
+
+        install(TARGETS ${ARG_TARGET} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/AppDir/usr/bin)
+
+        find_program(LINUXDEPLOY linuxdeploy)
+        if(NOT LINUXDEPLOY)
+            message(FATAL_ERROR "linuxdeploy not found")
+        endif()
+        find_program(APPIMAGETOOL appimagetool)
+        if(NOT APPIMAGETOOL)
+            message(FATAL_ERROR "appimagetool not found")
+        endif()
+
+        # Strip binary included in linuxdeploy is broken, disable stripping
+        add_custom_target(${ARG_TARGET}_AppImage ALL
+            COMMAND rm -rf AppDir
+            COMMAND NO_STRIP=true linuxdeploy --appdir=${CMAKE_CURRENT_BINARY_DIR}/AppDir --executable=$<TARGET_FILE:${ARG_TARGET}> -d ${ARG_DESKTOP} -i ${ARG_ICON} --output appimage
+            COMMAND appimagetool ${CMAKE_CURRENT_BINARY_DIR}/AppDir
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            DEPENDS ${ARG_TARGET}
+        )
+    endfunction()
+
+    create_appimage(
+        TARGET fudge
+        ICON ${CMAKE_CURRENT_SOURCE_DIR}/assets/fudge.png
+        DESKTOP ${CMAKE_CURRENT_SOURCE_DIR}/assets/fudge.desktop
+    )
+endif()

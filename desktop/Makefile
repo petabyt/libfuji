@@ -1,5 +1,5 @@
 b:
-	cmake -G Ninja -B build
+	cmake -DFUDGE_CREATE_APPIMAGE=ON -G Ninja -B build
 	cmake --build build
 
 bw:
@@ -12,4 +12,4 @@ bx:
 	cmake --build build_osx
 
 clean:
-	rm -rf build_osx build_win build
+	rm -rf build_osx build_win build *.ini *.dat

@@ -22,7 +22,6 @@ int app_bind_socket_to_network(int fd, struct NetworkHandle *h) {
 	return 0;
 }
 
-
 void network_init(void) {
 	// Linux doesn't need anything to init network
 }
