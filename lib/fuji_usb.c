@@ -181,13 +181,15 @@ int fujiusb_download_backup(struct PtpRuntime *r, FILE *f) {
 	int rc = ptp_get_object_info(r, 0, &oi);
 	if (rc) goto end;
 
+#if 0
 	char buffer[1024];
 	ptp_object_info_json(&oi, buffer, sizeof(buffer));
 	plat_dbg(buffer);
+#endif
 
 	rc = ptp_get_object(r, 0);
 	if (rc) goto end;
-	plat_dbg("Downloaded payload %d bytes", ptp_get_payload_length(r));
+	plat_dbg("Downloaded a %d byte backup file.", ptp_get_payload_length(r));
 
 	fwrite(ptp_get_payload(r), 1, ptp_get_payload_length(r), f);
 
@@ -198,33 +200,36 @@ int fujiusb_download_backup(struct PtpRuntime *r, FILE *f) {
 }
 
 int fujiusb_restore_backup(struct PtpRuntime *r, FILE *input) {
+	int rc;
 	fseek(input, 0, SEEK_END);
 	long file_size = ftell(input);
 	fseek(input, 0, SEEK_SET);
 	if (file_size > 100000) {
-		printf("Backup file seems to be too big, is the path correct?\n");
+		plat_dbg("Backup file seems to be too big, is the path correct?");
 		return -1;
 	}
 
-	struct PtpObjectInfo oi = {0};
-	oi.obj_format = 0x5000;
-	oi.compressed_size = (uint32_t)file_size;
+	{ // Weird ObjectInfo structure the camera sends
+		struct PtpObjectInfo oi = {0};
+		oi.obj_format = 0x5000;
+		oi.compressed_size = (uint32_t)file_size;
 
-	uint8_t buf[1088] = {0};
-	int of = 0;
-	of += ptp_write_u32(buf + of, 0);
-	of += ptp_write_u16(buf + of, 0x5000);
-	of += ptp_write_u16(buf + of, 0);
-	of += ptp_write_u32(buf + of, (uint32_t)file_size);
+		uint8_t buf[1088] = {0};
+		int of = 0;
+		of += ptp_write_u32(buf + of, 0);
+		of += ptp_write_u16(buf + of, 0x5000);
+		of += ptp_write_u16(buf + of, 0);
+		of += ptp_write_u32(buf + of, (uint32_t)file_size);
 
-	//int rc = ptp_send_object_info(r, 0, 0, &oi);
-	struct PtpCommand cmd;
-	cmd.code = PTP_OC_SendObjectInfo;
-	cmd.param_length = 2;
-	cmd.params[0] = 0;
-	cmd.params[1] = 0;
-	int rc = ptp_send_data(r, &cmd, buf, 1088);
-	if (rc) return rc;
+		//int rc = ptp_send_object_info(r, 0, 0, &oi);
+		struct PtpCommand cmd;
+		cmd.code = PTP_OC_SendObjectInfo;
+		cmd.param_length = 2;
+		cmd.params[0] = 0;
+		cmd.params[1] = 0;
+		rc = ptp_send_data(r, &cmd, buf, 1088);
+		if (rc) return rc;
+	}
 
 	void *buffer = (void *)malloc(file_size + 1);
 	if (buffer == NULL) abort();
