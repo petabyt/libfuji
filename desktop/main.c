@@ -3,12 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#ifdef WIN32
-	#include <winsock2.h>
-	#include <ws2tcpip.h>
-#else
-	#include <arpa/inet.h>
-#endif
+//#ifdef WIN32
+//	#include <winsock2.h>
+//	#include <ws2tcpip.h>
+//#else
+//	#include <arpa/inet.h>
+//#endif
 #include <camlib.h>
 #include <cl_stuff.h>
 #include <fuji.h>
@@ -19,21 +19,13 @@
 int fudge_ui(void);
 
 void ptp_verbose_log(char *fmt, ...) {
-#if 0
+#ifdef FUDGE_DEBUG
 	printf("PTP: ");
 	va_list args;
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
 #endif
-}
-
-void ptp_error_log(char *fmt, ...) {
-	printf("PTP: ");
-	va_list args;
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
 }
 
 __attribute__ ((noreturn))
@@ -46,14 +38,6 @@ void ptp_panic(char *fmt, ...) {
 	puts("");
 	fflush(stdout);
 	abort();
-}
-
-void plat_dbg(char *fmt, ...) {
-	va_list args;
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
-	putchar('\n');
 }
 
 char *app_get_client_name(void) {
@@ -116,7 +100,7 @@ static int help(void) {
 	printf("  --dev <device number>\n");
 	printf("    Select a device to connect to instead of choosing the first available one.\n");
 
-	printf("  --dump-usb <input raf> <output jpeg path> <profile file>\n");
+	printf("  --raw <input raf> <output jpeg path> <profile file>\n");
 	printf("    Does a Raw conversion based on information parsed from a FP1/FP2/FP3 file.\n");
 
 	printf("  --backup <output dat path>\n");
@@ -221,5 +205,4 @@ int main(int argc, char **argv) {
 	}
 
 	return fudge_ui();
-	return 0;
 }

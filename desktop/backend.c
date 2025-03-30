@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
 #include <camlib.h>
 #include <fuji.h>
 #include <app.h>
@@ -86,9 +84,9 @@ int fudge_main_app_thread(struct PtpRuntime *r) {
 	return 0;
 }
 
-void *fudge_backup_settings(void *arg) {
-	return NULL;
-}
+//void *fudge_backup_settings(void *arg) {
+//	return NULL;
+//}
 
 void *fudge_usb_connect_thread(void *arg) {
 	struct PtpRuntime *r = ptp_new(PTP_USB);

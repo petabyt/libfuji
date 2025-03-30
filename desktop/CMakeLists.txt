@@ -25,7 +25,7 @@ elseif(UNIX)
     set(PLATFORM_SOURCES unix.c ci.c)
 endif()
 
-set(LIBPICT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/camlib/src)
+set(LIBPICT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/libpict/src)
 add_executable(fudge
     hello_imgui.cpp
     main.c jank.c backend.c ui.c im.cpp
@@ -42,6 +42,11 @@ target_compile_options(fudge PRIVATE
 target_link_libraries(fudge m libfudge
     hello-imgui::hello_imgui
     $<$<BOOL:${WIN32}>:-static -s>
+)
+target_compile_definitions(fudge PUBLIC
+    $<$<CONFIG:Debug>:
+        FUDGE_DEBUG=1
+    >
 )
 target_include_directories(fudge PRIVATE ${LIBUSB_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS} ${LIBXML2_INCLUDE_DIRS})
 install(TARGETS fudge)

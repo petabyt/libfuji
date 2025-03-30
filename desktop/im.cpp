@@ -21,14 +21,18 @@ int im_tab() {
 int im_add_tab_item(const char *title) {
 	return ImGui::BeginTabItem(title) == true;
 }
-int im_end_tab_item(const char *title) {
-	return ImGui::BeginTabItem(title) == true;
+void im_end_tab_item() {
+	ImGui::EndTabItem();
 }
 void im_end_tab() {
 	ImGui::EndTabBar();
 }
 
-void im_multiline_entry(char *buffer, size_t size) {
+void im_entry(const char *label, char *buffer, size_t size, int flags) {
+	ImGui::InputText(label, buffer, size);
+}
+
+void im_multiline_entry(char *buffer, size_t size, int flags) {
 	ImGui::InputTextMultiline("##source", buffer, size, ImVec2(-FLT_MIN, -FLT_MIN), ImGuiInputTextFlags_ReadOnly);
 }
 
