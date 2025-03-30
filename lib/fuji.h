@@ -205,12 +205,4 @@ int fuji_send_object_ex(struct PtpRuntime *r, const void *data, size_t length);
 /// @param profile_xml_path String data for XML profile to be parsed by fp
 int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const char *output_path, const char *profile_xml_path);
 
-/// @brief CLI function to do quick conversion
-int fudge_process_raf(int devnum, const char *input, const char *output, const char *profile);
-
-int fudge_download_backup(int devnum, const char *output);
-int fudge_restore_backup(int devnum, const char *output);
-
-int fujiusb_restore_backup(struct PtpRuntime *r, FILE *input);
-
 #endif

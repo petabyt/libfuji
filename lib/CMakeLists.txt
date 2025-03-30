@@ -63,7 +63,7 @@ if(LIBFUDGE_IMPORT_FP)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/fp ${CMAKE_CURRENT_BINARY_DIR}/fp)
 endif()
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/camlib ${CMAKE_CURRENT_BINARY_DIR}/camlib)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libpict ${CMAKE_CURRENT_BINARY_DIR}/libpict)
 
 target_include_directories(libfudge PUBLIC ${PROJECT_SOURCE_DIR} ${LUA_INCLUDE_DIRS})
 target_link_libraries(libfudge PUBLIC libpict fp lua ${LUA_LIBRARIES})

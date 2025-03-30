@@ -288,7 +288,7 @@ print_payload(data + 1, sz  - 1, false);
 int fuji_send_raf(struct PtpRuntime *r, const char *path) {
 	FILE* f = fopen(path, "rb");
 	if (!f) {
-		ptp_verbose_log("'%s' not found\n", path);
+		ptp_error_log("'%s' not found\n", path);
 		return PTP_RUNTIME_ERR;
 	}
 
@@ -364,7 +364,7 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 			return PTP_RUNTIME_ERR;
 		}
 	} else {
-		ptp_error_log("Failed to parse %s\n", profile_xml_path);
+		ptp_error_log("Failed to parse '%s', check console output\n", profile_xml_path);
 		return PTP_RUNTIME_ERR;
 	}
 
@@ -396,6 +396,10 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 			if (rc) return rc;
 
 			FILE *f = fopen(output_path, "wb");
+			if (f == NULL) {
+				ptp_error_log("Failed to write to output");
+				return PTP_RUNTIME_ERR;
+			}
 			fwrite(ptp_get_payload(r), 1, ptp_get_payload_length(r), f);
 			fclose(f);
 
