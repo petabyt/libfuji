@@ -139,6 +139,8 @@ int fuji_connect_run_script(int devnum, const char *filename) {
 	int rc = fudge_usb_connect(r, devnum);
 	if (rc) return rc;
 
+	app_print("Connected to a Fuji camera, running %s", filename);
+
 	rc = cam_run_lua_script_async(text);
 	if (rc) {
 		printf("%s\n", cam_lua_get_error());
@@ -251,6 +253,7 @@ int fudge_download_backup(int devnum, const char *output) {
 
 	rc = fujiusb_download_backup(r, f);
 	if (rc) {
+		app_print("Failed to download backup: %d", rc);
 		goto exit;
 	}
 
