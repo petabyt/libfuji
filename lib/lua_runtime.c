@@ -4,8 +4,8 @@
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
-
 #include <camlib.h>
+#include <app.h>
 #include "fuji_lua.h"
 
 static char error_buffer[512] = {0};
@@ -55,13 +55,13 @@ static int get_task_id(lua_State *L) {
 
 static int lua_script_print(lua_State *L) {
 	const char *str = luaL_checkstring(L, 1);
-	ptp_verbose_log("%s\n", str);
+	app_print("%s", str);
 	return 1;
 }
 
 static int lua_script_toast(lua_State *L) {
 	const char *str = luaL_checkstring(L, 1);
-	ptp_verbose_log("%s\n", str);
+	app_print("%s", str);
 	return 1;
 }
 
