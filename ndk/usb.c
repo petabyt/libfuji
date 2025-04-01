@@ -20,12 +20,17 @@ struct PrivUSB {
 	int endpoint_out;
 };
 
+// TODO: Rename to ptp_comm_init
 static struct PrivUSB *init_comm(struct PtpRuntime *r) {
 	if (r->comm_backend == NULL) {
 		r->comm_backend = calloc(1, sizeof(struct PrivUSB));
 	}
 
 	return (struct PrivUSB *)r->comm_backend;
+}
+
+void ptp_comm_deinit(struct PtpRuntime *r) {
+	// TODO:
 }
 
 static jobject get_usb_man(JNIEnv *env, jobject ctx) {
