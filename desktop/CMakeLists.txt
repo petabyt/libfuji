@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 3.10)
 
 project(fudge)
 
+# Import local libwpd so libpict won't download it
+if(WIN32)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../libwpd")
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../libwpd/ ${CMAKE_CURRENT_BINARY_DIR}/libwpd)
+    endif()
+endif()
+
+# hello_imgui
 set(HELLOIMGUI_BUILD_AUTOMATION_TEST OFF)
 set(HELLOIMGUI_ADD_APP_WITH_INSTALL OFF)
 set(HELLOIMGUI_USE_FREETYPE_PLUTOSVG OFF)
@@ -16,6 +24,7 @@ else()
     FetchContent_MakeAvailable(hello_imgui)
 endif()
 
+# libfudge
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 if(WIN32)
@@ -42,6 +51,7 @@ target_compile_options(fudge PRIVATE
 target_link_libraries(fudge m libfudge
     hello-imgui::hello_imgui
     $<$<BOOL:${WIN32}>:-static -s>
+    ${PLATFORM_LIBS}
 )
 target_compile_definitions(fudge PUBLIC
     $<$<CONFIG:Debug>:
