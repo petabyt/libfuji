@@ -20,17 +20,14 @@ This app isn't finished yet, so don't set high expectations. Fuji's implementati
 Beta builds are published on [Google Play](https://play.google.com/store/apps/details?id=dev.danielc.fujiapp). The latest builds are also available on [F-Droid](https://apt.izzysoft.de/fdroid/index/apk/dev.danielc.fujiapp).
 
 ## Roadmap
-- [ ] Desktop app/utility
-- [ ] Liveview & Remote capture
-- [ ] Camera properties (ISO, white balance, film sim, etc)
-- [ ] Implement Bluetooth communication
-- [ ] iOS port (see ios/)
-- [ ] Support landscape mode/chromeOS/etc
+- Frontend rewrite (see https://github.com/petabyt/fudge/issues/26)
+- Liveview & Remote capture
+- Implement Bluetooth pairing
+- iOS port (see ios/)
 
 ## Compiling
-master branch may not compile or may have unfinished changes. Clone from the last release instead.
 ```
-git clone https://github.com/petabyt/fudge.git --depth 1 --branch 0.2.2 --recurse-submodules
+git clone https://github.com/petabyt/fudge.git --depth 1 --recurse-submodules
 ```
 ### Compiling desktop app
 Desktop utility is still a work in progress.
