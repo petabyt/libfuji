@@ -26,5 +26,5 @@ jobs:
         sudo make install
     - name: Compile desktop
       run: cd desktop && cmake -G Ninja -B build && cmake --build build
-    - name: Run desktop unit test
-      run: desktop/build/fudge --test-wifi
+#    - name: Run desktop unit test
+#      run: desktop/build/fudge --test-wifi

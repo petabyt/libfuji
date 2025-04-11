@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <camlib.h>
+#include <libpict.h>
 #include <fuji.h>
 #include <app.h>
 #include <fujiptp.h>

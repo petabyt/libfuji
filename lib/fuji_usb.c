@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <camlib.h>
+#include <libpict.h>
 #include "app.h"
 #include "fuji.h"
 #include "fujiptp.h"

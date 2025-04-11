@@ -9,7 +9,7 @@
 //#else
 //	#include <arpa/inet.h>
 //#endif
-#include <camlib.h>
+#include <libpict.h>
 #include <cl_stuff.h>
 #include <fuji.h>
 #include <app.h>

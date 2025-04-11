@@ -2,6 +2,13 @@
 // I have some future plans with this API I want to try.
 #ifndef IM_H
 #define IM_H
+
+struct NimModifier {	
+	void (*padding)(int, int);
+	void (*margin)(int, int);
+	void (*color)(int, int);
+};
+
 int im_push_disabled(void);
 int im_pop_disabled(void);
 

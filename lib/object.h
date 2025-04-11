@@ -3,7 +3,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include <camlib.h>
+#include <libpict.h>
 
 enum PtpSortBy {
 	PTP_SORT_BY_OLDEST = 1,

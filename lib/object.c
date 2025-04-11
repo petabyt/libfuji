@@ -1,7 +1,7 @@
-// Camlib Object service
+// libpict Object service
 // This is mainly for file tables
 #include <stdlib.h>
-#include <camlib.h>
+#include <libpict.h>
 #include <string.h>
 #include <pthread.h>
 #include "object.h"

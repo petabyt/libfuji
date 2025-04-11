@@ -4,7 +4,7 @@
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
-#include <camlib.h>
+#include <libpict.h>
 #include <app.h>
 #include "fuji_lua.h"
 

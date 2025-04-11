@@ -12,7 +12,7 @@
 	#include <poll.h>
 	#include <arpa/inet.h>
 #endif
-#include <camlib.h>
+#include <libpict.h>
 #include <fuji.h>
 #include <app.h>
 #include <fujiptp.h>

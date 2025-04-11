@@ -1,6 +1,6 @@
-// Generic portable camlib PTP/IP backend
+// Generic portable libpict PTP/IP backend
 // There shouldn't be any Fuji-specific code here, so this file can be copied to a different project.
-// Copyright 2024 by Daniel C (https://github.com/petabyt/camlib)
+// Copyright 2024 by Daniel C (https://github.com/petabyt/libpict)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,7 +19,7 @@
 	#include <arpa/inet.h>
 #endif
 #include <time.h>
-#include <camlib.h>
+#include <libpict.h>
 #include "app.h"
 #include "fuji.h"
 

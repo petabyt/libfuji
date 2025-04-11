@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
-#include <camlib.h>
+#include <libpict.h>
 #include <sys/stat.h>
 #include "app.h"
 #include "fuji.h"

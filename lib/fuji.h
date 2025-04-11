@@ -2,7 +2,7 @@
 // Fudge implementations and app logic
 #ifndef FUJIAPP_FUJI_H
 #define FUJIAPP_FUJI_H
-#include <camlib.h>
+#include <libpict.h>
 #include "fujiptp.h"
 #include "app.h"
 
