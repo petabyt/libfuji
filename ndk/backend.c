@@ -1,10 +1,10 @@
-// JNI PTP/IP interface for camlib and fuji.c
+// JNI PTP/IP interface for libpict and fuji.c
 // Copyright 2024 (C) Fudge
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <camlib.h>
+#include <libpict.h>
 #include <dlfcn.h>
 #include "app.h"
 #include "backend.h"

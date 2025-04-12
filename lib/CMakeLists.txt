@@ -9,7 +9,6 @@ set(FUDGE_CORE
     fuji.c
     tester.c
     data.c
-    net.c
     discovery.c
     exif.c
     fuji_usb.c

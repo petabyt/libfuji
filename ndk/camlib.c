@@ -1,8 +1,8 @@
-// Portable Java bindings to camlib
+// Portable Java bindings to libpict
 #include <stdlib.h>
 #include <jni.h>
 #include <android/log.h>
-#include <camlib.h>
+#include <libpict.h>
 #include <fuji.h>
 #include "object.h"
 

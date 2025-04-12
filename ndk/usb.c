@@ -6,7 +6,7 @@
 #include <sys/ioctl.h>
 #include <linux/usbdevice_fs.h>
 #include <string.h>
-#include <camlib.h>
+#include <libpict.h>
 #include <fcntl.h>
 #include <signal.h>
 #include "app.h"
@@ -216,8 +216,8 @@ int ptp_device_open(struct PtpRuntime *r, struct PtpDeviceEntry *entry) {
 	//jmethodID get_max_packet_size_m = (*env)->GetMethodID(env, usb_endpoint_c, "getMaxPacketSize", "()I" );
 	r->max_packet_size = 512;
 
-	priv->endpoint_in = entry->endpoint_in;
-	priv->endpoint_out = entry->endpoint_out;
+	priv->endpoint_in = (int)entry->endpoint_in;
+	priv->endpoint_out = (int)entry->endpoint_out;
 
 	(*env)->PopLocalFrame(env, NULL);
 	return 0;
@@ -255,7 +255,7 @@ int ptp_cmd_read(struct PtpRuntime *r, void *to, int length) {
 	ctrl.data = to;
 	ctrl.timeout = PTP_TIMEOUT;
 	int rc = ioctl(priv->fd, USBDEVFS_BULK, &ctrl);
-	if (rc > 0) app_increment_progress_bar(rc);
+	if (rc > 0) ptp_report_read_progress((unsigned int)rc);
 	return rc;
 }
 

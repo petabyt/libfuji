@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include <camlib.h>
+#include <libpict.h>
 #include "android.h"
 #if 0
 static uiMultilineEntry *script_box = NULL;

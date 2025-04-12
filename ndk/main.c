@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <camlib.h>
+#include <libpict.h>
 #include "android.h"
 #include "fuji.h"
 #include "app.h"
@@ -283,8 +283,8 @@ void app_set_progress_bar(int status, int size) {
 	backend.last_percent = 0;
 }
 
-void app_increment_progress_bar(int read) {
-	if (backend.do_download == 0) { return; }
+void ptp_report_read_progress(unsigned int read) {
+	if (backend.do_download == 0) return;
 
 	backend.download_progress += read;
 
@@ -299,6 +299,14 @@ void app_increment_progress_bar(int read) {
 		(*env)->PopLocalFrame(env, NULL);
 	}
 	backend.last_percent = n;
+}
+
+int ptpip_set_extra_socket_settings(struct PtpRuntime *r, int sockfd) {
+    int rc = app_bind_socket_to_network(sockfd, ptp_get_network_info(r));
+    if (rc) {
+        ptp_verbose_log("Error binding to wifi network: %d\n", errno);
+    }
+    return 0;
 }
 
 void app_report_download_speed(long time, size_t size) {
