@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(fudge)
 
@@ -8,6 +9,9 @@ if(WIN32)
         add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../libwpd/ ${CMAKE_CURRENT_BINARY_DIR}/libwpd)
     endif()
 endif()
+
+# libfudge
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 # hello_imgui
 set(HELLOIMGUI_BUILD_AUTOMATION_TEST OFF)
@@ -24,9 +28,6 @@ else()
     FetchContent_Declare(hello_imgui GIT_REPOSITORY https://github.com/pthom/hello_imgui.git GIT_TAG master GIT_SHALLOW 1)
     FetchContent_MakeAvailable(hello_imgui)
 endif()
-
-# libfudge
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 if(WIN32)
     set(PLATFORM_SOURCES win.c win.rc)

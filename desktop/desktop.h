@@ -2,6 +2,7 @@
 #ifndef DESKTOP_H
 #define DESKTOP_H
 #include <stdio.h>
+#include <libpict.h>
 
 int fudge_test_all_cameras(void);
 

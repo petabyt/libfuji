@@ -130,9 +130,9 @@ void app_send_cam_name(const char *name) {
 }
 
 static void option(const char *name, struct FujiLookup *tbl, int *option, uint32_t *data) {
-	im_combo_box(name, tbl[*option].key);
+	im_begin_combo_box_ex(name, option, tbl[*option].key);
 	for (int i = 0; tbl[i].key != NULL; i++) {
-		im_add_combo_box_item(tbl[i].key, option);
+		im_combo_box_item(tbl[i].key);
 		(*data) = tbl[*option].value;
 	}
 	im_end_combo_box();
@@ -165,8 +165,10 @@ static void *thread_restore(void *arg) {
 
 void fudge_render_gui(void) {
 	static int x = 0;
+	static int selected = 1;
 	struct State *state = &fudge_state;
 	pthread_mutex_lock(state->mutex);
+
 #if 0
 	if (state->is_camera_connected) {
 		char fmt[64];
@@ -175,9 +177,10 @@ void fudge_render_gui(void) {
 		im_label("No camera connected.");
 	}
 #endif
-	if (im_tab()) {
-		if (im_add_tab_item("Backup/Restore")) {
-			im_entry("Backup file path", state->backup_file_path, sizeof(state->backup_file_path), 0);
+
+	if (im_begin_tab_bar(&selected)) {
+		if (im_begin_tab("Backup/Restore")) {
+			im_entry("Backup file path", state->backup_file_path, sizeof(state->backup_file_path));
 			if (im_button("Download backup to file")) {
 				static pthread_t t;
 				pthread_create(&t, NULL, thread_backup, state);
@@ -186,28 +189,28 @@ void fudge_render_gui(void) {
 				static pthread_t t;
 				pthread_create(&t, NULL, thread_restore, state);
 			}
-			im_end_tab_item();
+			im_end_tab();
 		}
-		if (im_add_tab_item("Raw Conversion")) {
-			im_entry("Input RAF path", state->raf_path, sizeof(state->raf_path), 0);
-			im_entry("Output JPG path", state->output_jpg_path, sizeof(state->output_jpg_path), 0);
-			im_entry("FP1/FP2/FP3 path", state->fp_xml_path, sizeof(state->fp_xml_path), 0);
+		if (im_begin_tab("Raw Conversion")) {
+			im_entry("Input RAF path", state->raf_path, sizeof(state->raf_path));
+			im_entry("Output JPG path", state->output_jpg_path, sizeof(state->output_jpg_path));
+			im_entry("FP1/FP2/FP3 path", state->fp_xml_path, sizeof(state->fp_xml_path));
 			if (im_button("Connect to a camera and convert RAW")) {
 				static pthread_t t;
 				pthread_create(&t, NULL, thread_raw_conversion, state);
 			}
-			im_end_tab_item();
+			im_end_tab();
 		}
-		if (im_add_tab_item("About")) {
+		if (im_begin_tab("About")) {
 			im_label("Licenses:");
 			im_label("libusb-1.0 (LGPL v2.1)");
 			im_label("dear imgui (MIT)");
 			im_label("hello_imgui (MIT)");
 			im_label("Copyright (C) 2023 Fudge by Daniel C");
 			im_label("Compile date: " __DATE__);
-			im_end_tab_item();
+			im_end_tab();
 		}
-		im_end_tab();
+		im_end_tab_bar();
 	}
 
 #if 0
@@ -222,7 +225,7 @@ void fudge_render_gui(void) {
 	// if (im_button("Clear logs")) {
 	// 	app_log_clear();
 	// }
-	im_multiline_entry(fudge_state.ui_log_buffer, fudge_state.ui_log_length, 0);
+	im_multiline_entry(fudge_state.ui_log_buffer, fudge_state.ui_log_length);
 
 	pthread_mutex_unlock(state->mutex);
 }
