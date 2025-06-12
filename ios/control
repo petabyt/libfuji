@@ -1,8 +1,0 @@
-Package: dev.danielc.fudge
-Name: fudgeios
-Version: 0.0.1
-Architecture: iphoneos-arm
-Description: An awesome application!
-Maintainer: Daniel Cook
-Author: Daniel Cook
-Section: Utilities
