@@ -11,3 +11,12 @@
 [submodule "third_party/fp"]
 	path = lib/fp
 	url = git@github.com:petabyt/fp.git
+[submodule "third_party/libwpd"]
+	path = third_party/libwpd
+	url = https://github.com/petabyt/libwpd.git
+[submodule "third_party/libui-dev"]
+	path = third_party/libui-dev
+	url = https://github.com/petabyt/libui-dev.git
+[submodule "third_party/rim"]
+	path = third_party/rim
+	url = https://github.com/petabyt/rim.git

@@ -1,14 +1,11 @@
-#include "desktop.h"
-
 #include <stdlib.h>
 #include <string.h>
 #include <fp.h>
 #include <pthread.h>
 #include <libpict.h>
 #include <stdarg.h>
-#include "im.h"
-
-int fudge_ui_backend(void (*renderer)());
+#include <rim.h>
+#include "desktop.h"
 
 struct State {
 	int window_open;
@@ -130,7 +127,7 @@ void app_send_cam_name(const char *name) {
 }
 
 static void option(const char *name, struct FujiLookup *tbl, int *option, uint32_t *data) {
-	im_begin_combo_box_ex(name, option, tbl[*option].key);
+	im_begin_combo_box(name, option);
 	for (int i = 0; tbl[i].key != NULL; i++) {
 		im_combo_box_item(tbl[i].key);
 		(*data) = tbl[*option].value;
@@ -178,59 +175,64 @@ void fudge_render_gui(void) {
 	}
 #endif
 
-	if (im_begin_tab_bar(&selected)) {
-		if (im_begin_tab("Backup/Restore")) {
-			im_entry("Backup file path", state->backup_file_path, sizeof(state->backup_file_path));
-			if (im_button("Download backup to file")) {
-				static pthread_t t;
-				pthread_create(&t, NULL, thread_backup, state);
+	im_set_next_inner_padding(1);
+	if (im_begin_window("Fudge", 1000, 500)) {
+
+		if (im_begin_tab_bar(&selected)) {
+			if (im_begin_tab("Backup/Restore")) {
+				im_entry("Backup file path", state->backup_file_path, sizeof(state->backup_file_path));
+				if (im_button("Download backup to file")) {
+					static pthread_t t;
+					pthread_create(&t, NULL, thread_backup, state);
+				}
+				if (im_button("Restore backup from file")) {
+					static pthread_t t;
+					pthread_create(&t, NULL, thread_restore, state);
+				}
+				im_end_tab();
 			}
-			if (im_button("Restore backup from file")) {
-				static pthread_t t;
-				pthread_create(&t, NULL, thread_restore, state);
+			if (im_begin_tab("Raw Conversion")) {
+				im_entry("Input RAF path", state->raf_path, sizeof(state->raf_path));
+				im_entry("Output JPG path", state->output_jpg_path, sizeof(state->output_jpg_path));
+				im_entry("FP1/FP2/FP3 path", state->fp_xml_path, sizeof(state->fp_xml_path));
+				if (im_button("Connect to a camera and convert RAW")) {
+					static pthread_t t;
+					pthread_create(&t, NULL, thread_raw_conversion, state);
+				}
+				im_end_tab();
 			}
-			im_end_tab();
-		}
-		if (im_begin_tab("Raw Conversion")) {
-			im_entry("Input RAF path", state->raf_path, sizeof(state->raf_path));
-			im_entry("Output JPG path", state->output_jpg_path, sizeof(state->output_jpg_path));
-			im_entry("FP1/FP2/FP3 path", state->fp_xml_path, sizeof(state->fp_xml_path));
-			if (im_button("Connect to a camera and convert RAW")) {
-				static pthread_t t;
-				pthread_create(&t, NULL, thread_raw_conversion, state);
+			if (im_begin_tab("About")) {
+				im_label("Licenses:");
+				im_label("libusb-1.0 (LGPL v2.1)");
+				im_label("dear imgui (MIT)");
+				im_label("hello_imgui (MIT)");
+				im_label("Copyright (C) 2023 Fudge by Daniel C");
+				im_label("Compile date: " __DATE__);
+				im_end_tab();
 			}
-			im_end_tab();
+			im_end_tab_bar();
 		}
-		if (im_begin_tab("About")) {
-			im_label("Licenses:");
-			im_label("libusb-1.0 (LGPL v2.1)");
-			im_label("dear imgui (MIT)");
-			im_label("hello_imgui (MIT)");
-			im_label("Copyright (C) 2023 Fudge by Daniel C");
-			im_label("Compile date: " __DATE__);
-			im_end_tab();
-		}
-		im_end_tab_bar();
+
+	#if 0
+		option("Film Simulation", fp_film_sim, &state->filmsim, &state->fp.FilmSimulation);
+		option("Exposure Bias", fp_exposure_bias, &state->expobias, &state->fp.ExposureBias);
+		option("Color", fp_range, &state->color, &state->fp.Color);
+		option("Sharpness", fp_range, &state->sharpness, &state->fp.Sharpness);
+		option("Grain Effect", fp_range, &state->graineffect, &state->fp.GrainEffect);
+		option("White Balance", fp_range, &state->whitebalance, &state->fp.WhiteBalance);
+	#endif
+
+		// if (im_button("Clear logs")) {
+		// 	app_log_clear();
+		// }
+		im_multiline_entry(fudge_state.ui_log_buffer, fudge_state.ui_log_length);
+		im_end_window();
 	}
-
-#if 0
-	option("Film Simulation", fp_film_sim, &state->filmsim, &state->fp.FilmSimulation);
-	option("Exposure Bias", fp_exposure_bias, &state->expobias, &state->fp.ExposureBias);
-	option("Color", fp_range, &state->color, &state->fp.Color);
-	option("Sharpness", fp_range, &state->sharpness, &state->fp.Sharpness);
-	option("Grain Effect", fp_range, &state->graineffect, &state->fp.GrainEffect);
-	option("White Balance", fp_range, &state->whitebalance, &state->fp.WhiteBalance);
-#endif
-
-	// if (im_button("Clear logs")) {
-	// 	app_log_clear();
-	// }
-	im_multiline_entry(fudge_state.ui_log_buffer, fudge_state.ui_log_length);
 
 	pthread_mutex_unlock(state->mutex);
 }
 
-int fudge_ui(void) {
+static int mymain(struct RimContext *ctx, void *arg) {
 	fudge_state.ui_log_buffer = malloc(1024);
 	fudge_state.ui_log_length = 1024;
 	fudge_state.ui_log_pos = 0;
@@ -264,6 +266,14 @@ int fudge_ui(void) {
 	app_print("You are trying out the very much unfinished Fudge desktop utility.");
 	app_print("This is not finished yet and is intended to be used through CLI.");
 	app_print("This frontend is not very well setup and is only a simple layer over CLI functionality.");
-	fudge_ui_backend(fudge_render_gui);
+
+	while (rim_poll(ctx)) {
+		fudge_render_gui();
+	}
+
 	return 0;
+}
+
+int fudge_ui(void) {
+    return rim_start(mymain, NULL);
 }

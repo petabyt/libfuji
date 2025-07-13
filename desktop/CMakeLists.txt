@@ -3,31 +3,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(fudge)
 
-# Import local libwpd so libpict won't download it
+option(RIM_COMPILE_DEMOS "Compile demos" OFF)
+option(RIM_COMPILE_LIBUI "Compile LibUI backend" ON)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/rim ${CMAKE_CURRENT_BINARY_DIR}/rim)
+
 if(WIN32)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../libwpd")
-        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../libwpd/ ${CMAKE_CURRENT_BINARY_DIR}/libwpd)
-    endif()
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libwpd ${CMAKE_CURRENT_BINARY_DIR}/libwpd)
 endif()
 
 # libfudge
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ ${CMAKE_CURRENT_BINARY_DIR}/lib)
-
-# hello_imgui
-set(HELLOIMGUI_BUILD_AUTOMATION_TEST OFF)
-set(HELLOIMGUI_ADD_APP_WITH_INSTALL OFF)
-option(HELLOIMGUI_USE_FREETYPE "" OFF)
-option(HELLOIMGUI_USE_FREETYPE_PLUTOSVG "" OFF)
-set(HELLOIMGUI_USE_SDL2 OFF)
-set(HELLOIMGUI_USE_GLFW3 ON)
-set(HELLOIMGUI_HAS_VULKAN OFF)
-if(EXISTS "${CMAKE_SOURCE_DIR}/../../hello_imgui")
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../hello_imgui/ ${CMAKE_CURRENT_BINARY_DIR}/hello_imgui)
-else()
-    include(FetchContent)
-    FetchContent_Declare(hello_imgui GIT_REPOSITORY https://github.com/pthom/hello_imgui.git GIT_TAG master GIT_SHALLOW 1)
-    FetchContent_MakeAvailable(hello_imgui)
-endif()
 
 if(WIN32)
     set(PLATFORM_SOURCES win.c win.rc)
@@ -38,8 +23,7 @@ endif()
 
 set(LIBPICT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/libpict/src)
 add_executable(fudge
-    hello_imgui.cpp
-    main.c jank.c backend.c ui.c im.cpp
+    main.c jank.c backend.c ui.c
     ${PLATFORM_SOURCES}
     ${LIBPICT_SOURCE_DIR}/lua/lua.c
     ${LIBPICT_SOURCE_DIR}/lua/lua-cjson/lua_cjson.c
@@ -51,7 +35,7 @@ target_compile_options(fudge PRIVATE
     >
 )
 target_link_libraries(fudge m libfudge
-    hello-imgui::hello_imgui
+    Rim::RimLibUI
     $<$<BOOL:${WIN32}>:-static -s>
     ${PLATFORM_LIBS}
 )

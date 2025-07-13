@@ -1,9 +1,23 @@
 {
-  "id": "dev.danielc.mlinstall",
+  "id": "dev.danielc.fudge",
   "runtime": "org.gnome.Platform",
   "runtime-version": "46",
   "sdk": "org.gnome.Sdk",
-  "command": "mlinstall",
+  "command": "fudge",
+
+  "finish-args": [
+    "--socket=fallback-x11",
+    "--socket=wayland",
+    // Allow access to mounted media
+  	"--filesystem=/media",
+  	"--filesystem=/run/media",
+  	// Allow access to Pictures/
+  	"--filesystem=xdg-pictures",
+  	// Required for USB devices
+    "--device=all"
+  ],
+
+  // OUTDATED: libui-dev
   "modules": [
     {
       "name": "libui-dev",
@@ -22,6 +36,7 @@
         }
       ]
     },
+
     {
         "name": "libusb",
         "config-opts": [ "--disable-static" ],
@@ -41,12 +56,14 @@
             "install -Dm644 COPYING ${FLATPAK_DEST}/share/licenses/libusb/COPYING"
         ]
     },
+
     {
       "name": "hello",
       "buildsystem": "simple",
       "build-commands": [
-        "make TARGET=l linux.out",
-        "cp linux.out $FLATPAK_DEST/bin/mlinstall"
+        "cmake -G Ninja -B build",
+        "cmake --build build",
+        "cmake --install build"
       ],
       "sources": [
         {

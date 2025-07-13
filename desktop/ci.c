@@ -55,7 +55,7 @@ int fudge_test_all_cameras_(const char *name) {
 	rc = ptp_close_session(r);
 	if (rc) return rc;
 	
-	ptpip_close(r);
+	ptpip_device_close(r);
 
 	printf("Going to kill %d\n", child_pid);
 	if (kill(child_pid, SIGINT) == -1) {

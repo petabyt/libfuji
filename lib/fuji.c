@@ -54,7 +54,7 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 		uint8_t goodbye_packet[] = {0x8, 0x0, 0x0, 0x0, 0xff, 0xff, 0xff, 0xff};
 		ptpip_cmd_write(r, goodbye_packet, 8);
 
-		ptpip_close(r);
+		ptpip_device_close(r);
 	} else if (r->connection_type == PTP_USB) {
 		ptp_device_close(r);
 	}

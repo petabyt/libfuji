@@ -47,9 +47,9 @@ enum FujiTransport {
 #define PTP_DPC_FUJI_ObjectCount		0xd222
 #define PTP_DPC_FUJI_CameraState		0xdf00
 #define PTP_DPC_FUJI_ClientState		0xdf01
-/// @info If 1, will heavily compress images into 400kb-800kb. Fuji uses this for downloading a quick preview.
+/// @brief If 1, will heavily compress images into 400kb-800kb. Fuji uses this for downloading a quick preview.
 #define PTP_DPC_FUJI_CompressSmall	0xD226
-/// @info If 0 (default value), the compressed_size field of PtpObjectInfo will be set at 100kb.
+/// @brief If 0 (default value), the compressed_size field of PtpObjectInfo will be set at 100kb.
 /// If 1, it will set the correct file size.
 /// Fuji sets this to 1 before GetObjectInfo and GetPartialObject(s) calls, and 0 after.
 /// It has no noticeable performance impact on download speed there. But if this property is set in

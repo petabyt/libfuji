@@ -10,7 +10,7 @@
 #include "android.h"
 #include "fuji.h"
 
-#define JPEG_LIB_VERSION 62
+#define JPEG_LIB_VERSION 80
 typedef unsigned char JSAMPLE;
 #include <jpeglib.h>
 

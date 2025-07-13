@@ -284,7 +284,7 @@ int fuji_test_discovery(struct PtpRuntime *r) {
 
 		try_download(r);
 
-		ptpip_close(r);
+		ptpip_device_close(r);
 	} else {
 		plat_dbg("Response code: %d\n", rc);
 	}

@@ -290,6 +290,7 @@ JNI_FUNC(jint, cTryConnectUSB)(JNIEnv *env, jclass thiz, jobject ctx) {
 	return rc;
 }
 
+#if 0
 JNI_FUNC(jint, cConnectFromDiscovery)(JNIEnv *env, jobject thiz) {
 	set_jni_env_ctx(env, NULL);
 
@@ -300,6 +301,7 @@ JNI_FUNC(jint, cConnectFromDiscovery)(JNIEnv *env, jobject thiz) {
 
 	return fuji_connect_from_discoverinfo(r, info);
 }
+#endif
 
 JNI_FUNC(jint, cFujiImportFiles)(JNIEnv *env, jobject thiz, jintArray handles, int mask) {
 	set_jni_env(env);
