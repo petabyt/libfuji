@@ -2,7 +2,6 @@
 // This is all portable code
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
 #include <time.h>
 #include <libpict.h>
@@ -255,14 +254,14 @@ int fuji_setup_remote_mode(struct PtpRuntime *r) {
 static int ptpip_fuji_init_req_(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp) {
 	struct FujiInitPacket *p = (struct FujiInitPacket *)r->data;
 	memset(p, 0, sizeof(struct FujiInitPacket));
-	p->length = 0x52;
-	p->type = PTPIP_INIT_COMMAND_REQ;
-	p->version = FUJI_PROTOCOL_VERSION;
+	ptp_write_u32(&p->length, 0x52);
+	ptp_write_u32(&p->type, PTPIP_INIT_COMMAND_REQ);
+	ptp_write_u32(&p->version, FUJI_PROTOCOL_VERSION);
 
-	p->guid1 = 0x5d48a5ad;
-	p->guid2 = 0xb7fb287;
-	p->guid3 = 0xd0ded5d3;
-	p->guid4 = 0x0;
+	ptp_write_u32(&p->guid1, 0x5d48a5ad);
+	ptp_write_u32(&p->guid2, 0xb7fb287);
+	ptp_write_u32(&p->guid3, 0xd0ded5d3);
+	ptp_write_u32(&p->guid4, 0x0);
 
 	ptp_write_unicode_string(p->device_name, device_name);
 
