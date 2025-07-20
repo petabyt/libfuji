@@ -1,0 +1,107 @@
+Fujiapp log file - Send this to devs!
+ABI: arm64-v8a
+Compile date: Jul 20 2023
+https://github.com/petabyt/fujiapp
+Running test suite from C
+Initialized command socket
+Connected to X-T20
+- Supports gps
+sleep 500ms for good measure...
+send_bulk_packets 0x1002 (PTP_OC_OpenSession)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 12 bytes
+recieve_bulk_packets: Return code: 0x2001
+Opened session
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 62 bytes
+recieve_bulk_packets: Return code: 0x2001
+Recieved events after opening session.
+Payload: 06 00 00 DF 06 00 00 00 20 D2 01 00 00 00 22 D2 61 03 00 00 2F D5 01 00 00 00 00 D4 01 00 00 00 01 D4 61 03 00 00 
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 26 bytes
+recieve_bulk_packets: Return code: 0x2001
+Read property 0xDF00 PTP_PC_FUJI_Unlocked (2 bytes)
+Payload: 06 00 
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 26 bytes
+recieve_bulk_packets: Return code: 0x2001
+Read property 0xDF01 PTP_PC_FUJI_Mode (2 bytes)
+Payload: 00 00 
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 28 bytes
+recieve_bulk_packets: Return code: 0x2001
+Read property 0xDF21 PTP_PC_FUJI_PhotoGetVersion (4 bytes)
+Payload: 03 00 00 00 
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 28 bytes
+recieve_bulk_packets: Return code: 0x2001
+Read property 0xDF22 PTP_PC_FUJI_FunctionVersion (4 bytes)
+Payload: 04 00 00 00 
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 28 bytes
+recieve_bulk_packets: Return code: 0x2001
+Read property 0xDF23 PTP_PC_FUJI_Unknown10 (4 bytes)
+Payload: 01 00 00 00 
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 28 bytes
+recieve_bulk_packets: Return code: 0x2001
+Read property 0xDF24 PTP_PC_FUJI_RemoteVersion (4 bytes)
+Payload: 04 00 02 00 
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 28 bytes
+recieve_bulk_packets: Return code: 0x2001
+Read property 0xDF25 PTP_PC_FUJI_RemotePhotoViewVersion (4 bytes)
+Payload: 02 00 00 00 
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 24 bytes
+recieve_bulk_packets: Return code: 0x2001
+Read property 0xDF26 PTP_PC_FUJI_PhotoRecieveReservedVersion (0 bytes)
+No payload
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 28 bytes
+recieve_bulk_packets: Return code: 0x2001
+Read property 0xDF31 PTP_PC_FUJI_VersionGPS (4 bytes)
+Payload: 02 00 00 00 
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 24 bytes
+recieve_bulk_packets: Return code: 0x2001
+Read property 0xDF44 (null) (0 bytes)
+No payload
+Waiting for device access...
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 26 bytes
+recieve_bulk_packets: Return code: 0x2001
+send_bulk_packets 0x1016 (PTP_OC_SetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+send_bulk_packets 0xC (PTPIP_DATA_PACKET_END)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 12 bytes
+recieve_bulk_packets: Return code: 0x2001
+Gained access to device (or already have access)
+Configuring mode property
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 26 bytes
+recieve_bulk_packets: Return code: 0x2001
+send_bulk_packets 0x1015 (PTP_OC_GetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+recieve_bulk_packets: Read 28 bytes
+recieve_bulk_packets: Return code: 0x2001
+send_bulk_packets 0x1016 (PTP_OC_SetDevicePropValue)
+send_bulk_packet: Sent 16 bytes
+send_bulk_packets 0x2001 (PTP_RC_OK)
+send_bulk_packet: Sent 16 bytes
+Failed to read 8 bytes
+Failed to setup mode: -5

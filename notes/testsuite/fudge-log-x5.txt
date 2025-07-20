@@ -1,0 +1,337 @@
+2233	ABI: arm64-v8a
+2233	Compile date: Feb 19 2025
+2233	https://github.com/petabyt/fudge
+2877	Extra tmout: 0
+2887	Connection established 192.168.0.1:55740 (127)
+2888	Running test suite from C
+2888	ptpip_cmd_write: 82
+2888	ptpip_cmd_read: 4
+2914	ptpip_cmd_read: 64
+2914	Connected to X-T5
+2914	Initialized command socket
+2914	Connected to X-T5
+2914	sleep 500ms for good measure...
+2979	Sending 1002 with 1 params
+2979	ptpip_cmd_write: 16
+2979	ptp_send_packet: Sent 16/16 bytes
+2979	ptpip_cmd_read: 65535
+2986	Opened session
+2986	Trying prop df21
+2986	Sending 1015 with 1 params
+2986	ptpip_cmd_write: 16
+2987	ptp_send_packet: Sent 16/16 bytes
+2987	ptpip_cmd_read: 65535
+2991	ptpip_cmd_read: 65535
+2991	Read property 0xDF21 (null) (4 bytes)
+2991	Payload: 04 00 00 00 
+2992	Trying prop df22
+2992	Sending 1015 with 1 params
+2992	ptpip_cmd_write: 16
+2992	ptp_send_packet: Sent 16/16 bytes
+2992	ptpip_cmd_read: 65535
+2992	ptpip_cmd_read: 65535
+2992	Read property 0xDF22 (null) (4 bytes)
+2993	Payload: 05 00 00 00 
+2993	Trying prop df24
+2993	Sending 1015 with 1 params
+2993	ptpip_cmd_write: 16
+2993	ptp_send_packet: Sent 16/16 bytes
+2993	ptpip_cmd_read: 65535
+2995	ptpip_cmd_read: 65535
+2999	Read property 0xDF24 (null) (4 bytes)
+2999	Payload: 0B 00 02 00 
+2999	Trying prop df25
+2999	Sending 1015 with 1 params
+2999	ptpip_cmd_write: 16
+3000	ptp_send_packet: Sent 16/16 bytes
+3000	ptpip_cmd_read: 65535
+3009	ptpip_cmd_read: 65535
+3009	Read property 0xDF25 (null) (4 bytes)
+3009	Payload: 05 00 00 00 
+3009	Trying prop d400
+3009	Sending 1015 with 1 params
+3009	ptpip_cmd_write: 16
+3009	ptp_send_packet: Sent 16/16 bytes
+3009	ptpip_cmd_read: 65535
+3016	Read property 0xD400 (null) (4 bytes)
+3016	Payload: 00 00 00 00 
+3016	Trying prop d52f
+3016	Sending 1015 with 1 params
+3017	ptpip_cmd_write: 16
+3018	ptp_send_packet: Sent 16/16 bytes
+3018	ptpip_cmd_read: 65535
+3033	ptpip_cmd_read: 65535
+3033	Read property 0xD52F (null) (4 bytes)
+3033	Payload: 01 00 00 00 
+3033	Trying prop df28
+3033	Sending 1015 with 1 params
+3033	ptpip_cmd_write: 16
+3034	ptp_send_packet: Sent 16/16 bytes
+3034	ptpip_cmd_read: 65535
+3038	Read property 0xDF28 (null) (4 bytes)
+3038	Payload: 03 00 00 00 
+3038	Waiting for device access...
+3038	Sending 1015 with 1 params
+3038	ptpip_cmd_write: 16
+3038	ptp_send_packet: Sent 16/16 bytes
+3038	ptpip_cmd_read: 65535
+3039	Found 6 events
+3039	DF00 changed to 6
+3039	D220 changed to 1
+3039	D222 changed to 9E
+3039	D52F changed to 1
+3039	D400 changed to 1
+3039	D401 changed to 9E
+3039	Gained access to device (or already have access)
+3039	Configuring mode property
+3040	Sending 1015 with 1 params
+3040	ptpip_cmd_write: 16
+3040	ptp_send_packet: Sent 16/16 bytes
+3040	ptpip_cmd_read: 65535
+3043	ptpip_cmd_read: 65535
+3047	GetObjectVersion: 0x5
+3047	Sending 1015 with 1 params
+3047	ptpip_cmd_write: 16
+3047	ptp_send_packet: Sent 16/16 bytes
+3047	ptpip_cmd_read: 65535
+3053	RemoteGetObjectVersion: 0x5
+3053	Sending 1015 with 1 params
+3054	ptpip_cmd_write: 16
+3054	ptp_send_packet: Sent 16/16 bytes
+3054	ptpip_cmd_read: 65535
+3064	ptpip_cmd_read: 65535
+3064	ImageGetVersion: 0x4
+3064	Sending 1015 with 1 params
+3064	ptpip_cmd_write: 16
+3065	ptp_send_packet: Sent 16/16 bytes
+3065	ptpip_cmd_read: 65535
+3073	RemoteVersion: 0x2000B
+3073	CameraState is 6
+3073	Setting mode to 5
+3073	ptpip_cmd_write: 16
+3073	ptp_send_packet: Sent 16/16 bytes
+3073	ptpip_cmd_write: 14
+3074	ptp_send_packet: Sent 14/14 bytes
+3074	ptpip_cmd_read: 65535
+3074	Sending 1015 with 1 params
+3074	ptpip_cmd_write: 16
+3075	ptp_send_packet: Sent 16/16 bytes
+3075	ptpip_cmd_read: 65535
+3076	Found 0 events
+3076	Mode property is configured.
+3076	Configuring version properties
+3076	ptpip_cmd_write: 16
+3076	ptp_send_packet: Sent 16/16 bytes
+3076	ptpip_cmd_write: 16
+3076	ptp_send_packet: Sent 16/16 bytes
+3076	ptpip_cmd_read: 65535
+3206	Sending 1008 with 1 params
+3206	ptpip_cmd_write: 16
+3207	ptp_send_packet: Sent 16/16 bytes
+3207	ptpip_cmd_read: 65535
+3207	Invalid return code: 2009
+3207	Didn't get valid info for 0xfffffff1
+3207	Configured FunctionMode, no errors detected (yet)
+3207	Sending 902b with 0 params
+3207	ptpip_cmd_write: 12
+3208	ptp_send_packet: Sent 12/12 bytes
+3208	ptpip_cmd_read: 65535
+3248	ptpip_cmd_read: 65535
+3249	Received device info (or not supported)
+3249	Sending 101c with 2 params
+3249	ptpip_cmd_write: 20
+3249	ptp_send_packet: Sent 20/20 bytes
+3249	ptpip_cmd_read: 65535
+3267	Sending 1015 with 1 params
+3267	ptpip_cmd_write: 16
+3267	ptp_send_packet: Sent 16/16 bytes
+3267	ptpip_cmd_read: 65535
+3269	ptpip_cmd_read: 65535
+3269	Found 21 events
+3269	D21B changed to 0
+3269	500C changed to 800A
+3269	5012 changed to 0
+3269	D229 changed to 83C
+3269	D22A changed to 25BE
+3269	500E changed to 3
+3269	D242 changed to 9
+3269	D018 changed to 4
+3269	D241 changed to A
+3269	D02A changed to 80000C80
+3269	D02B changed to 80000C80
+3269	D240 changed to FFFFFFFF
+3269	D028 changed to 0
+3269	5007 changed to 168
+3269	5010 changed to FD65
+3269	5005 changed to 2
+3269	D001 changed to 1
+3269	500A changed to 8001
+3269	D17C changed to 3020705
+3269	D209 changed to 0
+3269	D246 changed to 9
+3273	Connection established 192.168.0.1:55741 (130)
+3277	Connection established 192.168.0.1:55742 (131)
+3277	Sending 1015 with 1 params
+3277	ptpip_cmd_write: 16
+3277	ptp_send_packet: Sent 16/16 bytes
+3277	ptpip_cmd_read: 65535
+3277	ptpip_cmd_read: 65535
+3278	Found 21 events
+3278	D21B changed to 0
+3278	500C changed to 800A
+3278	5012 changed to 0
+3278	D229 changed to 83C
+3278	D22A changed to 25BE
+3278	500E changed to 3
+3278	D242 changed to 9
+3278	D018 changed to 4
+3278	D241 changed to A
+3278	D02A changed to 80000C80
+3278	D02B changed to 80000C80
+3278	D240 changed to FFFFFFFF
+3278	D028 changed to 0
+3278	5007 changed to 168
+3278	5010 changed to FD65
+3278	5005 changed to 2
+3278	D001 changed to 1
+3278	500A changed to 8001
+3278	D17C changed to 3020705
+3278	D209 changed to 0
+3278	D246 changed to 9
+3278	Sending 1018 with 1 params
+3278	ptpip_cmd_write: 16
+3278	ptp_send_packet: Sent 16/16 bytes
+3278	ptpip_cmd_read: 65535
+3403	Sending 1015 with 1 params
+3403	ptpip_cmd_write: 16
+3404	ptp_send_packet: Sent 16/16 bytes
+3404	ptpip_cmd_read: 65535
+3409	ptpip_cmd_read: 65535
+3410	Found 21 events
+3410	D21B changed to 0
+3410	500C changed to 800A
+3410	5012 changed to 0
+3410	D229 changed to 83C
+3410	D22A changed to 25BE
+3410	500E changed to 3
+3410	D242 changed to 9
+3410	D018 changed to 4
+3410	D241 changed to A
+3410	D02A changed to 80000C80
+3410	D02B changed to 80000C80
+3410	D240 changed to FFFFFFFF
+3410	D028 changed to 0
+3410	5007 changed to 168
+3411	5010 changed to FD65
+3411	5005 changed to 2
+3411	D001 changed to 1
+3411	500A changed to 8001
+3411	D17C changed to 3020705
+3411	D209 changed to 0
+3411	D246 changed to 9
+3411	Sending 1015 with 1 params
+3411	ptpip_cmd_write: 16
+3411	ptp_send_packet: Sent 16/16 bytes
+3411	ptpip_cmd_read: 65535
+3412	ptpip_cmd_read: 65535
+3412	Found 21 events
+3412	D21B changed to 0
+3413	500C changed to 800A
+3413	5012 changed to 0
+3413	D229 changed to 83C
+3413	D22A changed to 25BE
+3413	500E changed to 3
+3413	D242 changed to 9
+3413	D018 changed to 4
+3413	D241 changed to A
+3413	D02A changed to 80000C80
+3413	D02B changed to 80000C80
+3413	D240 changed to FFFFFFFF
+3413	D028 changed to 0
+3413	5007 changed to 168
+3413	5010 changed to FD65
+3413	5005 changed to 2
+3413	D001 changed to 1
+3413	500A changed to 8001
+3413	D17C changed to 3020705
+3413	D209 changed to 0
+3413	D246 changed to 9
+3413	ptpip_cmd_write: 16
+3413	ptp_send_packet: Sent 16/16 bytes
+3413	ptpip_cmd_write: 14
+3413	ptp_send_packet: Sent 14/14 bytes
+3413	ptpip_cmd_read: 65535
+3414	Sending 1015 with 1 params
+3414	ptpip_cmd_write: 16
+3414	ptp_send_packet: Sent 16/16 bytes
+3414	ptpip_cmd_read: 65535
+3415	Found 6 events
+3415	DF00 changed to 6
+3415	D220 changed to 1
+3415	D222 changed to 9E
+3415	D52F changed to 1
+3415	D400 changed to 1
+3415	D401 changed to 9E
+3415	Sending 1015 with 1 params
+3415	ptpip_cmd_write: 16
+3416	ptp_send_packet: Sent 16/16 bytes
+3416	ptpip_cmd_read: 65535
+3416	Found 0 events
+3416	ptpip_cmd_write: 16
+3417	ptp_send_packet: Sent 16/16 bytes
+3417	ptpip_cmd_write: 14
+3417	ptp_send_packet: Sent 14/14 bytes
+3417	ptpip_cmd_read: 65535
+3417	Sending 1015 with 1 params
+3417	ptpip_cmd_write: 16
+3418	ptp_send_packet: Sent 16/16 bytes
+3418	ptpip_cmd_read: 65535
+3418	ptpip_cmd_read: 65535
+3418	Found 0 events
+3418	Sending 1015 with 1 params
+3418	ptpip_cmd_write: 16
+3418	ptp_send_packet: Sent 16/16 bytes
+3418	ptpip_cmd_read: 65535
+3418	ptpip_cmd_read: 65535
+3418	ptpip_cmd_write: 16
+3419	ptp_send_packet: Sent 16/16 bytes
+3419	ptpip_cmd_write: 16
+3419	ptp_send_packet: Sent 16/16 bytes
+3419	ptpip_cmd_read: 65535
+3421	Sending 1015 with 1 params
+3421	ptpip_cmd_write: 16
+3421	ptp_send_packet: Sent 16/16 bytes
+3421	ptpip_cmd_read: 65535
+3422	Found 2 events
+3422	DF00 changed to B
+3422	D222 changed to 9E
+3422	Configured image viewer
+3423	Sending 1008 with 1 params
+3423	ptpip_cmd_write: 16
+3423	ptp_send_packet: Sent 16/16 bytes
+3423	ptpip_cmd_read: 65535
+3468	ptpip_cmd_read: 65535
+3470	Downloading thumb (133)
+3470	Sending 100a with 1 params
+3471	ptpip_cmd_write: 16
+3471	ptp_send_packet: Sent 16/16 bytes
+3471	ptpip_cmd_read: 65535
+3604	resource temp unavailable3605	ptpip_cmd_read: 65535
+3643	resource temp unavailable3644	ptpip_cmd_read: 65535
+3724	resource temp unavailable3725	ptpip_cmd_read: 65535
+3738	resource temp unavailable3738	Failed to receive packets: -10
+3738	Command ignored, trying again...
+3738	ptpip_cmd_write: 16
+3739	ptp_send_packet: Sent 16/16 bytes
+3739	ptpip_cmd_read: 65535
+3746	resource temp unavailable3746	ptpip_cmd_read: 65535
+3755	resource temp unavailable3755	ptpip_cmd_read: 65535
+3768	resource temp unavailable3768	ptpip_cmd_read: 65535
+3781	resource temp unavailable3781	Failed to receive packets: -10
+3781	Command ignored again.
+3781	Failed to download thumb
+3783	Goodbye
+3783	ptpip_cmd_write: 8
+3784	ptpip_close
+
+

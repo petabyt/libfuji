@@ -1,0 +1,266 @@
+280	ABI: arm64-v8a
+280	Compile date: Sep  5 2024
+280	https://github.com/petabyt/fudge
+298	Connection established 192.168.0.1:55740 (136)
+298	Running test suite from C
+352	Connected to X-T4
+352	Initialized command socket
+353	Connected to X-T4
+353	sleep 500ms for good measure...
+479	ptp_send cmd=0x8B449958
+492	ptp_send_bulk_packets: Sent 16/16 bytes
+502	ptpipusb_receive_bulk_packets: Read 12 bytes
+503	ptpipusb_receive_bulk_packets: Return code: 0x2001
+503	Opened session
+503	Trying prop df21
+503	ptp_send cmd=0x8B4498F8
+517	ptp_send_bulk_packets: Sent 16/16 bytes
+552	ptpipusb_receive_bulk_packets: Read 28 bytes
+552	ptpipusb_receive_bulk_packets: Return code: 0x2001
+552	Read property 0xDF21 (null) (4 bytes)
+553	Payload: 04 00 00 00 
+553	Trying prop df22
+553	ptp_send cmd=0x8B4498F8
+554	ptp_send_bulk_packets: Sent 16/16 bytes
+599	ptpipusb_receive_bulk_packets: Read 28 bytes
+599	ptpipusb_receive_bulk_packets: Return code: 0x2001
+599	Read property 0xDF22 (null) (4 bytes)
+599	Payload: 05 00 00 00 
+600	Trying prop df24
+600	ptp_send cmd=0x8B4498F8
+600	ptp_send_bulk_packets: Sent 16/16 bytes
+649	ptpipusb_receive_bulk_packets: Read 28 bytes
+649	ptpipusb_receive_bulk_packets: Return code: 0x2001
+649	Read property 0xDF24 (null) (4 bytes)
+649	Payload: 0A 00 02 00 
+649	Trying prop df25
+649	ptp_send cmd=0x8B4498F8
+649	ptp_send_bulk_packets: Sent 16/16 bytes
+671	ptpipusb_receive_bulk_packets: Read 28 bytes
+671	ptpipusb_receive_bulk_packets: Return code: 0x2001
+671	Read property 0xDF25 (null) (4 bytes)
+671	Payload: 04 00 00 00 
+672	Trying prop df26
+672	ptp_send cmd=0x8B4498F8
+672	ptp_send_bulk_packets: Sent 16/16 bytes
+690	ptpipusb_receive_bulk_packets: Read 28 bytes
+690	ptpipusb_receive_bulk_packets: Return code: 0x2001
+690	Read property 0xDF26 (null) (4 bytes)
+690	Payload: 01 00 00 00 
+690	Trying prop d400
+690	ptp_send cmd=0x8B4498F8
+691	ptp_send_bulk_packets: Sent 16/16 bytes
+714	ptpipusb_receive_bulk_packets: Read 28 bytes
+714	ptpipusb_receive_bulk_packets: Return code: 0x2001
+714	Read property 0xD400 (null) (4 bytes)
+714	Payload: 00 00 00 00 
+714	Trying prop d52f
+714	ptp_send cmd=0x8B4498F8
+714	ptp_send_bulk_packets: Sent 16/16 bytes
+737	ptpipusb_receive_bulk_packets: Read 28 bytes
+737	ptpipusb_receive_bulk_packets: Return code: 0x2001
+737	Read property 0xD52F (null) (4 bytes)
+737	Payload: 01 00 00 00 
+737	Trying prop df28
+737	ptp_send cmd=0x8B4498F8
+737	ptp_send_bulk_packets: Sent 16/16 bytes
+760	ptpipusb_receive_bulk_packets: Read 28 bytes
+760	ptpipusb_receive_bulk_packets: Return code: 0x2001
+760	Read property 0xDF28 (null) (4 bytes)
+761	Payload: 01 00 00 00 
+761	Waiting for device access...
+761	ptp_send cmd=0x8B449888
+761	ptp_send_bulk_packets: Sent 16/16 bytes
+783	ptpipusb_receive_bulk_packets: Read 62 bytes
+783	ptpipusb_receive_bulk_packets: Return code: 0x2001
+793	Found 6 events
+794	DF00 changed to 6
+794	D220 changed to 1
+794	D222 changed to 44
+794	D52F changed to 1
+794	D400 changed to 1
+794	D401 changed to 44
+794	Gained access to device (or already have access)
+795	Configuring mode property
+795	ptp_send cmd=0x8B4498F8
+797	ptp_send_bulk_packets: Sent 16/16 bytes
+826	ptpipusb_receive_bulk_packets: Read 28 bytes
+826	ptpipusb_receive_bulk_packets: Return code: 0x2001
+826	GetObjectVersion: 0x5
+826	ptp_send cmd=0x8B4498F8
+826	ptp_send_bulk_packets: Sent 16/16 bytes
+827	ptpipusb_receive_bulk_packets: Read 28 bytes
+827	ptpipusb_receive_bulk_packets: Return code: 0x2001
+827	RemoteGetObjectVersion: 0x4
+827	ptp_send cmd=0x8B4498F8
+827	ptp_send_bulk_packets: Sent 16/16 bytes
+827	ptpipusb_receive_bulk_packets: Read 28 bytes
+827	ptpipusb_receive_bulk_packets: Return code: 0x2001
+827	ImageGetVersion: 0x4
+827	ptp_send cmd=0x8B4498F8
+828	ptp_send_bulk_packets: Sent 16/16 bytes
+828	ptpipusb_receive_bulk_packets: Read 28 bytes
+828	ptpipusb_receive_bulk_packets: Return code: 0x2001
+828	RemoteVersion: 0x2000A
+828	CameraState is 6
+828	Setting mode to 5
+828	ptp_send_data cmd packet cmd=0x8B4498F8828	ptp_send_bulk_packets: Sent 16/16 bytes
+828	ptp_send_bulk_packets: Sent 14/14 bytes
+828	ptpipusb_receive_bulk_packets: Read 12 bytes
+828	ptpipusb_receive_bulk_packets: Return code: 0x2001
+828	Mode property is configured.
+829	Configuring version properties
+829	ptp_send_data cmd packet cmd=0x8B4495D8829	ptp_send_bulk_packets: Sent 16/16 bytes
+829	ptp_send_bulk_packets: Sent 16/16 bytes
+868	ptpipusb_receive_bulk_packets: Read 12 bytes
+868	ptpipusb_receive_bulk_packets: Return code: 0x2001
+868	ptp_send cmd=0x8B4495D8
+869	ptp_send_bulk_packets: Sent 16/16 bytes
+869	ptpipusb_receive_bulk_packets: Read 24 bytes
+869	ptpipusb_receive_bulk_packets: Return code: 0x2009
+869	Invalid return code: 2009
+869	Configured FunctionMode, no errors detected (yet)
+870	ptp_send cmd=0x8B4498E8
+870	ptp_send_bulk_packets: Sent 12/12 bytes
+899	ptpipusb_receive_bulk_packets: Read 449 bytes
+899	ptpipusb_receive_bulk_packets: Return code: 0x2001
+899	Received device info (or not supported)
+899	ptp_send cmd=0x8B449978
+900	ptp_send_bulk_packets: Sent 20/20 bytes
+918	ptpipusb_receive_bulk_packets: Read 12 bytes
+918	ptpipusb_receive_bulk_packets: Return code: 0x2001
+919	ptp_send cmd=0x8B449938
+920	ptp_send_bulk_packets: Sent 16/16 bytes
+923	ptpipusb_receive_bulk_packets: Read 146 bytes
+923	ptpipusb_receive_bulk_packets: Return code: 0x2001
+933	Found 20 events
+933	D21B changed to 0
+933	500C changed to 32778
+933	5012 changed to 0
+934	D229 changed to 907
+934	D22A changed to 4594
+934	500E changed to 1
+934	D242 changed to 11
+934	D018 changed to 5
+934	D241 changed to 10
+934	D02A changed to -2147477248
+934	D02B changed to -2147477248
+934	D240 changed to -2147423648
+934	D028 changed to 0
+934	5007 changed to 200
+934	5005 changed to 2
+934	D001 changed to 1
+934	500A changed to 32769
+934	D17C changed to 50464517
+934	D209 changed to 0
+934	D246 changed to 11
+945	Connection established 192.168.0.1:55741 (124)
+952	Connection established 192.168.0.1:55742 (125)
+952	ptp_send cmd=0x8B449908
+953	ptp_send_bulk_packets: Sent 16/16 bytes
+953	ptpipusb_receive_bulk_packets: Read 146 bytes
+953	ptpipusb_receive_bulk_packets: Return code: 0x2001
+966	Found 20 events
+966	D21B changed to 0
+966	500C changed to 32778
+966	5012 changed to 0
+966	D229 changed to 907
+966	D22A changed to 4594
+966	500E changed to 1
+966	D242 changed to 11
+966	D018 changed to 5
+966	D241 changed to 10
+966	D02A changed to -2147477248
+966	D02B changed to -2147477248
+966	D240 changed to -2147423648
+966	D028 changed to 0
+966	5007 changed to 200
+966	5005 changed to 2
+966	D001 changed to 1
+966	500A changed to 32769
+966	D17C changed to 50464517
+966	D209 changed to 0
+966	D246 changed to 11
+966	ptp_send cmd=0x8B449978
+966	ptp_send_bulk_packets: Sent 16/16 bytes
+970	ptpipusb_receive_bulk_packets: Read 12 bytes
+970	ptpipusb_receive_bulk_packets: Return code: 0x2001
+988	ptp_send_data cmd packet cmd=0x8B4499A8990	ptp_send_bulk_packets: Sent 16/16 bytes
+990	ptp_send_bulk_packets: Sent 14/14 bytes
+994	ptpipusb_receive_bulk_packets: Read 12 bytes
+994	ptpipusb_receive_bulk_packets: Return code: 0x2001
+994	ptp_send cmd=0x8B449938
+994	ptp_send_bulk_packets: Sent 16/16 bytes
+994	ptpipusb_receive_bulk_packets: Read 62 bytes
+994	ptpipusb_receive_bulk_packets: Return code: 0x2001
+994	Found 6 events
+994	DF00 changed to 6
+995	D220 changed to 1
+995	D222 changed to 44
+995	D52F changed to 1
+995	D400 changed to 1
+995	D401 changed to 44
+995	ptp_send cmd=0x8B4499A8
+995	ptp_send_bulk_packets: Sent 16/16 bytes
+998	ptpipusb_receive_bulk_packets: Read 28 bytes
+998	ptpipusb_receive_bulk_packets: Return code: 0x2001
+998	ptp_send_data cmd packet cmd=0x8B4499A8998	ptp_send_bulk_packets: Sent 16/16 bytes
+998	ptp_send_bulk_packets: Sent 14/14 bytes
+998	ptpipusb_receive_bulk_packets: Read 12 bytes
+998	ptpipusb_receive_bulk_packets: Return code: 0x2001
+998	ptp_send_data cmd packet cmd=0x8B4499A8998	ptp_send_bulk_packets: Sent 16/16 bytes
+998	ptp_send_bulk_packets: Sent 16/16 bytes
+998	ptpipusb_receive_bulk_packets: Read 12 bytes
+998	ptpipusb_receive_bulk_packets: Return code: 0x2001
+998	ptp_send cmd=0x8B449938
+998	ptp_send_bulk_packets: Sent 16/16 bytes
+998	ptpipusb_receive_bulk_packets: Read 38 bytes
+998	ptpipusb_receive_bulk_packets: Return code: 0x2001
+999	Found 2 events
+999	DF00 changed to 11
+999	D222 changed to 44
+999	Configured image viewer
+999	Attempting to get object info for 1...
+999	ptp_send cmd=0x8B449478
+999	ptp_send_bulk_packets: Sent 16/16 bytes
+1038	ptpipusb_receive_bulk_packets: Read 166 bytes
+1038	ptpipusb_receive_bulk_packets: Return code: 0x2001
+1038	Got object info
+1038	Object info: {"storage_id": 268435457,"compressedSize": 167936,"parent": 0,"format": "PTP_OF_JPEG","format_int": 14337,"protection": "none","filename": "_DSF4612.JPG","imgWidth": 6240,"imgHeight": 4160,"dateCreated": "20240809T140114","dateModified": ""}
+1039	Tag: 'Orientation:1'
+1039	Trying to get thumbnail for 1...
+1039	ptp_send cmd=0x8B449478
+1039	ptp_send_bulk_packets: Sent 16/16 bytes
+1062	ptpipusb_receive_bulk_packets: Read 42586 bytes
+1062	ptpipusb_receive_bulk_packets: Return code: 0x2001
+1062	Got thumbnail: 42562 bytes
+1062	ptp_send cmd=0x8B449328
+1064	ptp_send_bulk_packets: Sent 16/16 bytes
+1085	ptpipusb_receive_bulk_packets: Read 26 bytes
+1085	ptpipusb_receive_bulk_packets: Return code: 0x2001
+1085	Found 0 events
+1085	ptp_send cmd=0x8B449398
+1085	ptp_send_bulk_packets: Sent 24/24 bytes
+1088	ptpipusb_receive_bulk_packets: Read 16412 bytes
+1088	ptpipusb_receive_bulk_packets: Return code: 0x2001
+1088	Exif: 2181088	Exif thumb offset: 3952 size: 88371088	ptp_send cmd=0x8B449328
+1089	ptp_send_bulk_packets: Sent 16/16 bytes
+1090	ptpipusb_receive_bulk_packets: Read 26 bytes
+1090	ptpipusb_receive_bulk_packets: Return code: 0x2001
+1090	Found 0 events
+1090	ptp_send cmd=0x8B449328
+1091	ptp_send_bulk_packets: Sent 16/16 bytes
+1091	ptpipusb_receive_bulk_packets: Read 26 bytes
+1091	ptpipusb_receive_bulk_packets: Return code: 0x2001
+1091	Found 0 events
+1091	ptp_send cmd=0x8B449328
+1091	ptp_send_bulk_packets: Sent 16/16 bytes
+1091	ptpipusb_receive_bulk_packets: Read 26 bytes
+1091	ptpipusb_receive_bulk_packets: Return code: 0x2001
+1091	Found 0 events
+1091	ptp_send cmd=0x8B449328
+1091	ptp_send_bulk_packets: Sent 16/16 bytes
+1092	ptpipusb_receive_bulk_packets: Read 26 bytes
+1092	ptpipusb_receive_bulk_packets: Return code: 0x2001
+1092	Found 0 events
+1092	Found EXIF thumb at 3952 8837
