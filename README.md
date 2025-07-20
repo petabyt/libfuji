@@ -24,7 +24,7 @@ Open android/ in Android Studio.
 Desktop utility is still a work in progress.
 ```
 # Ubuntu/Debian deps:
-sudo apt install libusb-1.0-0-dev libimgui-dev libvulkan-dev libglfw3-dev
+sudo apt install cmake ninja-build libgtk-3-dev libusb-1.0-0-dev libvulkan-dev libglfw3-dev
 ```
 ```
 cd desktop
