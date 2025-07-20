@@ -29,6 +29,8 @@ target_compile_options(fudge
     PRIVATE -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations
 )
 
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE "-Wl,-z,max-page-size=16384")
+
 find_library(log-lib log)
 find_library(android-lib android)
 find_library(egl-lib EGL)
