@@ -44,7 +44,7 @@ object Widgets {
         enabled: Boolean = true,
         onClick: () -> Unit,
         text: String = "",
-        content: @Composable () -> Unit = {Text(text, color = Color.White)},
+        content: @Composable () -> Unit = {Text(text, color = Color.White, modifier = Modifier.padding(5.dp))},
     ) {
         Button(
             onClick = onClick,
@@ -67,6 +67,25 @@ object Widgets {
         Button(
             onClick = onClick,
             colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.go_greenblue)),
+            modifier = modifier,
+            shape = RectangleShape,
+            enabled = enabled,
+        ) {
+            content()
+        }
+    }
+
+    @Composable
+    fun GrayButton(
+        modifier: Modifier = Modifier,
+        enabled: Boolean = true,
+        onClick: () -> Unit,
+        text: String = "",
+        content: @Composable () -> Unit = {Text(text, color = Color.White, modifier = Modifier.padding(5.dp))},
+    ) {
+        Button(
+            onClick = onClick,
+            colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.light_gray)),
             modifier = modifier,
             shape = RectangleShape,
             enabled = enabled,

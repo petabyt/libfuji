@@ -1,10 +1,19 @@
 package dev.danielc.fudgecmp
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,7 +53,10 @@ import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -55,10 +67,20 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import java.util.Locale
 
 class State {
     var x by mutableStateOf(0)
+}
+
+object Backend {
+    var mainLog by mutableStateOf("")
+    private val h = Handler(Looper.getMainLooper())
+    fun log(str: String) {
+        h.post { mainLog += str + "\n" }
+    }
 }
 
 @Composable
@@ -73,7 +95,40 @@ fun BottomLog(modifier: Modifier, text: String): Unit {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun longPress(onClick: () -> Unit, onLongClick: () -> Unit): MutableInteractionSource {
+    val context = LocalContext.current
+
+    val interactionSource = remember { MutableInteractionSource() }
+
+    val viewConfiguration = LocalViewConfiguration.current
+
+    LaunchedEffect(interactionSource) {
+        var isLongClick = false
+
+        interactionSource.interactions.collectLatest { interaction ->
+            when (interaction) {
+                is PressInteraction.Press -> {
+                    isLongClick = false
+                    delay(viewConfiguration.longPressTimeoutMillis)
+                    isLongClick = true
+                    onLongClick()
+                }
+
+                is PressInteraction.Release -> {
+                    if (isLongClick.not()) {
+                        onClick()
+                    }
+                }
+
+            }
+        }
+    }
+
+    return interactionSource
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Preview(showBackground = true, device = "id:pixel_7")
 @Composable
 fun MainScreen(navController: NavHostController = rememberNavController()) {
@@ -112,17 +167,31 @@ fun MainScreen(navController: NavHostController = rememberNavController()) {
                     contentScale = ContentScale.Crop
                 ) ) {
                 Column(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.align(Alignment.Center).padding(horizontal = 20.dp)
                 ) {
-                    Widgets.GreenButton(text = "Go to gallery", onClick = {
+                    val m = Modifier.fillMaxWidth()
+                    val longPress = longPress(onClick = {
                         navController.navigate("gallery")
+                    }, onLongClick = {
+                        Backend.log("Long Press")
                     })
-                    Widgets.GreenButton(text = "Go to test suite", onClick = {
+                    Button(
+                        modifier = m,
+                        interactionSource = longPress,
+                        onClick = {}
+                    ) {
+                        Text("Gallery")
+                    }
+                    Widgets.GreenButton(modifier = m, text = "Go to test suite", onClick = {
                         navController.navigate("testsuite")
                     })
+                    Widgets.GrayButton(modifier = m, text = "Help", onClick = {
+                        Backend.log("Hello")
+                    })
+                    Widgets.GrayButton(modifier = m, text = "Send Feedback", onClick = {})
                 }
                 Text(
-                    "asd",
+                    Backend.mainLog,
                     fontFamily = FontFamily.Monospace,
                     modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
                         .background(Color.Black.copy(alpha = 0.6f)).padding(5.dp)
@@ -237,11 +306,11 @@ fun TestSuite(navController: NavHostController = rememberNavController()) {
                     },
                     navigationIcon = {
                         IconButton(onClick = {
-
+                            navController.navigateUp()
                         }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Localized description"
+                                contentDescription = "Back"
                             )
                         }
                     },
@@ -251,7 +320,7 @@ fun TestSuite(navController: NavHostController = rememberNavController()) {
                         }) {
                             Icon(
                                 painter = painterResource(R.drawable.baseline_content_copy_24),
-                                contentDescription = "Localized description"
+                                contentDescription = "Copy"
                             )
                         }
                     }
@@ -308,7 +377,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
 
-            NavHost(navController = navController, startDestination = "home") {
+            NavHost(
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                navController = navController, startDestination = "home") {
                 composable("home") { MainScreen(navController) }
                 composable("testsuite") { TestSuite(navController) }
                 composable("gallery") { GalleryScreen(navController) }
