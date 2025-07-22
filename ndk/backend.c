@@ -182,6 +182,7 @@ JNI_FUNC(jbyteArray, cFujiGetThumb)(JNIEnv *env, jobject thiz, jint handle) {
 
 	int rc = fuji_get_thumb(r, handle, &offset, &length);
 	if (rc) {
+		ptp_mutex_unlock(r);
 		return NULL;
 	}
 
