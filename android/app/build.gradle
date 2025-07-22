@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace 'dev.danielc.fujiapp'
-    compileSdk 34
+    compileSdk 35
 
     buildFeatures {
         buildConfig true
@@ -13,9 +13,9 @@ android {
     defaultConfig {
         applicationId "dev.danielc.fujiapp"
         minSdk 23
-        targetSdk 34
-        versionCode 11
-        versionName "0.2.2 (beta)"
+        targetSdk 35
+        versionCode 12
+        versionName "0.2.3 (beta)"
     }
 
     buildTypes {
