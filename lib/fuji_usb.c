@@ -194,7 +194,7 @@ int fujiusb_download_backup(struct PtpRuntime *r, FILE *f) {
 	fwrite(ptp_get_payload(r), 1, ptp_get_payload_length(r), f);
 
 	end:;
-	ptp_mutex_lock(r);
+	ptp_mutex_unlock(r);
 
 	return rc;
 }
