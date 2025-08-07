@@ -6,7 +6,9 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.MenuItem;
+import android.view.ViewGroup;
 
 import dev.danielc.views.ThumbAdapter;
 
@@ -26,6 +28,15 @@ public class FileGallery extends AppCompatActivity {
         rv.setItemViewCacheSize(50);
         rv.setNestedScrollingEnabled(false);
         setContentView(rv);
+
+        TypedValue tv = new TypedValue();
+        if (getTheme().resolveAttribute(android.R.attr.actionBarSize, tv, true)) {
+            int actionBarHeight = TypedValue.complexToDimensionPixelSize(tv.data, getResources().getDisplayMetrics());
+
+            ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) rv.getLayoutParams();
+            lp.topMargin = actionBarHeight;
+            rv.setLayoutParams(lp);
+        }
     }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

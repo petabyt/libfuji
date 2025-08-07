@@ -114,15 +114,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.help_button).setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                Intent intent = new Intent(MainActivity.this, Liveview.class);
-                startActivity(intent);
-                return false;
-            }
-        });
-
         findViewById(R.id.help_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
