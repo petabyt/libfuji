@@ -5,9 +5,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_gravity="center"
+    android:id="@+id/main_activity_view"
     tools:context=".MainActivity">
 
     <FrameLayout
+        android:layout_marginTop="?attr/actionBarSize"
+        app:layout_constraintTop_toTopOf="parent"
         android:id="@+id/background"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -27,6 +30,7 @@
     </FrameLayout>
 
     <LinearLayout
+        android:layout_marginTop="?attr/actionBarSize"
         android:id="@+id/boxLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

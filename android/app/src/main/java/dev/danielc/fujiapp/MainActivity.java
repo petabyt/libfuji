@@ -20,7 +20,9 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.Window;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.provider.Settings;
@@ -28,6 +30,10 @@ import android.provider.Settings;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import dev.danielc.fujiapp.BuildConfig;
 
@@ -47,6 +53,16 @@ public class MainActivity extends AppCompatActivity {
         super.onConfigurationChanged(newConfig);
     }
 
+    public static void applyInsets(Window win, View root) {
+        WindowCompat.setDecorFitsSystemWindows(win, false);
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(0, 0, 0, insets.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,6 +75,8 @@ public class MainActivity extends AppCompatActivity {
         Frontend.updateLog();
         instance = this;
         handler = new Handler(Looper.getMainLooper());
+
+        applyInsets(getWindow(), findViewById(R.id.main_activity_view));
 
         findViewById(R.id.connect_wifi).setOnClickListener(new View.OnClickListener() {
             @Override

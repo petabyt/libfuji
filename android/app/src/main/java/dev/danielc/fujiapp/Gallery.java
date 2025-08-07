@@ -318,6 +318,8 @@ public class Gallery extends AppCompatActivity {
         instance = new WeakReference<>(this);
         handler = new Handler(Looper.getMainLooper());
 
+        MainActivity.applyInsets(getWindow(), findViewById(R.id.gallery_main_view));
+
         if (Backend.cGetKillSwitch()) return;
 
         findViewById(R.id.import_button).setOnClickListener(new View.OnClickListener() {
@@ -341,7 +343,6 @@ public class Gallery extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.remote_button).setEnabled(false);
         if (savedInstanceState == null) {
             startGalleryThread();
         }
