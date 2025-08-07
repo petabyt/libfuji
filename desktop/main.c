@@ -3,18 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-//#ifdef WIN32
-//	#include <winsock2.h>
-//	#include <ws2tcpip.h>
-//#else
-//	#include <arpa/inet.h>
-//#endif
 #include <libpict.h>
 #include <cl_stuff.h>
 #include <fuji.h>
 #include <app.h>
-#include "desktop.h"
 #include <fp.h>
+#include "desktop.h"
 
 int fudge_ui(void);
 
@@ -123,7 +117,6 @@ static int help(void) {
 int main(int argc, char **argv) {
 	int devnum = -1;
 	for (int i = 1; i < argc; i++) {
-		// Typical camlib CLI stuff
 		if (!strcmp(argv[i], "--list")) {
 			return ptp_list_devices();
 		}

@@ -137,7 +137,7 @@ void ptp_panic(char *fmt, ...) {
 	va_end(args);
 
 	__android_log_write(ANDROID_LOG_ERROR, "ptp_panic", buffer);
-	exit(-1);
+	abort();
 }
 
 int app_get_string(const char *key) {
