@@ -84,12 +84,12 @@ struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r);
 
 /// @brief Do a weird hack where we GetPartialObject on the first few kb of a file, then grab the thumbnail
 /// from the exif data. Not reliable.
-int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *length);
+int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset, unsigned int *length);
 
 /// @brief Get a jpeg thumbnail for an object, through whatever means possible
 /// Caller must wrap this in a mutex lock. Once returns, r->data will hold the thumb
 /// with bounds set by `offset` and `length`
-int fuji_get_thumb(struct PtpRuntime *r, int handle, int *offset, int *length);
+int fuji_get_thumb(struct PtpRuntime *r, int handle, unsigned int *offset, unsigned int *length);
 
 /// @brief Shut down a connection with an error code from struct PtpGeneralError. reason can be NULL. code can be zero for intentional disconnect
 /// @note Not a part of camlib

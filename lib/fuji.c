@@ -317,13 +317,12 @@ struct MyAddInfo {
 	int size;
 };
 
-void app_report_download_speed(long i, size_t size);
-
 static uint8_t *my_add(void *arg, uint8_t *buffer, int new_len, int old_len) {
 	// Needs to be a new buffer
 	ptp_verbose_log("downloading more exif %d %d\n", new_len, old_len);
 	struct MyAddInfo *i = (struct MyAddInfo *)arg;
 	i->buffer = realloc(i->buffer, new_len);
+	if (i->buffer == NULL) abort();
 
 	int rc = ptp_get_partial_object(i->r, i->handle, old_len, new_len - old_len);
 	if (rc) return NULL;
@@ -332,7 +331,7 @@ static uint8_t *my_add(void *arg, uint8_t *buffer, int new_len, int old_len) {
 	return i->buffer;
 }
 
-int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *length) {
+int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset, unsigned int *length) {
 	ptp_mutex_lock(r);
 
 	int rc = fuji_get_events(r);
@@ -391,17 +390,17 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, int *offset, int *len
 	return rc;
 }
 
-int fuji_get_thumb(struct PtpRuntime *r, int handle, int *offset, int *length) {
+int fuji_get_thumb(struct PtpRuntime *r, int handle, unsigned int *offset, unsigned int *length) {
 	(*offset) = 0;
 	(*length) = 0;
 	if (fuji_get(r)->transport == FUJI_FEATURE_AUTOSAVE) {
 		return ptp_get_partial_exif(r, handle, offset, length);
 	} else {
-		plat_dbg("fuji_get(r)->remote_version: %x", fuji_get(r)->remote_version);
-		if (fuji_get(r)->remote_version == 0x20007) {
-			// Patch for X-T30. ptp_get_thumbnail blocks forever unless this is called.
+		// Patch for newer cameras. ptp_get_thumbnail blocks forever unless this is called.
+		if (fuji_get(r)->remote_version > 0x20006) {
 			struct PtpObjectInfo oi;
 			int rc = ptp_get_object_info(r, (int) handle, &oi);
+			if (rc == PTP_CHECK_CODE) return 0;
 			if (rc) return rc;
 
 			// Give it to the object service so it can be shown in UI
@@ -415,7 +414,7 @@ int fuji_get_thumb(struct PtpRuntime *r, int handle, int *offset, int *length) {
 		} else if (rc) {
 			return rc;
 		} else if (ptp_get_payload_length(r) < 100) {
-			return 0; // ???, assume comms are okay
+			return 0; // Weird situation, thumbnail is too small.
 		} else {
 			(*offset) = 0x0;
 			(*length) = ptp_get_payload_length(r);
@@ -605,7 +604,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 
 	// Determine preferred mode from state and version info
 	int mode = 0;
-	if (fuji->remote_version != -1) {
+	if (fuji->remote_version != -1 || fuji->camera_state == FUJI_REMOTE_ACCESS) {
 		mode = FUJI_REMOTE_MODE;
 	} else {
 		if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {

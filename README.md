@@ -36,7 +36,7 @@ MinGW/osxcross is also supported for cross compiling.
 [libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo) (IJG License, Modified (3-clause) BSD License)  
 This software is based in part on the work of the Independent JPEG Group.
 
-[libxml2](https://github.com/GNOME/libxml2) (MIT License)
+[ezxml](https://ezxml.sourceforge.net/) (MIT License)
 
 [lua 5.3](https://www.lua.org/license.html) (MIT License)
 
