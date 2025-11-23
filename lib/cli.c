@@ -1,0 +1,236 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <libpict.h>
+#include <fuji.h>
+#include <app.h>
+#include <fp.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+void plat_dbg(char *fmt, ...) {
+	printf("DBG: ");
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+char *app_get_client_name(void) {
+	return strdup("app");
+}
+void app_print(char *fmt, ...) {
+	printf("APP: ");
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+void app_send_cam_name(const char *name) {}
+int app_get_os_network_handle(struct NetworkHandle *h) {
+	return 0;
+}
+int app_get_wifi_network_handle(struct NetworkHandle *h) {
+	return -1;
+}
+int app_bind_socket_to_network(int fd, struct NetworkHandle *h) {
+	return 0;
+}
+void tester_log(char *fmt, ...) {
+	printf("LOG: ");
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+void tester_fail(char *fmt, ...) {
+	printf("FAIL: ");
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+int fuji_discovery_check_cancel(void *arg) {
+	return 0;
+}
+void fuji_discovery_update_progress(void *arg, enum DiscoverUpdateMessages progress) {}
+void app_increment_progress_bar(int read) {}
+void app_report_download_speed(long time, size_t size) {}
+void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path) {}
+void app_get_file_path(char buffer[256], const char *filename) {abort();}
+void app_downloading_file(const struct PtpObjectInfo *oi) {}
+int app_check_thread_cancel(void) {return 0;}
+void app_get_tether_file_path(char buffer[256]) {abort();}
+
+int fuji_test_discovery(struct PtpRuntime *r);
+
+void nothing(int x) {}
+
+pid_t child_pid = -1;
+
+int fudge_usb_connect(struct PtpRuntime *r, int num) {
+	static int attempts = 0;
+	int rc = fujiusb_try_connect(r, num);
+	if (rc) {
+		const char *msg = "No Fujifilm device found";
+		if (attempts) {
+			printf("%s (%d)\n", msg, attempts);
+		} else {
+			printf("%s\n", msg);
+		}
+		attempts++;
+		return rc;
+	}
+	attempts = 0;
+
+	return 0;
+}
+
+int fudge_dump_usb(int devnum) {
+	struct PtpRuntime *r = ptp_new(PTP_USB);
+	int rc = fudge_usb_connect(r, devnum);
+	if (rc) return rc;
+
+	rc = fujiusb_setup(r);
+	if (rc) return rc;
+
+	printf("Camera mode: ");
+	switch (fuji_get(r)->transport) {
+	case FUJI_FEATURE_RAW_CONV:
+		printf("USB RAW CONV./BACKUP RESTORE");
+		break;
+	case FUJI_FEATURE_USB_CARD_READER:
+		printf("USB CARD READER");
+		break;
+	case FUJI_FEATURE_USB_TETHER_SHOOT:
+		printf("USB TETHER SHOOTING");
+		break;
+	case FUJI_FEATURE_USB:
+		printf("MTP");
+		break;
+	default:
+		printf("Invalid %d", fuji_get(r)->transport);
+		break;
+	}
+	printf("\n");
+
+	struct PtpDeviceInfo oi;
+	rc = ptp_get_device_info(r, &oi);
+	if (rc) return rc;
+
+	char buffer[4096];
+	ptp_device_info_json(&oi, buffer, sizeof(buffer));
+	printf("%s\n", buffer);
+
+	for (int i = 0; i < oi.props_supported_length; i++) {
+		printf("Get prop value %04x\n", oi.props_supported[i]);
+		rc = ptp_get_prop_value(r, oi.props_supported[i]);
+		if (rc == PTP_CHECK_CODE) continue;
+		if (rc) return rc;
+		printf("%04x = %x\n", oi.props_supported[i], ptp_parse_prop_value(r));
+	}
+
+	ptp_close_session(r);
+	ptp_device_close(r);
+
+	return rc;
+}
+
+int fudge_test_camera(const char *name) {
+	signal(SIGUSR1, nothing);
+
+	char thispid[16];
+	sprintf(thispid, "%d", getpid());
+	const char *ip_addr = "0.0.0.0";
+
+	child_pid = fork();
+	if (child_pid == -1) {
+		perror("fork failed");
+		exit(1);
+	}
+
+	if (child_pid == 0) {
+		int rc = execlp("vcam", "vcam", name, "tcp", "--ip", ip_addr, "--sig", thispid, NULL);
+		printf("Return value: %d\n", rc);
+		exit(0);
+	}
+
+	printf("Waiting for vcam signal...\n");
+	pause();
+
+	int rc = 0;
+
+	struct PtpRuntime *r = ptp_new(PTP_IP_USB);
+	fuji_reset_ptp(r);
+	fuji_get(r)->transport = FUJI_FEATURE_WIRELESS_COMM;
+	if (ptpip_connect(r, ip_addr, FUJI_CMD_IP_PORT, 0)) {
+		printf("Error connecting to %s:%d\n", ip_addr, FUJI_CMD_IP_PORT);
+		return -1;
+	}
+	
+	rc = fuji_test_setup(r);
+	if (rc) return rc;
+	
+	rc = fuji_test_filesystem(r);
+	if (rc) return rc;
+	
+	rc = ptp_close_session(r);
+	if (rc) return rc;
+	
+	ptpip_device_close(r);
+
+	printf("Going to kill %d\n", child_pid);
+	if (kill(child_pid, SIGINT) == -1) {
+		perror("kill failed");
+		return -1;
+	}
+
+	wait(NULL);
+	printf("Child process terminated\n");
+	return 0;
+}
+
+int fudge_test_all_cameras(void) {
+	const char *models[] = {"fuji_x_h1", "fuji_x_a2", "fuji_x_t20", "fuji_x_t2", "fuji_x_s10", "fuji_x_f10", "fuji_x30", "fuji_x_dev"};
+	const int len = sizeof(models) / sizeof(models[0]);
+
+	for (int i = 0; i < len; i++) {
+		int rc = fudge_test_camera(models[i]);
+		if (rc) return rc;
+	}
+
+	return 0;
+}
+
+
+static int help(void) {
+	printf("TODO: help\n");
+	return 0;
+}
+
+int main(int argc, char **argv) {
+	int devnum = -1;
+	for (int i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "--test-wifi")) {
+			int rc = fudge_test_all_cameras();
+			plat_dbg("Result: %d\n", rc);
+			return rc;
+		}
+		if (!strcmp(argv[i], "--dump-usb")) {
+			return fudge_dump_usb(devnum);
+		}
+		if (!strcmp(argv[i], "--test-discovery")) {
+			fuji_test_discovery(ptp_new(PTP_USB));
+			return 1;
+		}
+		if (!strcmp(argv[i], "--help")) {
+			return help();
+		}
+		printf("Invalid arg '%s'\n", argv[i]);
+		return -1;
+	}
+
+	return 0;
+}
