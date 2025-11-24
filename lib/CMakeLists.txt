@@ -16,6 +16,7 @@ set(FUDGE_CORE
     object.c
     fuji_lua.c
     lua_runtime.c
+    plat.c
 )
 
 add_library(libfudge STATIC ${FUDGE_CORE})

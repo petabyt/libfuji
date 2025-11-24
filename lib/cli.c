@@ -11,59 +11,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-void plat_dbg(char *fmt, ...) {
-	printf("DBG: ");
-	va_list args;
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
-}
-char *app_get_client_name(void) {
-	return strdup("app");
-}
-void app_print(char *fmt, ...) {
-	printf("APP: ");
-	va_list args;
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
-}
-void app_send_cam_name(const char *name) {}
-int app_get_os_network_handle(struct NetworkHandle *h) {
-	return 0;
-}
-int app_get_wifi_network_handle(struct NetworkHandle *h) {
-	return -1;
-}
-int app_bind_socket_to_network(int fd, struct NetworkHandle *h) {
-	return 0;
-}
-void tester_log(char *fmt, ...) {
-	printf("LOG: ");
-	va_list args;
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
-}
-void tester_fail(char *fmt, ...) {
-	printf("FAIL: ");
-	va_list args;
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
-}
-int fuji_discovery_check_cancel(void *arg) {
-	return 0;
-}
-void fuji_discovery_update_progress(void *arg, enum DiscoverUpdateMessages progress) {}
-void app_increment_progress_bar(int read) {}
-void app_report_download_speed(long time, size_t size) {}
-void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path) {}
-void app_get_file_path(char buffer[256], const char *filename) {abort();}
-void app_downloading_file(const struct PtpObjectInfo *oi) {}
-int app_check_thread_cancel(void) {return 0;}
-void app_get_tether_file_path(char buffer[256]) {abort();}
-
 int fuji_test_discovery(struct PtpRuntime *r);
 
 void nothing(int x) {}
