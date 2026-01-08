@@ -13,7 +13,6 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/android-libjpeg-turb
 add_library(fudge SHARED
 	main.c
 	backend.c
-	scripts.c
 	camlib.c
 	usb.c
 	liveview.c
