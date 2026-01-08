@@ -12,7 +12,7 @@
 #include "app.h"
 #include "android.h"
 
-struct PrivUSB {
+struct PtpCommPriv {
 	jobject obj;
 	jobject dev;
 	int fd;
@@ -21,12 +21,12 @@ struct PrivUSB {
 };
 
 // TODO: Rename to ptp_comm_init
-static struct PrivUSB *init_comm(struct PtpRuntime *r) {
-	if (r->comm_backend == NULL) {
-		r->comm_backend = calloc(1, sizeof(struct PrivUSB));
+static struct PtpCommPriv *init_comm(struct PtpRuntime *r) {
+	if (r->comm_priv == NULL) {
+		r->comm_priv = calloc(1, sizeof(struct PtpCommPriv));
 	}
 
-	return (struct PrivUSB *)r->comm_backend;
+	return r->comm_priv;
 }
 
 void ptp_comm_deinit(struct PtpRuntime *r) {
@@ -203,7 +203,7 @@ int ptp_device_open(struct PtpRuntime *r, struct PtpDeviceEntry *entry) {
 		return PTP_OPEN_FAIL;
 	}
 
-	struct PrivUSB *priv = init_comm(r);
+	struct PtpCommPriv *priv = init_comm(r);
 	priv->obj = (*env)->NewGlobalRef(env, connection);
 	priv->dev = (*env)->NewGlobalRef(env, (jobject)entry->device_handle_ptr);
 
@@ -229,14 +229,14 @@ void ptpusb_free_device_list_entry(void *ptr) {
 	(*env)->DeleteGlobalRef(env, (jobject)ptr);
 }
 
-int ptp_device_init(struct PtpRuntime *r) {
+int ptp_device_connect(struct PtpRuntime *r) {
 	// This can be a portable function in camlib/src/lib.c
 	return -1;
 }
 
 int ptp_cmd_write(struct PtpRuntime *r, void *to, unsigned int length) {
 	if (r->io_kill_switch) return -1;
-	struct PrivUSB *priv = init_comm(r);
+	struct PtpCommPriv *priv = init_comm(r);
 	struct usbdevfs_bulktransfer ctrl;
 	ctrl.ep = priv->endpoint_out;
 	ctrl.len = length;
@@ -248,7 +248,7 @@ int ptp_cmd_write(struct PtpRuntime *r, void *to, unsigned int length) {
 
 int ptp_cmd_read(struct PtpRuntime *r, void *to, unsigned int length) {
 	if (r->io_kill_switch) return -1;
-	struct PrivUSB *priv = init_comm(r);
+	struct PtpCommPriv *priv = init_comm(r);
 	struct usbdevfs_bulktransfer ctrl;
 	ctrl.ep = priv->endpoint_in;
 	ctrl.len = length;
@@ -261,7 +261,7 @@ int ptp_cmd_read(struct PtpRuntime *r, void *to, unsigned int length) {
 
 int ptpusb_get_status(struct PtpRuntime *r) {
 	if (r->io_kill_switch) return -100;
-	struct PrivUSB *priv = init_comm(r);
+	struct PtpCommPriv *priv = init_comm(r);
 	struct usbdevfs_ctrltransfer ctrl;
 	ctrl.bRequestType = 0x80;
 	ctrl.bRequest = 0;
@@ -278,7 +278,7 @@ int ptpusb_get_status(struct PtpRuntime *r) {
 
 int ptp_device_close(struct PtpRuntime *r) {
 	JNIEnv *env = get_jni_env();
-	struct PrivUSB *priv = init_comm(r);
+	struct PtpCommPriv *priv = init_comm(r);
 	jclass class = (*env)->GetObjectClass(env, priv->obj);
 
 	jobject interf = get_ptp_interface(env, priv->dev);
