@@ -100,6 +100,7 @@ enum FujiTransport {
 #define PTP_DPC_FUJI_GeoTagVersion	0xdf31
 #define PTP_DPC_FUJI_Unknown11		0xdf44
 
+/// @brief Possible values of PTP_DPC_FUJI_ClientState / 0xdf01
 enum ClientStates {
 	// Set if camera state is FUJI_MULTIPLE_TRANSFER,
 	FUJI_VIEW_MULTIPLE = 1,
@@ -132,7 +133,7 @@ enum ClientStates {
 // Modes for SelectedImgsMode
 #define FUJI_SELECT_MULTIPLE_MODE_1 1
 
-/// @brief Possible values of PTP_DPC_FUJI_CameraState
+/// @brief Possible values of PTP_DPC_FUJI_CameraState (0xdf00)
 enum FujiStates {
 	// We need to wait and poll camera for access
 	FUJI_WAIT_FOR_ACCESS = 0,
