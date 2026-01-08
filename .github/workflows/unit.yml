@@ -25,6 +25,6 @@ jobs:
         cd /tmp/vcam
         sudo make install
     - name: Compile desktop
-      run: cd desktop && cmake -G Ninja -B build && cmake --build build
-#    - name: Run desktop unit test
-#      run: desktop/build/fudge --test-wifi
+      run: cd lib && cmake -G Ninja -B build && cmake --build build
+    - name: Run fudge unit test
+      run: lib/build/libfudge-cli --test-wifi
