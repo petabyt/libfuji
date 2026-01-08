@@ -1,1 +1,0 @@
-build_win\fudge --raw "C:\Users\brikb\Desktop\DSCF2911.RAF" output.jpg "C:\Users\brikb\Desktop\DSCF3010.FP2"

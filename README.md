@@ -18,18 +18,6 @@ git clone https://github.com/petabyt/fudge.git --depth 1 --recurse-submodules
 ### Compiling Android
 Open android/ in Android Studio.
 
-### Compiling desktop app
-Desktop utility is still a work in progress.
-```
-# Ubuntu/Debian deps:
-sudo apt install cmake ninja-build libgtk-3-dev libusb-1.0-0-dev libvulkan-dev libglfw3-dev
-```
-```
-cd desktop
-cmake -B build -G Ninja && cmake --build build
-```
-MinGW/osxcross is also supported for cross compiling.
-
 # Credits
 [libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo) (IJG License, Modified (3-clause) BSD License)  
 This software is based in part on the work of the Independent JPEG Group.
