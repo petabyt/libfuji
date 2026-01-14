@@ -1,29 +1,13 @@
-# Fudge
-This is a cross-platform open-source alternative to Fujifilm's official camera app.  
+# libfuji
 
-[Website](https://fudge.danielc.dev/) | [Google Play](https://play.google.com/store/apps/details?id=dev.danielc.fujiapp) | [F-Droid](https://apt.izzysoft.de/fdroid/index/apk/dev.danielc.fujiapp)
+C library based on [libpict](https://github.com/petabyt/libpict) to connect to Fujifilm digital cameras over WiFi and USB. This implements
+Fujifilm's proprietary TCP protocol based on PTP-USB, and has functionality that their software (Xapp, Camera Connect, TETHER APP, X Acquire, Raw Studio, PC AutoSave, X Webcam) implements.
 
-<img src='fastlane/metadata/android/en-US/images/phoneScreenshots/1.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/2.png' width='250'><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/4.png' width='250'>
-
-## Roadmap
-- Frontend rewrite (see https://github.com/petabyt/fudge/issues/26)
-- Liveview & Remote capture
-- Implement Bluetooth pairing
-
-## Compiling
-```
-git clone https://github.com/petabyt/fudge.git --depth 1 --recurse-submodules
-```
-
-### Compiling Android
-Open android/ in Android Studio.
-
-# Credits
-[libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo) (IJG License, Modified (3-clause) BSD License)  
-This software is based in part on the work of the Independent JPEG Group.
-
-[ezxml](https://ezxml.sourceforge.net/) (MIT License)
-
-[lua 5.3](https://www.lua.org/license.html) (MIT License)
-
-[com.jsibbold:zoomage](https://github.com/jsibbold/zoomage/blob/master/LICENSE)
+Capabilities:
+- WiFi: Implements 'Remote mode' as well as some legacy modes
+- WiFi: View mjpeg liveview and change settings
+- Implements legacy PC AutoSave functionality
+- Implements TETHER APP photo downloading over WiFi functionality 
+- Implements USB raw conversion protocol (also see [fp](https://github.com/petabyt/fp) for FP/XML parsing)
+- Query photos on the card and get thumbnail and metadata
+- Download photos and videos from card

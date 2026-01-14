@@ -1,9 +1,6 @@
-[submodule "lib/android-libjpeg-turbo"]
-	path = third_party/android-libjpeg-turbo
-	url = git@github.com:petabyt/android-libjpeg-turbo.git
 [submodule "lib/camlib"]
-	path = lib/libpict
+	path = libpict
 	url = git@github.com:petabyt/camlib.git
 [submodule "third_party/fp"]
-	path = lib/fp
+	path = fp
 	url = git@github.com:petabyt/fp.git
