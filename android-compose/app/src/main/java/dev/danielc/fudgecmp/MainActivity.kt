@@ -3,6 +3,7 @@ package dev.danielc.fudgecmp
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -63,13 +64,24 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.util.Locale
+
+class MyModel: ViewModel() {
+    init {
+        viewModelScope.launch {
+
+        }
+    }
+}
 
 class State {
     var x by mutableStateOf(0)
@@ -77,9 +89,15 @@ class State {
 
 object Backend {
     var mainLog by mutableStateOf("")
+    var tickText by mutableStateOf("5")
     private val h = Handler(Looper.getMainLooper())
     fun log(str: String) {
         h.post { mainLog += str + "\n" }
+    }
+    fun tick() {
+        h.post {
+            tickText = (0..10).random().toString()
+        }
     }
 }
 
@@ -87,45 +105,12 @@ object Backend {
 fun BottomLog(modifier: Modifier, text: String): Unit {
     if (text.isNotEmpty()) {
         Text(
-            text,
+            text.trim(),
             fontFamily = FontFamily.Monospace,
             modifier = modifier.fillMaxWidth()
                 .background(Color.Black.copy(alpha = 0.6f)).padding(5.dp)
         )
     }
-}
-
-@Composable
-fun longPress(onClick: () -> Unit, onLongClick: () -> Unit): MutableInteractionSource {
-    val context = LocalContext.current
-
-    val interactionSource = remember { MutableInteractionSource() }
-
-    val viewConfiguration = LocalViewConfiguration.current
-
-    LaunchedEffect(interactionSource) {
-        var isLongClick = false
-
-        interactionSource.interactions.collectLatest { interaction ->
-            when (interaction) {
-                is PressInteraction.Press -> {
-                    isLongClick = false
-                    delay(viewConfiguration.longPressTimeoutMillis)
-                    isLongClick = true
-                    onLongClick()
-                }
-
-                is PressInteraction.Release -> {
-                    if (isLongClick.not()) {
-                        onClick()
-                    }
-                }
-
-            }
-        }
-    }
-
-    return interactionSource
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -170,18 +155,11 @@ fun MainScreen(navController: NavHostController = rememberNavController()) {
                     modifier = Modifier.align(Alignment.Center).padding(horizontal = 20.dp)
                 ) {
                     val m = Modifier.fillMaxWidth()
-                    val longPress = longPress(onClick = {
+                    Widgets.LongClickButton(m, {
                         navController.navigate("gallery")
-                    }, onLongClick = {
+                    }, {
                         Backend.log("Long Press")
-                    })
-                    Button(
-                        modifier = m,
-                        interactionSource = longPress,
-                        onClick = {}
-                    ) {
-                        Text("Gallery")
-                    }
+                    }, "Gallery")
                     Widgets.GreenButton(modifier = m, text = "Go to test suite", onClick = {
                         navController.navigate("testsuite")
                     })
@@ -189,182 +167,9 @@ fun MainScreen(navController: NavHostController = rememberNavController()) {
                         Backend.log("Hello")
                     })
                     Widgets.GrayButton(modifier = m, text = "Send Feedback", onClick = {})
+                    Text(Backend.tickText)
                 }
-                Text(
-                    Backend.mainLog,
-                    fontFamily = FontFamily.Monospace,
-                    modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                        .background(Color.Black.copy(alpha = 0.6f)).padding(5.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun GalleryMenu(navController: NavHostController, innerPadding: PaddingValues) {
-    var state = State()
-    var isEnabled by remember { mutableStateOf(true) }
-    Box(
-        modifier = Modifier
-            .padding(innerPadding)
-            .fillMaxSize()
-    ) {
-        Column {
-            Row {
-                Widgets.GrayIconButton(
-                    modifier = Modifier.size(50.dp),
-                    onClick = {
-
-                    },
-                ) {
-                    Icon(
-                        tint = Color.White,
-                        painter = painterResource(R.drawable.baseline_grid_view_24),
-                        contentDescription = "Grid View"
-                    )
-                }
-                Widgets.GrayIconButton(
-                    modifier = Modifier.size(50.dp),
-                    onClick = {},
-                ) {
-                    Icon(
-                        tint = Color.White,
-                        painter = painterResource(R.drawable.baseline_view_list_24),
-                        contentDescription = "List View"
-                    )
-                }
-            }
-
-            val colors = listOf(
-                Color.Red, Color.Green, Color.Blue,
-                Color.Cyan, Color.Magenta, Color.Yellow,
-                Color.Gray, Color.LightGray, Color.DarkGray,
-            )
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-            ) {
-                items(100) { index ->
-                    Box(
-                        modifier = Modifier
-                            .aspectRatio(1f)
-                            .background(colors[index % colors.size])
-                    )
-                }
-            }
-        }
-        Text(
-            "asd",
-            fontFamily = FontFamily.Monospace,
-            modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.6f))
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true, device = "id:pixel_7")
-@Composable
-fun GalleryScreen(navController: NavHostController = rememberNavController()) {
-    return FudgeTheme {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(),
-                    title = {
-                        Text("Gallery")
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            navController.navigateUp()
-                        }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Localized description"
-                            )
-                        }
-                    },
-                )
-            },
-        ) { innerPadding ->
-            GalleryMenu(navController, innerPadding)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true, device = "id:pixel_7", name = "asd")
-@Composable
-fun TestSuite(navController: NavHostController = rememberNavController()) {
-    return FudgeTheme {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text("Test Suite")
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            navController.navigateUp()
-                        }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = {
-
-                        }) {
-                            Icon(
-                                painter = painterResource(R.drawable.baseline_content_copy_24),
-                                contentDescription = "Copy"
-                            )
-                        }
-                    }
-                )
-            },
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier.padding(innerPadding)
-            ) {
-                Row {
-                    val m = Modifier.weight(1f).padding(5.dp)
-                    val color = colorResource(R.color.white)
-                    Widgets.GreenButton(modifier = m, onClick = {}, content = {Text("Connect", color = color)})
-                    Widgets.BlueButton(modifier = m, onClick = {}, content = {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Select WiFi", color = color)
-                            Icon(
-                                painter = painterResource(R.drawable.baseline_wifi_tethering_24),
-                                tint = color,
-                                contentDescription = "asd"
-                            )
-                        }
-                    })
-                }
-                Column(
-                    modifier = Modifier.fillMaxHeight().fillMaxWidth().padding(5.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    var x: String = "";
-                    for (i in 0..100) {
-                        x += String.format(Locale.US, "Testing %d\n", i)
-                    }
-                    Text(
-                        text = x,
-                        style = TextStyle(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 14.sp
-                        )
-                    )
-                }
+                BottomLog(Modifier.align(Alignment.BottomStart), Backend.mainLog)
             }
         }
     }
@@ -373,7 +178,13 @@ fun TestSuite(navController: NavHostController = rememberNavController()) {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        //enableEdgeToEdge()
+        Thread {
+            while (true) {
+                Backend.tick()
+                Thread.sleep(100)
+            }
+        }.start()
         setContent {
             val navController = rememberNavController()
 
