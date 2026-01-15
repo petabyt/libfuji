@@ -1,2 +1,2 @@
 CompileFlags:
-  CompilationDatabase: lib/build/
+  CompilationDatabase: build/
