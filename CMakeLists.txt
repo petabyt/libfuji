@@ -1,10 +1,11 @@
+# cmake -G Ninja -B build -DLIBFUJI_INCLUDE_CLI=ON && cmake --build build
 cmake_minimum_required(VERSION 3.10)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
-project(libfudge)
-option(LIBFUDGE_INCLUDE_CLI "Include cli program for CI/testing" OFF)
+project(libfuji)
+option(LIBFUJI_INCLUDE_CLI "Include cli program for CI/testing" OFF)
 
-set(FUDGE_CORE
+set(FUJI_CORE
     lib/fuji.c
     lib/tester.c
     lib/data.c
@@ -15,8 +16,8 @@ set(FUDGE_CORE
     lib/plat.c
 )
 
-add_library(libfudge STATIC ${FUDGE_CORE})
-target_compile_options(libfudge
+add_library(libfuji STATIC ${FUJI_CORE})
+target_compile_options(libfuji
     PRIVATE -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations
 )
 
@@ -28,14 +29,14 @@ if(NOT TARGET libpict)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libpict ${CMAKE_CURRENT_BINARY_DIR}/libpict)
 endif()
 
-target_include_directories(libfudge PUBLIC ${PROJECT_SOURCE_DIR}/lib)
-target_link_libraries(libfudge PUBLIC libpict fp)
-set_target_properties(libfudge PROPERTIES OUTPUT_NAME libfudge)
+target_include_directories(libfuji PUBLIC ${PROJECT_SOURCE_DIR}/lib)
+target_link_libraries(libfuji PUBLIC libpict fp)
+set_target_properties(libfuji PROPERTIES OUTPUT_NAME libfuji)
 
-if(LIBFUDGE_INCLUDE_CLI)
-    add_executable(libfudge-cli
+if(LIBFUJI_INCLUDE_CLI)
+    add_executable(libfuji-cli
         lib/cli.c
         lib/jank.c
     )
-    target_link_libraries(libfudge-cli PUBLIC libfudge)
+    target_link_libraries(libfuji-cli PUBLIC libfuji)
 endif()
