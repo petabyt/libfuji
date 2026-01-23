@@ -87,9 +87,9 @@ int fudge_dump_usb(int devnum) {
 
 int fudge_test_camera(const char *name) {
 	signal(SIGUSR1, nothing);
-
+	int pid = getpid();
 	char thispid[16];
-	sprintf(thispid, "%d", getpid());
+	sprintf(thispid, "%d", pid);
 	const char *ip_addr = "0.0.0.0";
 
 	child_pid = fork();
@@ -101,6 +101,9 @@ int fudge_test_camera(const char *name) {
 	if (child_pid == 0) {
 		int rc = execlp("vcam", "vcam", name, "tcp", "--ip", ip_addr, "--sig", thispid, NULL);
 		printf("Return value: %d\n", rc);
+		if (rc != 0x0) {
+			kill(pid, SIGKILL);
+		}
 		exit(0);
 	}
 
