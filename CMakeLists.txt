@@ -15,6 +15,9 @@ set(FUJI_CORE
     lib/object.c
     lib/plat.c
 )
+if(TARGET pak)
+    set(FUJI_CORE ${FUJI_CORE} lib/module.c)
+endif()
 
 add_library(libfuji STATIC ${FUJI_CORE})
 target_compile_options(libfuji
@@ -31,6 +34,9 @@ endif()
 
 target_include_directories(libfuji PUBLIC ${PROJECT_SOURCE_DIR}/lib)
 target_link_libraries(libfuji PUBLIC libpict fp)
+if(TARGET pak)
+    target_link_libraries(libfuji PUBLIC pak)
+endif()
 set_target_properties(libfuji PROPERTIES OUTPUT_NAME libfuji)
 
 if(LIBFUJI_INCLUDE_CLI)
