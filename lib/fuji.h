@@ -14,13 +14,13 @@
 
 /// @brief IP address used for all PTP connections
 /// @note must free()
-char *app_get_camera_ip(void);
+char *app_get_camera_ip(struct PtpRuntime *r);
 
 /// @brief Get friendly client name
 /// @note must free()
-char *app_get_client_name(void);
+char *app_get_client_name(struct PtpRuntime *r);
 
-struct NetworkHandle *ptp_get_network_info(struct PtpRuntime *r);
+//struct NetworkHandle *ptp_get_network_info(struct PtpRuntime *r);
 
 enum DiscoverUpdateMessages {
 	FUJI_UM_GOT_FIRST_MESSAGE,
@@ -80,6 +80,12 @@ struct FujiDeviceKnowledge {
 };
 struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r);
 
+// Private struct for PtpRuntime variable
+struct PtpUserPriv {
+	//struct FujiDeviceKnowledge fuji;
+	struct FujiModulePriv *priv;
+};
+
 //int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info);
 
 /// @brief Do a weird hack where we GetPartialObject on the first few kb of a file, then grab the thumbnail
@@ -96,19 +102,15 @@ int fuji_get_thumb(struct PtpRuntime *r, int handle, unsigned int *offset, unsig
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code);
 
 /// @note This will block
-int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg);
+int fuji_discover_thread(struct PtpRuntime *r, struct DiscoverInfo *info, char *client_name);
 
 /// @brief Callback for discovery. Called when a new device wanting to pair is discovered. Return 1 if connection accepted
 /// @note to be defined by frontend
-int fuji_discover_ask_connect(void *arg, struct DiscoverInfo *info);
+int fuji_discover_ask_connect(struct PtpRuntime *r, struct DiscoverInfo *info);
 
 /// @brief Check if discovery is canceled
 /// @note to be defined by frontend
-int fuji_discovery_check_cancel(void *arg);
-
-/// @brief Fun update messages from discovery service
-/// @note to be defined by frontend
-void fuji_discovery_update_progress(void *arg, enum DiscoverUpdateMessages progress);
+int fuji_discovery_check_cancel(struct PtpRuntime *r);
 
 /// @brief Initializes allocations for Fuji PTP session
 int fuji_reset_ptp(struct PtpRuntime *r);
@@ -191,9 +193,6 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 
 /// @brief Gets list of object handles regardless of transport
 int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a);
-
-/// @brief Download backup object (raw/conv mode only)
-int fujiusb_download_backup(struct PtpRuntime *r, FILE *f);
 
 /// @brief Function for 0x900c
 int fuji_send_object_info_ex(struct PtpRuntime *r, int storage_id, int handle, struct PtpObjectInfo *oi);

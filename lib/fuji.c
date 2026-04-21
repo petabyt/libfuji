@@ -9,8 +9,6 @@
 #include "app.h"
 #include "fuji.h"
 #include "fujiptp.h"
-#include "exif.h"
-#include "object.h"
 
 struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r) {
 	return (struct FujiDeviceKnowledge *)r->userdata;
@@ -22,9 +20,10 @@ struct NetworkHandle *ptp_get_network_info(struct PtpRuntime *r) {
 
 int fuji_reset_ptp(struct PtpRuntime *r) {
 	ptp_reset(r);
+	if (r->priv == NULL)
+		r->priv = calloc(1, sizeof(struct PtpUserPriv));
 	if (r->userdata == NULL)
-		r->userdata = malloc(sizeof(struct FujiDeviceKnowledge));
-	memset(r->userdata, 0, sizeof(struct FujiDeviceKnowledge));
+		r->userdata = calloc(1, sizeof(struct FujiDeviceKnowledge));
 	r->connection_type = PTP_IP_USB;
 	r->response_wait_default = 3; // Fuji cams are slow!
 	return 0;
@@ -64,12 +63,12 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 
 	if (reason == NULL) {
 		if (code == PTP_IO_ERR) {
-			app_print("Disconnected: IO Error");
+			app_print(r, "Disconnected: IO Error");
 		} else {
-			app_print("Disconnected: Runtime error");
+			app_print(r, "Disconnected: Runtime error");
 		}
 	} else {
-		app_print("Disconnected: %s", reason);
+		app_print(r, "Disconnected: %s", reason);
 	}
 }
 
@@ -107,10 +106,10 @@ int fuji_connection_entry(struct PtpRuntime *r) {
 		if (!rc && fuji_get(r)->camera_state == FUJI_MULTIPLE_TRANSFER) {
 			rc = fuji_download_classic(r);
 			if (rc) {
-				app_print("Error downloading images");
+				app_print(r, "Error downloading images");
 				return rc;
 			}
-			app_print("Check your file manager app/gallery.");
+			app_print(r, "Check your file manager app/gallery.");
 			ptp_report_error(r, "Disconnected", 0);
 		}
 
@@ -124,10 +123,10 @@ int fuji_connection_entry(struct PtpRuntime *r) {
 int fuji_setup(struct PtpRuntime *r) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 
-	app_print("Waiting on the camera...");
-	app_print("Make sure you pressed OK.");
+	app_print(r, "Waiting on the camera...");
+	app_print(r, "Make sure you pressed OK.");
 
-	char *device_name = app_get_client_name();
+	char *device_name = app_get_client_name(r);
 
 	struct PtpFujiInitResp resp;
 	int rc = ptpip_fuji_init_req(r, device_name, &resp);
@@ -137,18 +136,17 @@ int fuji_setup(struct PtpRuntime *r) {
 		usleep(1000); // One last chance...
 		rc = ptpip_fuji_init_req(r, device_name, &resp);
 	}
-
 	free(device_name);
 	if (rc) {
-		app_print("Failed to initialize connection");
+		app_print(r, "Failed to initialize connection");
 		return rc;
 	}
-	app_print("Initialized connection.");
+	app_print(r, "Initialized connection.");
 
-	app_send_cam_name(resp.cam_name);
+	app_send_cam_name(r, resp.cam_name);
 
 	if (fuji->transport == FUJI_FEATURE_WIRELESS_COMM) {
-		app_print("The camera is thinking...");
+		app_print(r, "The camera is thinking...");
 		usleep(50000); // Fuji cameras require at least 50ms delay after init
 	}
 
@@ -158,7 +156,7 @@ int fuji_setup(struct PtpRuntime *r) {
 			return rc;
 		}
 	} else if (rc) {
-		app_print("Failed to open session.");
+		app_print(r, "Failed to open session.");
 		return rc;
 	}
 
@@ -166,25 +164,23 @@ int fuji_setup(struct PtpRuntime *r) {
 		return 0;
 	}
 
-	app_print("Press OK to allow access.");
+	app_print(r, "Press OK to allow access.");
 	rc = fuji_wait_for_access(r);
 	if (rc) {
-		app_print("Failed to get access to the camera.");
+		app_print(r, "Failed to get access to the camera.");
 		return rc;
 	}
 
 	// Remote cams don't need to wait for access, so waiting for the 'OK'
 	// is done somewhere else
 	if (fuji->camera_state != FUJI_REMOTE_ACCESS) {
-		app_print("Your camera loves you.");
+		app_print(r, "Your camera loves you.");
 	}
 
-	// NOTE: cFujiConfigInitMode *must* be called before fuji_config_version, or anything else.
-	// If not, it will break up the connection and destroy packets for any file operation.
 	rc = fuji_config_init_mode(r);
 	if (rc) {
 		ptp_verbose_log("fuji_config_init_mode: %d\n", rc);
-		app_print("Failed to setup the camera's mode");
+		app_print(r, "Failed to setup the camera's mode");
 		return rc;
 	}
 
@@ -192,13 +188,14 @@ int fuji_setup(struct PtpRuntime *r) {
 		return 0;
 	}
 
-	app_print("Setting up image viewer");
+	app_print(r, "Setting up image viewer");
 	rc = fuji_config_version(r);
 	if (rc) {
-		app_print("Failed to check versions.");
+		app_print(r, "Failed to check versions.");
 		return rc;
 	}
 
+	// TODO: Move elsewhere
 	if (fuji->transport == FUJI_FEATURE_AUTOSAVE) {
 		rc = fuji_begin_file_download(r);
 		if (rc) return rc;
@@ -219,10 +216,10 @@ int fuji_setup(struct PtpRuntime *r) {
 int fuji_setup_remote_mode(struct PtpRuntime *r) {
 	int rc = fuji_remote_mode_open_sockets(r);
 	if (rc) {
-		app_print("Failed to start remote mode");
+		app_print(r, "Failed to start remote mode");
 		return rc;
 	} else {
-		app_print("Started remote mode.");
+		app_print(r, "Started remote mode.");
 	}
 
 	rc = fuji_get_events(r);
@@ -238,10 +235,10 @@ int fuji_setup_remote_mode(struct PtpRuntime *r) {
 
 	rc = fuji_remote_mode_end(r);
 	if (rc) {
-		app_print("Failed to finish remote setup.");
+		app_print(r, "Failed to finish remote setup.");
 		return rc;
 	} else {
-		app_print("Finished remote setup.");
+		app_print(r, "Finished remote setup.");
 	}
 
 	rc = fuji_get_events(r);
@@ -310,6 +307,7 @@ int fuji_d228(void) {
 	return 0;
 }
 
+#if 0
 struct MyAddInfo {
 	struct PtpRuntime *r;
 	int handle;
@@ -356,7 +354,7 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset,
 
 	memcpy(temp.buffer, ptp_get_payload(r), ptp_get_payload_length(r));
 
-	struct ExifC c = {0};
+	struct ExifParser c = {0};
 	c.length = ptp_get_payload_length(r);
 	c.buf = temp.buffer;
 	c.arg = &temp;
@@ -389,6 +387,11 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset,
 	ptp_mutex_unlock(r);
 	return rc;
 }
+#else
+int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset, unsigned int *length) {
+	return 0;
+}
+#endif
 
 int fuji_get_thumb(struct PtpRuntime *r, int handle, unsigned int *offset, unsigned int *length) {
 	(*offset) = 0;
@@ -396,15 +399,14 @@ int fuji_get_thumb(struct PtpRuntime *r, int handle, unsigned int *offset, unsig
 	if (fuji_get(r)->transport == FUJI_FEATURE_AUTOSAVE) {
 		return ptp_get_partial_exif(r, handle, offset, length);
 	} else {
-		// Patch for newer cameras. ptp_get_thumbnail blocks forever unless this is called.
+		// get_thumb blocks forever unless get_object_info is called on newer cameras
 		if (fuji_get(r)->remote_version > 0x20006) {
 			struct PtpObjectInfo oi;
 			int rc = ptp_get_object_info(r, (int) handle, &oi);
 			if (rc == PTP_CHECK_CODE) return 0;
 			if (rc) return rc;
 
-			// Give it to the object service so it can be shown in UI
-			ptp_object_service_set(r, r->oc, handle, &oi);
+			plat_update_object_info(r, handle, &oi);
 		}
 
 		int rc = ptp_get_thumbnail(r, (int)handle);
@@ -469,23 +471,23 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 		rc = ptp_get_object_info(r, a->data[i], &oi);
 		if (rc) return rc;
 
-		app_downloading_file(&oi);
+		app_downloading_file(r, &oi);
 
 		char buffer[256];
-		app_get_tether_file_path(buffer);
+		app_get_tether_file_path(r, buffer);
 		FILE *f = fopen(buffer, "wb");
 		if (f == NULL) return PTP_RUNTIME_ERR;
-		app_print("Downloading %s", buffer);
+		app_print(r, "Downloading %s", buffer);
 		ptp_download_object(r, (int)a->data[i], f, 0x100000);
 		fclose(f);
 
-		app_downloaded_file(&oi, buffer);
+		app_downloaded_file(r, &oi, buffer);
 
 		if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_TETHER) {
 			ptp_delete_object(r, (int)a->data[i]);
 		}
 
-		app_print("Done downloading.");
+		app_print(r, "Done downloading.");
 	}
 
 	free(a);
@@ -789,21 +791,18 @@ static inline int do_download(int mask, int format) {
 int fuji_import_objects(struct PtpRuntime *r, int *object_ids, int length, int mask) {
 	int rc;
 	for (int i = 0; i < length; i++) {
-		struct PtpObjectInfo *oi = ptp_object_service_get(r, r->oc, object_ids[i]);
-
-		struct PtpObjectInfo temp_oi;
-		if (oi == NULL) {
-			rc = ptp_get_object_info(r, object_ids[i], &temp_oi);
-			if (rc) return rc;
-			oi = &temp_oi;
+		struct PtpObjectInfo oi;
+		rc = ptp_get_object_info(r, object_ids[i], &oi);
+		if (rc) {
+			return rc;
 		}
 
-		if (!do_download(mask, oi->obj_format)) continue;
+		if (!do_download(mask, oi.obj_format)) continue;
 
-		app_downloading_file(oi);
+		app_downloading_file(r, &oi);
 
 		char path[256];
-		app_get_file_path(path, oi->filename);
+		app_get_file_path(r, path, oi.filename);
 
 		struct stat buffer;
 		if (stat(path, &buffer) == 0) {
@@ -820,15 +819,15 @@ int fuji_import_objects(struct PtpRuntime *r, int *object_ids, int length, int m
 		rc = ptp_download_object(r, object_ids[i], f, 0x100000);
 		fclose(f);
 		if (rc) {
-			app_print("Failed to save %s: %s", oi->filename, ptp_perror(rc));
+			app_print(r, "Failed to save %s: %s", oi.filename, ptp_perror(rc));
 			return rc;
 		}
 
-		if (app_check_thread_cancel()) {
+		if (app_check_thread_cancel(r)) {
 			return 0;
 		}
 
-		app_downloaded_file(oi, path);
+		app_downloaded_file(r, &oi, path);
 	}
 
 	return 0;
@@ -856,7 +855,7 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 	// (extra data won't go through for some reason)
 	int read = 0;
 	while (1) {
-		if (app_check_thread_cancel()) {
+		if (app_check_thread_cancel(r)) {
 			rc = PTP_CANCELED;
 			goto end;
 		}
@@ -876,7 +875,7 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 
 		size_t payload_size = ptp_get_payload_length(r);
 
-		app_report_download_speed(get_ms() - then_c, payload_size);
+		app_report_download_speed(r, get_ms() - then_c, payload_size);
 
 		if (payload_size == 0) {
 			rc = PTP_RUNTIME_ERR;
@@ -916,10 +915,10 @@ int fuji_download_classic(struct PtpRuntime *r) {
 		int rc = ptp_get_object_info(r, 1, &oi);
 		if (rc) return rc;
 
-		app_downloading_file(&oi);
+		app_downloading_file(r, &oi);
 
 		char path[256];
-		app_get_file_path(path, oi.filename);
+		app_get_file_path(r, path, oi.filename);
 		FILE *f = fopen(path, "wb");
 		if (f == NULL) return PTP_RUNTIME_ERR;
 
@@ -927,11 +926,11 @@ int fuji_download_classic(struct PtpRuntime *r) {
 		rc = ptp_download_object(r, 1, f, 0x100000);
 		fclose(f);
 		if (rc) {
-			app_print("Failed to save %s: %s", oi.filename, ptp_perror(rc));
+			app_print(r, "Failed to save %s: %s", oi.filename, ptp_perror(rc));
 			return rc;
 		}
 
-		app_downloaded_file(&oi, path);
+		app_downloaded_file(r, &oi, path);
 
 		// Fuji's filesystem will swap out object ID 1 with the next image. If there
 		// are no more images, the camera shuts down the connection and turns off.
@@ -953,7 +952,7 @@ int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a) {
 			return PTP_RUNTIME_ERR;
 		}
 
-		// (Object handles 0x0 is invalid, as per spec)
+		// (Object handle 0x0 is invalid, as per PTP spec)
 		struct PtpArray *list = malloc(sizeof(int) * fuji->num_objects + sizeof(struct PtpArray));
 		list->length = fuji->num_objects;
 		for (int i = 0; i < fuji->num_objects; i++) {

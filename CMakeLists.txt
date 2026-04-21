@@ -10,9 +10,7 @@ set(FUJI_CORE
     lib/tester.c
     lib/data.c
     lib/discovery.c
-    lib/exif.c
     lib/fuji_usb.c
-    lib/object.c
     lib/plat.c
 )
 if(TARGET pak)
@@ -29,6 +27,7 @@ if(NOT TARGET fp)
 endif()
 
 if(NOT TARGET libpict)
+    option(PTP_DEFAULT_LOGGING "Include default log/panic/error implementation" OFF)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libpict ${CMAKE_CURRENT_BINARY_DIR}/libpict)
 endif()
 

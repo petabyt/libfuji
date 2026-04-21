@@ -19,8 +19,8 @@
 #include "app.h"
 #include "fuji.h"
 
-// Note: This code was previously refactored to support multiple instances of DiscoveryState
 struct DiscoveryState {
+	struct PtpRuntime *r;
 	int reg_fd;
 	int con_fd;
 	int tether_fd;
@@ -37,6 +37,23 @@ struct DiscoveryState {
 #define FUJI_AUTOSAVE_CONNECT 51541
 // A TCP port used for PC AutoSave handshake process
 #define FUJI_AUTOSAVE_NOTIFY 51540
+
+void fuji_discovery_update_progress(struct PtpRuntime *r, enum DiscoverUpdateMessages progress) {
+	switch (progress) {
+	case FUJI_UM_GOT_FIRST_MESSAGE:
+		app_print(r, "Received the camera's intimate broadcast..."); return;
+	case FUJI_UM_CONNECTING_TO_NOTIFY_SERVER:
+		app_print(r, "Exchanging a loving greeting..."); return;
+	case FUJI_UM_STARTING_INVITE_SERVER:
+		app_print(r, "Please start touching your camera..."); return;
+	case FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER:
+		app_print(r, "Waiting for the camera to tell us her secrets..."); return;
+	case FUJI_UM_ALL_DONE:
+		app_print(r, "Starting a relationship with the camera..."); return;
+	default:
+		app_print(r, "...");
+	}
+}
 
 static int get_local_ip(char buffer[64]) {
 	struct sockaddr_in serv;
@@ -175,7 +192,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 
 	plat_dbg("invite server: Connection accepted from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-	fuji_discovery_update_progress(NULL, FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER);
+	fuji_discovery_update_progress(s->r, FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER);
 
 	// We don't really care about this info
 	char buffer[1024];
@@ -246,7 +263,7 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 		cur = strtok_r(NULL, delim, &saveptr);
 	}
 
-	fuji_discovery_update_progress(NULL, FUJI_UM_CONNECTING_TO_NOTIFY_SERVER);
+	fuji_discovery_update_progress(s->r, FUJI_UM_CONNECTING_TO_NOTIFY_SERVER);
 
 	int fd = connect_to_notify_server(s, info->camera_ip, FUJI_AUTOSAVE_NOTIFY);
 	if (fd <= 0) {
@@ -289,14 +306,14 @@ static int accept_register(struct DiscoveryState *s, struct DiscoverInfo *info, 
 	int rc = respond_to_datagram(s, greeting, info);
 	if (rc) return rc;
 
-	fuji_discovery_update_progress(NULL, FUJI_UM_STARTING_INVITE_SERVER);
+	fuji_discovery_update_progress(s->r, FUJI_UM_STARTING_INVITE_SERVER);
 
 	rc = start_invite_server(s, info, FUJI_AUTOSAVE_REGISTER);
 	if (rc) return rc;
 
 	plat_dbg("Finished registering");
 
-	fuji_discovery_update_progress(NULL, FUJI_UM_ALL_DONE);
+	fuji_discovery_update_progress(s->r, FUJI_UM_ALL_DONE);
 
 	return 0;
 }
@@ -305,7 +322,7 @@ static int accept_connect(struct DiscoveryState *s, struct DiscoverInfo *info, c
 	int rc = respond_to_datagram(s, greeting, info);
 	if (rc) return rc;
 
-	fuji_discovery_update_progress(NULL, FUJI_UM_STARTING_INVITE_SERVER);
+	fuji_discovery_update_progress(s->r, FUJI_UM_STARTING_INVITE_SERVER);
 
 	rc = start_invite_server(s, info, FUJI_AUTOSAVE_CONNECT);
 	if (rc) return rc;
@@ -314,7 +331,7 @@ static int accept_connect(struct DiscoveryState *s, struct DiscoverInfo *info, c
 
 	info->camera_port = FUJI_CMD_IP_PORT;
 
-	fuji_discovery_update_progress(NULL, FUJI_UM_ALL_DONE);
+	fuji_discovery_update_progress(s->r, FUJI_UM_ALL_DONE);
 
 	return 0;
 }
@@ -381,7 +398,7 @@ int fuji_open_tether_server(struct DiscoveryState *s, const char *local_ip) {
 	return server_fd;
 }
 
-static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *arg) {
+static int fuji_tether_accept(struct DiscoverInfo *info, struct DiscoveryState *s, int server_fd) {
 	struct sockaddr_in client_addr;
 	socklen_t client_addr_len = sizeof(client_addr);
 	int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
@@ -390,13 +407,13 @@ static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *ar
 		return -1;
 	}
 
-	fuji_discovery_update_progress(arg, FUJI_UM_GOT_FIRST_MESSAGE);
+	fuji_discovery_update_progress(s->r, FUJI_UM_GOT_FIRST_MESSAGE);
 
 	plat_dbg("invite server: Connection accepted from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
 	// We don't really care about this info
 	char buffer[1024];
-	int rc = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+	int rc = (int)recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 	if (rc < 0) {
 		perror("recv fail");
 		return -1;
@@ -420,15 +437,18 @@ static int fuji_tether_accept(struct DiscoverInfo *info, int server_fd, void *ar
 			if (cur == NULL) return -1;
 			char port_buf[16];
 			snprintf(port_buf, sizeof(port_buf), "%s", cur);
-			info->camera_port = strtol(port_buf, NULL, 10);
+			info->camera_port = (int)strtol(port_buf, NULL, 10);
 		}
 		cur = strtok_r(NULL, delim, &saveptr);
 	}
 
-	//fuji_discover_ask_connect(arg, info);
+	if (fuji_discover_ask_connect(s->r, info) != 1) {
+		close(client_fd);
+		return -1;
+	}
 
 	const char resp[] = "HTTP/1.1 200 OK\r\n";
-	rc = send(client_fd, resp, sizeof(resp), 0);
+	rc = (int)send(client_fd, resp, sizeof(resp), 0);
 	if (rc < 0) {
 		plat_dbg("Failed to send response");
 		return -1;
@@ -525,7 +545,7 @@ static int try_connect_all_sockets(struct DiscoveryState *s, const char *local_i
 	return 0;
 }
 
-static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const char *local_ip, void *arg) {
+static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const char *local_ip) {
 	if (s->pcss_fd != 0) {
 		if (send_pcss_datagram(s->pcss_fd, local_ip)) {
 			plat_dbg("Failed to send datagram: %d", errno);
@@ -566,13 +586,13 @@ static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const
 		if (FD_ISSET(s->reg_fd, &fdset)) {
 			ptp_verbose_log("AutoSave register\n");
 			info->transport = FUJI_FEATURE_AUTOSAVE;
-			int len = recvfrom(s->reg_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
+			unsigned int len = recvfrom(s->reg_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
 			if (len <= 0) {
 				plat_dbg("recvfrom: %d", len);
 				return -1;
 			}
 			greeting[len] = '\0';
-			fuji_discovery_update_progress(arg, FUJI_UM_GOT_FIRST_MESSAGE);
+			fuji_discovery_update_progress(s->r, FUJI_UM_GOT_FIRST_MESSAGE);
 			int rc = accept_register(s, info, greeting);
 			if (rc) return -1;
 			return FUJI_D_REGISTERED;
@@ -582,13 +602,13 @@ static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const
 		if (FD_ISSET(s->con_fd, &fdset)) {
 			ptp_verbose_log("AutoSave connect\n");
 			info->transport = FUJI_FEATURE_AUTOSAVE;
-			int len = recvfrom(s->con_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
+			unsigned int len = recvfrom(s->con_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
 			if (len <= 0) {
 				plat_dbg("recvfrom: %d", len);
 				return -1;
 			}
 			greeting[len] = '\0';
-			fuji_discovery_update_progress(arg, FUJI_UM_GOT_FIRST_MESSAGE);
+			fuji_discovery_update_progress(s->r, FUJI_UM_GOT_FIRST_MESSAGE);
 			int rc = accept_connect(s, info, greeting);
 			if (rc) return -1;
 			return FUJI_D_GO_PTP;
@@ -598,20 +618,20 @@ static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const
 		if (FD_ISSET(s->tether_fd, &fdset)) {
 			ptp_verbose_log("Tether connect\n");
 			info->transport = FUJI_FEATURE_WIRELESS_TETHER;
-			int rc = fuji_tether_accept(info, s->tether_fd, arg);
+			int rc = fuji_tether_accept(info, s, s->tether_fd);
 			if (rc) return -1;
 			return FUJI_D_GO_PTP;
 		}
 	}
 
-	if (fuji_discovery_check_cancel(arg)) {
+	if (fuji_discovery_check_cancel(s->r)) {
 		return FUJI_D_CANCELED;
 	}
 
 	return 0;
 }
 
-int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg) {
+int fuji_discover_thread(struct PtpRuntime *r, struct DiscoverInfo *info, char *client_name) {
 	memset(info, 0, sizeof(struct DiscoverInfo));
 
 	char local_ip[64];
@@ -625,16 +645,17 @@ int fuji_discover_thread(struct DiscoverInfo *info, char *client_name, void *arg
 
 	struct DiscoveryState s;
 	memset(&s, 0, sizeof(struct DiscoveryState));
+	s.r = r;
 
 	int rc = try_connect_all_sockets(&s, local_ip);
 	if (rc == 0) {
 		while (rc == 0) {
-			rc = state_idle(&s, info, local_ip, arg);
+			rc = state_idle(&s, info, local_ip);
 		}
 	}
 
 	if (rc == -1) {
-		app_print("Error connecting to camera."); // TODO: localize
+		app_print(r, "Error connecting to camera.");
 	}
 
 	close_all_sockets(&s);

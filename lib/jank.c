@@ -259,7 +259,7 @@ int fuji_test_discovery(struct PtpRuntime *r) {
 
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-	int rc = fuji_discover_thread(&info, "Fudge (desktop)", NULL);
+	int rc = fuji_discover_thread(r, &info, "Fudge (desktop)");
 	if (rc == FUJI_D_REGISTERED) {
 		plat_dbg("Registered %s %s", info.camera_name, info.camera_model);
 	} else if (rc == FUJI_D_GO_PTP) {

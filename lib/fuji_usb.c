@@ -97,7 +97,7 @@ int fujiusb_setup(struct PtpRuntime *r) {
 	if (rc == PTP_CHECK_CODE) {
 		// PTP_RC_SessionAlreadyOpened, don't care
 	} else if (rc) {
-		app_print("Failed to open session.");
+		app_print(r, "Failed to open session.");
 		return rc;
 	}
 
@@ -111,7 +111,7 @@ int fujiusb_setup(struct PtpRuntime *r) {
 		}
 	}
 
-	app_send_cam_name(di.model);
+	app_send_cam_name(r, di.model);
 
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_USBMode);
 	if (rc == PTP_CHECK_CODE) {
@@ -137,8 +137,8 @@ int fujiusb_setup(struct PtpRuntime *r) {
 }
 
 int fujitether_setup(struct PtpRuntime *r) {
-	app_print("Waiting on the camera...");
-	app_print("Make sure you pressed OK.");
+	app_print(r, "Waiting on the camera...");
+	app_print(r, "Make sure you pressed OK.");
 
 	if (r->connection_type == PTP_IP_USB) {
 		struct PtpFujiInitResp resp;
@@ -153,15 +153,15 @@ int fujitether_setup(struct PtpRuntime *r) {
 			rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
 		}
 		if (rc) {
-			app_print("Failed to initialize connection");
+			app_print(r, "Failed to initialize connection");
 			return rc;
 		}
-		app_print("Initialized connection.");
+		app_print(r, "Initialized connection.");
 
-		app_send_cam_name(resp.cam_name);
+		app_send_cam_name(r, resp.cam_name);
 
 		// Fuji cameras require delay after init
-		app_print("The camera is thinking...");
+		app_print(r, "The camera is thinking...");
 		usleep(50000);
 	}
 

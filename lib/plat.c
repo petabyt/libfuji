@@ -9,6 +9,11 @@
 #include <app.h>
 
 __attribute__((weak))
+int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpObjectInfo *oi) {
+	return 0;
+}
+
+__attribute__((weak))
 void plat_dbg(char *fmt, ...) {
 	printf("DBG: ");
 	va_list args;
@@ -18,12 +23,17 @@ void plat_dbg(char *fmt, ...) {
 }
 
 __attribute__((weak))
-char *app_get_client_name(void) {
+char *app_get_client_name(struct PtpRuntime *r) {
 	return strdup("app");
 }
 
 __attribute__((weak))
-void app_print(char *fmt, ...) {
+int fuji_discover_ask_connect(struct PtpRuntime *r, struct DiscoverInfo *info) {
+	return 1;
+}
+
+__attribute__((weak))
+void app_print(struct PtpRuntime *r, char *fmt, ...) {
 	printf("APP: ");
 	va_list args;
 	va_start(args, fmt);
@@ -32,7 +42,7 @@ void app_print(char *fmt, ...) {
 }
 
 __attribute__((weak))
-void app_send_cam_name(const char *name) {
+void app_send_cam_name(struct PtpRuntime *r, const char *name) {
 	printf("Got camera name '%s'\n", name);
 }
 
@@ -52,7 +62,7 @@ int app_bind_socket_to_network(int fd, struct NetworkHandle *h) {
 }
 
 __attribute__((weak))
-void tester_log(char *fmt, ...) {
+void tester_log(struct PtpRuntime *r, char *fmt, ...) {
 	printf("LOG: ");
 	va_list args;
 	va_start(args, fmt);
@@ -61,7 +71,7 @@ void tester_log(char *fmt, ...) {
 }
 
 __attribute__((weak))
-void tester_fail(char *fmt, ...) {
+void tester_fail(struct PtpRuntime *r, char *fmt, ...) {
 	printf("FAIL: ");
 	va_list args;
 	va_start(args, fmt);
@@ -70,32 +80,28 @@ void tester_fail(char *fmt, ...) {
 }
 
 __attribute__((weak))
-int fuji_discovery_check_cancel(void *arg) {
+int fuji_discovery_check_cancel(struct PtpRuntime *r) {
 	return 0;
 }
 
 __attribute__((weak))
-void fuji_discovery_update_progress(void *arg, enum DiscoverUpdateMessages progress) {
-	printf("Discovery progress '%d'\n", progress);
-}
-__attribute__((weak))
-void app_increment_progress_bar(int read) {
+void app_increment_progress_bar(struct PtpRuntime *r, int read) {
 	printf("%d\n", read);
 }
 __attribute__((weak))
-void app_report_download_speed(long time, size_t size) {
+void app_report_download_speed(struct PtpRuntime *r, long time, size_t size) {
 	int mbps = (int)((size * 8) / (time));
 	printf("Download speed: %dmbps\n", mbps);
 }
 __attribute__((weak))
-void app_downloaded_file(const struct PtpObjectInfo *oi, const char *path) {
+void app_downloaded_file(struct PtpRuntime *r, const struct PtpObjectInfo *oi, const char *path) {
 	printf("File has been downloaded to '%s'\n", path);
 }
 __attribute__((weak))
-void app_get_file_path(char buffer[256], const char *filename) {abort();}
+void app_get_file_path(struct PtpRuntime *r, char buffer[256], const char *filename) {abort();}
 __attribute__((weak))
-void app_downloading_file(const struct PtpObjectInfo *oi) {}
+void app_downloading_file(struct PtpRuntime *r, const struct PtpObjectInfo *oi) {}
 __attribute__((weak))
-int app_check_thread_cancel(void) {return 0;}
+int app_check_thread_cancel(struct PtpRuntime *r) {return 0;}
 __attribute__((weak))
-void app_get_tether_file_path(char buffer[256]) {abort();}
+void app_get_tether_file_path(struct PtpRuntime *r, char buffer[256]) {abort();}
