@@ -781,6 +781,7 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 	return 0;
 }
 
+#if 0
 static inline int do_download(int mask, int format) {
 	if (mask & PTP_SELET_JPEG && format == PTP_OF_JPEG) return 1;
 	if (mask & PTP_SELET_MOV && format == PTP_OF_MOV) return 1;
@@ -832,6 +833,7 @@ int fuji_import_objects(struct PtpRuntime *r, int *object_ids, int length, int m
 
 	return 0;
 }
+#endif
 
 static long get_ms(void) {
 	struct timespec ts;
