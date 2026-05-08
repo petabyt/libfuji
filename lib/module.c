@@ -47,6 +47,26 @@ void ptp_verbose_log(char *fmt, ...) {
 	//pak_global_log(buffer);
 }
 
+__attribute__((weak))
+void ptp_error_log(char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+
+__attribute__ ((noreturn))
+void ptp_panic(char *fmt, ...) {
+	printf("PTP abort: ");
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+	fflush(stdout);
+	putchar('\n');
+	abort();
+}
+
 void app_print(struct PtpRuntime *r, char *fmt, ...) {
 	char buffer[512];
 	va_list args;
@@ -285,3 +305,4 @@ int get_module_libfuji(struct Module *mod) {
 	mod->on_switch_screen = on_switch_screen;
 	return 0;
 }
+__attribute__((weak)) int get_module(struct Module *mod) { return get_module_libfuji(mod); }
