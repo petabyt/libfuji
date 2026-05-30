@@ -81,9 +81,8 @@ int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *in
 	memcpy(&fuji_get(r)->net, &info->h, sizeof(struct NetworkHandle));
 
 	int rc = ptpip_connect(r, info->camera_ip, info->camera_port, 5);
-
-	// If camera ignored the TCP connect, try again
 	if (rc) {
+		// If camera ignored the TCP connect, try again
 		rc = ptpip_connect(r, info->camera_ip, info->camera_port, 5);
 	}
 
@@ -95,6 +94,7 @@ int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *in
 	return 0;
 }
 
+#if 0
 int fuji_connection_entry(struct PtpRuntime *r) {
 	plat_dbg("transport: %d", fuji_get(r)->transport);
 	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_TETHER || r->connection_type == PTP_USB) {
@@ -118,25 +118,23 @@ int fuji_connection_entry(struct PtpRuntime *r) {
 
 	return 0;
 }
+#endif
 
 // Assumes cmd socket is valid
-int fuji_setup(struct PtpRuntime *r) {
+int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	struct FujiDeviceKnowledge *fuji = fuji_get(r);
 
 	app_print(r, "Waiting on the camera...");
 	app_print(r, "Make sure you pressed OK.");
 
-	char *device_name = app_get_client_name(r);
-
 	struct PtpFujiInitResp resp;
-	int rc = ptpip_fuji_init_req(r, device_name, &resp);
+	int rc = ptpip_fuji_init_req(r, client_name, &resp);
 	if (rc == PTP_RUNTIME_ERR) {
-		rc = ptpip_fuji_init_req(r, device_name, &resp);
+		rc = ptpip_fuji_init_req(r, client_name, &resp);
 	} else if (rc) {
 		usleep(1000); // One last chance...
-		rc = ptpip_fuji_init_req(r, device_name, &resp);
+		rc = ptpip_fuji_init_req(r, client_name, &resp);
 	}
-	free(device_name);
 	if (rc) {
 		app_print(r, "Failed to initialize connection");
 		return rc;
@@ -248,7 +246,7 @@ int fuji_setup_remote_mode(struct PtpRuntime *r) {
 }
 
 
-static int ptpip_fuji_init_req_(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp) {
+static int ptpip_fuji_init_req_(struct PtpRuntime *r, const char *device_name, struct PtpFujiInitResp *resp) {
 	struct FujiInitPacket *p = (struct FujiInitPacket *)r->data;
 	memset(p, 0, sizeof(struct FujiInitPacket));
 	ptp_write_u32(&p->length, 0x52);
@@ -284,7 +282,7 @@ static int ptpip_fuji_init_req_(struct PtpRuntime *r, char *device_name, struct 
 
 	return 0;
 }
-int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp) {
+int ptpip_fuji_init_req(struct PtpRuntime *r, const char *device_name, struct PtpFujiInitResp *resp) {
 	ptp_mutex_lock(r);
 	int rc = ptpip_fuji_init_req_(r, device_name, resp);
 	ptp_mutex_unlock(r);

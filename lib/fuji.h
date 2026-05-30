@@ -12,16 +12,6 @@
 // X-A2 decided to freak out and stall. So, we have to do it the Fuji way :)
 #define FUJI_MAX_PARTIAL_OBJECT 0x100000
 
-/// @brief IP address used for all PTP connections
-/// @note must free()
-char *app_get_camera_ip(struct PtpRuntime *r);
-
-/// @brief Get friendly client name
-/// @note must free()
-char *app_get_client_name(struct PtpRuntime *r);
-
-//struct NetworkHandle *ptp_get_network_info(struct PtpRuntime *r);
-
 enum DiscoverUpdateMessages {
 	FUJI_UM_GOT_FIRST_MESSAGE,
 	FUJI_UM_CONNECTING_TO_NOTIFY_SERVER,
@@ -119,7 +109,7 @@ int fuji_reset_ptp(struct PtpRuntime *r);
 int fuji_setup_remote_mode(struct PtpRuntime *r);
 
 /// @brief Main entry function for PTP/IP
-int fuji_setup(struct PtpRuntime *r);
+int fuji_setup(struct PtpRuntime *r, const char *client_name);
 
 int fuji_connection_entry(struct PtpRuntime *r);
 
@@ -131,8 +121,8 @@ int fuji_test_suite(struct PtpRuntime *r);
 int fuji_test_setup(struct PtpRuntime *r);
 int fuji_test_filesystem(struct PtpRuntime *r);
 
-/// @brief Standard REQ/ACK for PTP/IP connection
-int ptpip_fuji_init_req(struct PtpRuntime *r, char *device_name, struct PtpFujiInitResp *resp);
+/// @brief Perform REQ/ACK for PTP/IP connection
+int ptpip_fuji_init_req(struct PtpRuntime *r, const char *device_name, struct PtpFujiInitResp *resp);
 
 /// @brief Configure some mandatory viewer/gallery related version properties
 int fuji_config_version(struct PtpRuntime *r);

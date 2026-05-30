@@ -3,6 +3,8 @@
 #include <wifi.h>
 #include <fuji.h>
 
+int fuji_connect_bluetooth(struct PakBt *ctx, struct PakBtDevice *dev);
+
 struct ModulePriv {
 	struct PtpRuntime *r;
 	struct Module *mod;
@@ -11,6 +13,8 @@ struct ModulePriv {
 	int update_progress_bar_job;
 	unsigned int total_read;
 	unsigned to_read_target;
+	int adapter_is_present;
+	struct PakWiFiAdapter adapter;
 };
 
 struct FujiModulePriv {
@@ -34,8 +38,8 @@ static struct Module *get_mod(struct PtpRuntime *r) {
 }
 
 int ptpip_set_extra_socket_settings(struct PtpRuntime *r, int sockfd) {
-	// TODO:
-	return 0;
+	if (!get_mod(r)->priv->adapter_is_present) return -1;
+	return pak_wifi_bind_socket_to_adapter(get_mod(r)->net, &get_mod(r)->priv->adapter, sockfd);
 }
 
 void ptp_verbose_log(char *fmt, ...) {
@@ -95,11 +99,9 @@ static int init(struct Module *mod) {
 }
 
 static int on_try_connect_wifi(struct Module *mod, struct PakWiFiAdapter *handle, int job) {
-	return -1;
-}
-
-static int on_find_connection(struct Module *mod, int job) {
 	mod->priv->current_job = job;
+	mod->priv->adapter_is_present = 1;
+	memcpy(&mod->priv->adapter, handle, sizeof(struct PakWiFiAdapter));
 	struct PtpRuntime *r = ptp_new(PTP_IP_USB);
 	fuji_reset_ptp(r);
 	mod->priv->r = r;
@@ -123,7 +125,7 @@ static int on_find_connection(struct Module *mod, int job) {
 			return handle_ptperr(mod, rc, "fujitether_setup");
 		}
 	} else {
-		rc = fuji_setup(r);
+		rc = fuji_setup(r, "fudge");
 		if (rc) {
 			return PAK_ERR_IO;
 		} else {
@@ -149,6 +151,10 @@ static int on_find_connection(struct Module *mod, int job) {
 	}
 
 	return 0;
+}
+
+static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *device, int job) {
+	return fuji_connect_bluetooth(mod->bt, device);
 }
 
 static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
@@ -296,10 +302,11 @@ int get_module_libfuji(struct Module *mod) {
 	mod->init = init;
 	mod->free = on_free;
 	mod->on_try_connect_wifi = on_try_connect_wifi;
+	mod->on_try_connect_bluetooth = on_try_connect_bluetooth;
 	mod->on_request_file_thumbnail = on_request_thumbnail;
 	mod->on_request_file_metadata = on_request_file_metadata;
 	mod->on_request_file_contents = on_request_file_contents;
-	mod->on_find_connection = on_find_connection;
+	//mod->on_find_connection = on_find_connection;
 	mod->on_idle_tick = on_idle_tick;
 	mod->on_disconnect = on_disconnect;
 	mod->on_switch_screen = on_switch_screen;

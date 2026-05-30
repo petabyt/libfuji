@@ -23,11 +23,6 @@ void plat_dbg(char *fmt, ...) {
 }
 
 __attribute__((weak))
-char *app_get_client_name(struct PtpRuntime *r) {
-	return strdup("app");
-}
-
-__attribute__((weak))
 int fuji_discover_ask_connect(struct PtpRuntime *r, struct DiscoverInfo *info) {
 	return 1;
 }

@@ -14,7 +14,7 @@ set(FUJI_CORE
     lib/plat.c
 )
 if(TARGET pak)
-    set(FUJI_CORE ${FUJI_CORE} lib/module.c)
+    set(FUJI_CORE ${FUJI_CORE} lib/module.c lib/bluetooth.c)
 endif()
 
 add_library(libfuji STATIC ${FUJI_CORE})
