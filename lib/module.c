@@ -111,8 +111,10 @@ static int on_try_connect_wifi(struct Module *mod, struct PakWiFiAdapter *handle
 	fuji_get(r)->transport = FUJI_FEATURE_WIRELESS_COMM;
 
 	//strcpy(fuji_get(r)->ip_address, "192.168.0.1");
-	strcpy(fuji_get(r)->ip_address, "192.168.1.131");
-	int rc = ptpip_connect(r, fuji_get(r)->ip_address, FUJI_CMD_IP_PORT, 1000);
+	strcpy(fuji_get(r)->ip_address, "192.168.1.164");
+	pak_debug_log(mod, "Connecting to %s", fuji_get(r)->ip_address);
+	int rc = ptpip_connect(r, fuji_get(r)->ip_address, FUJI_CMD_IP_PORT, 1);
+	pak_debug_log(mod, "done");
 	if (rc) {
 		return PAK_ERR_NO_CONNECTION;
 	}
@@ -159,6 +161,9 @@ static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *devi
 
 static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
 	struct PtpRuntime *r = mod->priv->r;
+	if (r == NULL) {
+		return 0;
+	}
 	if (r->connection_type == PTP_USB) {
 		int rc = ptpusb_get_status(r);
 		if (rc) return handle_ptperr(mod, rc, "ptpusb_get_status");
@@ -171,12 +176,18 @@ static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
 
 static int on_disconnect(struct Module *mod) {
 	struct PtpRuntime *r = mod->priv->r;
+	if (r == NULL) {
+		return 0;
+	}
 	ptp_report_error(r, "requested disconnect", 0);
 	return 0;
 }
 
 static int on_switch_screen(struct Module *mod, int old_screen, int new_screen, int job) {
 	struct PtpRuntime *r = mod->priv->r;
+	if (r == NULL) {
+		return 0;
+	}
 	if (new_screen == SCREEN_FILE_GALLERY) {
 		int rc = fuji_config_image_viewer(r);
 		if (rc) return handle_ptperr(mod, rc, "fuji_config_image_viewer");
@@ -207,6 +218,9 @@ static int jbytearray_add(void *arg, void *data, int size, int read) {
 
 static int on_request_file_contents(struct Module *mod, int job, struct FileHandle *file) {
 	struct PtpRuntime *r = mod->priv->r;
+	if (r == NULL) {
+		return 0;
+	}
 
 	struct PtpObjectInfo oi;
 	int rc = fuji_begin_download_get_object_info(r, file->index_in_view + 1, &oi);
@@ -245,6 +259,9 @@ static int on_request_file_contents(struct Module *mod, int job, struct FileHand
 static int on_request_thumbnail(struct Module *mod, int job, struct FileHandle *file) {
 	unsigned int offset, length;
 	struct PtpRuntime *r = mod->priv->r;
+	if (r == NULL) {
+		return 0;
+	}
 
 	ptp_mutex_lock(r);
 	int rc = fuji_get_thumb(r, file->index_in_view + 1, &offset, &length);
@@ -289,6 +306,9 @@ int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpOb
 static int on_request_file_metadata(struct Module *mod, int job, struct FileHandle *file) {
 	struct PtpObjectInfo info;
 	struct PtpRuntime *r = mod->priv->r;
+	if (r == NULL) {
+		return 0;
+	}
 	int rc = ptp_get_object_info(r, file->index_in_view + 1, &info);
 	if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR) {
 		pak_rt_add_file_metadata(mod, file, NULL);

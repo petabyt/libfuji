@@ -20,6 +20,8 @@
 #define CHR_NOT1_UUID "f9150137-5d40-4801-a8dc-f7fc5b01da50"
 #define CHR_IND3_UUID "049ec406-ef75-4205-a390-08fe209c51f0"
 
+#define SVC_SHUTTER_UUID "6514eb81-4e8f-458d-aa2a-e691336cdfac"
+
 // Shutter characteristic
 #define CHR_SHUTTER_UUID "7fcf49c6-4ff0-4777-a03d-1a79166af7a8"
 
@@ -87,31 +89,147 @@ typedef struct __attribute__((packed)) _fujigeotag_t {
 	fujifilm_time_t gps_time;
 } geotag_t;
 
+int subscribe(struct PakBt *ctx, struct PakBtDevice *dev, const char *uuid_svc, const char *uuid_chr, int notif) {
+	struct PakGattService service;
+	int rc = pak_bt_get_gatt_service_uuid(ctx, dev, &service, uuid_svc);
+	if (rc) {
+		pak_global_log("pak_bt_get_gatt_service_uuid");
+		return PAK_ERR_UNSUPPORTED;
+	}
+
+	struct PakGattCharacteristic chr;
+	rc = pak_bt_get_gatt_characteristic_uuid(ctx, &service, &chr, uuid_chr);
+	if (rc) {
+		pak_global_log("pak_bt_get_gatt_characteristic_uuid");
+		pak_bt_unref_gatt_service(ctx, &service);
+		return PAK_ERR_UNSUPPORTED;
+	}
+
+	rc = pak_bt_set_watching_characteristic(ctx, &chr, notif);
+	if (rc) {
+		pak_global_log("pak_bt_set_watching_characteristic");
+	}
+
+	rc = pak_bt_set_cccd(ctx, &chr, 0x1);
+	if (rc) {
+		pak_global_log("pak_bt_set_cccd");
+	}
+
+	pak_bt_unref_gatt_service(ctx, &service);
+	pak_bt_unref_gatt_characteristic(ctx, &chr);
+	return 0;
+}
+
 int fuji_connect_bluetooth(struct PakBt *ctx, struct PakBtDevice *dev) {
 	adv_basic_t mfgdata;
 	unsigned int sz = pak_bt_get_manufacturer_data(ctx, dev, 0, (uint8_t *)&mfgdata, sizeof(mfgdata));
+	if (sz == 0) {
+		pak_global_log("Device is not in pairing mode");
+		return PAK_ERR_NO_CONNECTION;
+	}
+
+	pak_global_log("mfgdata sz: %u", sz);
+	pak_global_log("Token = %02x%02x%02x%02x", mfgdata.token.data[0], mfgdata.token.data[1], mfgdata.token.data[2],
+           mfgdata.token.data[3]);
 
 	int rc = pak_bt_device_connect(ctx, dev);
-	if (rc) return rc;
+	if (rc) {
+		pak_global_log("pak_bt_device_connect");
+		return rc;
+	}
+
+#define GENERIC_ACCESS_SERVICE "00001800-0000-1000-8000-00805f9b34fb"
+#define DEVICE_NAME "00002a00-0000-1000-8000-00805f9b34fb"
+	{
+		struct PakGattService service;
+		if (pak_bt_get_gatt_service_uuid(ctx, dev, &service, GENERIC_ACCESS_SERVICE)) {
+			return PAK_ERR_UNSUPPORTED;
+		}
+		struct PakGattCharacteristic chr;
+		if (pak_bt_get_gatt_characteristic_uuid(ctx, &service, &chr, DEVICE_NAME)) {
+			pak_bt_unref_gatt_service(ctx, &service);
+			return PAK_ERR_UNSUPPORTED;
+		}
+		pak_bt_read_characteristic(ctx, &chr, 1);
+		char buffer[20];
+		pak_bt_read_characteristic_cached_value(ctx, &chr, (uint8_t *)buffer, 20);
+		pak_global_log("name: %s", buffer);
+		pak_bt_unref_gatt_characteristic(ctx, &chr);
+		pak_bt_unref_gatt_service(ctx, &service);
+	}
 
 	struct PakGattService service;
 	rc = pak_bt_get_gatt_service_uuid(ctx, dev, &service, SVC_PAIR_UUID);
-	if (rc) return rc;
+	if (rc) {
+		pak_global_log("pak_bt_get_gatt_service_uuid");
+		return rc;
+	}
 
-	struct PakGattCharacteristic chr;
-	rc = pak_bt_get_gatt_characteristic_uuid(ctx, &service, &chr, CHR_PAIR_UUID);
-	if (rc) return PAK_ERR_UNSUPPORTED;
+	struct PakGattCharacteristic pair_chr;
+	rc = pak_bt_get_gatt_characteristic_uuid(ctx, &service, &pair_chr, CHR_PAIR_UUID);
+	if (rc) {
+		pak_global_log("pak_bt_get_gatt_characteristic_uuid");
+		return PAK_ERR_UNSUPPORTED;
+	}
 
-	rc = pak_bt_write_characteristic(ctx, &chr, mfgdata.token.data, sizeof(mfgdata.token.data), 1);
-	if (rc) return rc;
+	rc = pak_bt_write_characteristic(ctx, &pair_chr, mfgdata.token.data, sizeof(mfgdata.token.data), 1);
+	if (rc) {
+		pak_global_log("pak_bt_write_characteristic");
+		return rc;
+	}
 
 	char iden_str[0xff];
 	struct PakGattCharacteristic iden_chr;
 	rc = pak_bt_get_gatt_characteristic_uuid(ctx, &service, &iden_chr, CHR_IDEN_UUID);
-	if (rc) return rc;
-	pak_bt_read_characteristic(ctx, &iden_chr, 1);
-	pak_bt_read_characteristic_cached_value(ctx, &iden_chr, (uint8_t *)iden_str, sizeof(iden_str));
-	pak_global_log("%s\n", iden_str);
+	if (rc) {
+		pak_global_log("pak_bt_get_gatt_characteristic_uuid");
+		return rc;
+	}
+	char client_name[] = "Pixel-6a-1234";
+	rc = pak_bt_write_characteristic(ctx, &iden_chr, (uint8_t *)client_name, sizeof(client_name) - 1, 1);
+	if (rc) {
+		pak_global_log("pak_bt_write_characteristic");
+		return rc;
+	}
 
-	return -1;
+	subscribe(ctx, dev, "4e941240-d01d-46b9-a5ea-67636806830b", "bf6dc9cf-3606-4ec9-a4c8-d77576e93ea4", 1);
+	subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND1_UUID, 1);
+	subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND2_UUID, 1);
+	subscribe(ctx, dev, SVC_CONF_UUID, CHR_NOT1_UUID, 1);
+	subscribe(ctx, dev, SVC_CONF_UUID, GEOTAG_UPDATE, 1);
+	subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND3_UUID, 1);
+
+	{
+		struct PakGattService service;
+		if (pak_bt_get_gatt_service_uuid(ctx, dev, &service, SVC_GEOTAG_UUID)) {
+			return PAK_ERR_UNSUPPORTED;
+		}
+		struct PakGattCharacteristic chr;
+		if (pak_bt_get_gatt_characteristic_uuid(ctx, &service, &chr, CHR_GEOTAG_UUID)) {
+			pak_bt_unref_gatt_service(ctx, &service);
+			return PAK_ERR_UNSUPPORTED;
+		}
+
+		geotag_t geotag = {
+			.latitude = (int32_t)(123 * 10000000),
+			.longitude = (int32_t)(123 * 10000000),
+			.altitude = (int32_t)50000,
+			.pad = {0},
+			.gps_time = {
+				.year = (uint16_t)2026,
+				.month = (uint8_t)6,
+				.day = (uint8_t)5,
+				.hour = (uint8_t)12,
+				.minute = (uint8_t)43,
+				.second = (uint8_t)12
+			}
+		};
+
+		pak_bt_write_characteristic(ctx, &chr, (uint8_t *)&geotag, sizeof(geotag), 1);
+
+		pak_bt_unref_gatt_characteristic(ctx, &chr);
+		pak_bt_unref_gatt_service(ctx, &service);
+	}
+
+	return 0;
 }
