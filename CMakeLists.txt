@@ -13,14 +13,19 @@ set(FUJI_CORE
     lib/fuji_usb.c
     lib/plat.c
 )
+
+find_package(PkgConfig OPTIONAL)
+if(PKG_CONFIG_FOUND)
+    list(APPEND CMAKE_PREFIX_PATH "/usr/local")
+    pkg_check_modules(LIBPAK IMPORTED_TARGET GLOBAL libpak)
+    if(LIBPAK_FOUND)
+        add_library(pak ALIAS PkgConfig::LIBPAK)
+    endif()
+endif()
+
 if(TARGET pak)
     set(FUJI_CORE ${FUJI_CORE} lib/module.c lib/bluetooth.c)
 endif()
-
-add_library(libfuji STATIC ${FUJI_CORE})
-target_compile_options(libfuji
-    PRIVATE -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations
-)
 
 if(NOT TARGET fp)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/fp ${CMAKE_CURRENT_BINARY_DIR}/fp)
@@ -30,6 +35,11 @@ if(NOT TARGET libpict)
     option(PTP_DEFAULT_LOGGING "Include default log/panic/error implementation" OFF)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libpict ${CMAKE_CURRENT_BINARY_DIR}/libpict)
 endif()
+
+add_library(libfuji STATIC ${FUJI_CORE})
+target_compile_options(libfuji
+    PRIVATE -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations
+)
 
 target_include_directories(libfuji PUBLIC ${PROJECT_SOURCE_DIR}/lib)
 target_link_libraries(libfuji PUBLIC libpict fp)
