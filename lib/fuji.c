@@ -10,8 +10,8 @@
 #include "fuji.h"
 #include "fujiptp.h"
 
-struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r) {
-	return (struct FujiDeviceKnowledge *)r->userdata;
+fujipriv_t *fuji_get(struct PtpRuntime *r) {
+	return r->priv;
 }
 
 struct NetworkHandle *ptp_get_network_info(struct PtpRuntime *r) {
@@ -22,8 +22,8 @@ int fuji_reset_ptp(struct PtpRuntime *r) {
 	ptp_reset(r);
 	if (r->priv == NULL)
 		r->priv = calloc(1, sizeof(struct PtpUserPriv));
-	if (r->userdata == NULL)
-		r->userdata = calloc(1, sizeof(struct FujiDeviceKnowledge));
+//	if (r->userdata == NULL)
+//		r->userdata = calloc(1, sizeof(struct FujiDeviceKnowledge));
 	r->connection_type = PTP_IP_USB;
 	r->response_wait_default = 3; // Fuji cams are slow!
 	return 0;
@@ -122,7 +122,7 @@ int fuji_connection_entry(struct PtpRuntime *r) {
 
 // Assumes cmd socket is valid
 int fuji_setup(struct PtpRuntime *r, const char *client_name) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 
 	app_print(r, "Waiting on the camera...");
 	app_print(r, "Make sure you pressed OK.");
@@ -493,7 +493,7 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 }
 
 int fuji_get_events(struct PtpRuntime *r) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 	ptp_mutex_lock(r);
 	int rc = ptp_get_prop_value(r, PTP_DPC_FUJI_EventsList);
 	if (rc == PTP_CHECK_CODE) {
@@ -546,7 +546,7 @@ int fuji_get_events(struct PtpRuntime *r) {
 
 // Call this immediately after session init
 int fuji_wait_for_access(struct PtpRuntime *r) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 	// We *need* these properties on camera init - otherwise, produce an error
 	fuji->camera_state = FUJI_WAIT_FOR_ACCESS;
 	fuji->num_objects = -1;
@@ -578,7 +578,7 @@ int fuji_wait_for_access(struct PtpRuntime *r) {
 // Handles critical init sequence. This is after initializing the socket, and opening session.
 // Called right after obtaining access to the device.
 int fuji_config_init_mode(struct PtpRuntime *r) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 
 	int rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion);
 	if (rc) return rc;
@@ -635,7 +635,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 
 
 int fuji_config_version_(struct PtpRuntime *r) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 	int rc = 0;
 	if (fuji->camera_state == FUJI_PC_AUTO_SAVE) {
 		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_AutoSaveVersion);
@@ -687,7 +687,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 }
 
 int fuji_config_device_info_routine(struct PtpRuntime *r) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 	if (fuji->remote_version != -1 && fuji->camera_state != FUJI_PC_AUTO_SAVE) {
 		int rc = fuji_get_device_info(r);
 		if (rc) return rc;
@@ -703,7 +703,7 @@ int fuji_config_device_info_routine(struct PtpRuntime *r) {
 
 // Tell camera to open event/video sockets
 int fuji_remote_mode_open_sockets(struct PtpRuntime *r) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 	if (fuji->remote_version == -1) return 0;
 
 	// Begin camera remote - (per spec, OpenCapture is much more broad than 'take picture')
@@ -717,7 +717,7 @@ int fuji_remote_mode_open_sockets(struct PtpRuntime *r) {
 
 // 'End' remote mode (or more like finish setup)
 int fuji_remote_mode_end(struct PtpRuntime *r) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 	if (fuji->remote_version == -1) return 0;
 
 	// Right after remote mode is entered, camera gives off a bunch of properties
@@ -731,7 +731,7 @@ int fuji_remote_mode_end(struct PtpRuntime *r) {
 }
 
 int fuji_config_image_viewer(struct PtpRuntime *r) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 	if (r->connection_type == PTP_USB) return 0;
 	if (fuji->transport == FUJI_FEATURE_WIRELESS_TETHER) return 0;
 	plat_dbg("remote_image_view_version: %X", fuji->remote_image_view_version);
@@ -943,7 +943,7 @@ int fuji_download_classic(struct PtpRuntime *r) {
 }
 
 int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 	if (r->connection_type == PTP_USB) {
 		return ptp_get_object_handles(r, -1, 0x0, 0x0, a);
 	} else {

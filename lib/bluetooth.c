@@ -31,6 +31,9 @@
 #define SVC_GEOTAG_UUID "3b46ec2b-48ba-41fd-b1b8-ed860b60d22b"
 #define CHR_GEOTAG_UUID "0f36ec14-29e5-411a-a1b6-64ee8383f090"
 
+#define GENERIC_ACCESS_SERVICE "00001800-0000-1000-8000-00805f9b34fb"
+#define DEVICE_NAME "00002a00-0000-1000-8000-00805f9b34fb"
+
 #define TOKEN_LEN 4
 #define TYPE_TOKEN 0x02
 
@@ -120,17 +123,21 @@ int subscribe(struct PakBt *ctx, struct PakBtDevice *dev, const char *uuid_svc, 
 	return 0;
 }
 
-int fuji_connect_bluetooth(struct PakBt *ctx, struct PakBtDevice *dev) {
+int fuji_connect_bluetooth(struct Module *mod, struct PakBt *ctx, struct PakBtDevice *dev, struct PakSavedConnection *saved) {
+	char name_buf[32];
 	adv_basic_t mfgdata;
-	unsigned int sz = pak_bt_get_manufacturer_data(ctx, dev, 0, (uint8_t *)&mfgdata, sizeof(mfgdata));
-	if (sz == 0) {
-		pak_global_log("Device is not in pairing mode");
-		return PAK_ERR_NO_CONNECTION;
+	if (saved == NULL) {
+		unsigned int sz = pak_bt_get_manufacturer_data(ctx, dev, 0, (uint8_t *)&mfgdata, sizeof(mfgdata));
+		if (sz == 0) {
+			pak_global_log("Device is not in pairing mode");
+			return PAK_ERR_NO_CONNECTION;
+		}
+		pak_global_log("mfgdata sz: %u", sz);
+		pak_global_log("Token = %02x%02x%02x%02x", mfgdata.token.data[0], mfgdata.token.data[1], mfgdata.token.data[2],
+			   mfgdata.token.data[3]);
+	} else {
+		memcpy(mfgdata.token.data, saved->aux_data, TOKEN_LEN);
 	}
-
-	pak_global_log("mfgdata sz: %u", sz);
-	pak_global_log("Token = %02x%02x%02x%02x", mfgdata.token.data[0], mfgdata.token.data[1], mfgdata.token.data[2],
-           mfgdata.token.data[3]);
 
 	int rc = pak_bt_device_connect(ctx, dev);
 	if (rc) {
@@ -138,8 +145,6 @@ int fuji_connect_bluetooth(struct PakBt *ctx, struct PakBtDevice *dev) {
 		return rc;
 	}
 
-#define GENERIC_ACCESS_SERVICE "00001800-0000-1000-8000-00805f9b34fb"
-#define DEVICE_NAME "00002a00-0000-1000-8000-00805f9b34fb"
 	{
 		struct PakGattService service;
 		if (pak_bt_get_gatt_service_uuid(ctx, dev, &service, GENERIC_ACCESS_SERVICE)) {
@@ -151,22 +156,22 @@ int fuji_connect_bluetooth(struct PakBt *ctx, struct PakBtDevice *dev) {
 			return PAK_ERR_UNSUPPORTED;
 		}
 		pak_bt_read_characteristic(ctx, &chr, 1);
-		char buffer[20];
-		pak_bt_read_characteristic_cached_value(ctx, &chr, (uint8_t *)buffer, 20);
-		pak_global_log("name: %s", buffer);
+		pak_bt_read_characteristic_cached_value(ctx, &chr, (uint8_t *)name_buf, sizeof(name_buf));
 		pak_bt_unref_gatt_characteristic(ctx, &chr);
 		pak_bt_unref_gatt_service(ctx, &service);
 	}
 
-	struct PakGattService service;
-	rc = pak_bt_get_gatt_service_uuid(ctx, dev, &service, SVC_PAIR_UUID);
+	pak_rt_set_session_property(mod, PAK_PROP_NAME, name_buf);
+
+	struct PakGattService pair_service;
+	rc = pak_bt_get_gatt_service_uuid(ctx, dev, &pair_service, SVC_PAIR_UUID);
 	if (rc) {
 		pak_global_log("pak_bt_get_gatt_service_uuid");
 		return rc;
 	}
 
 	struct PakGattCharacteristic pair_chr;
-	rc = pak_bt_get_gatt_characteristic_uuid(ctx, &service, &pair_chr, CHR_PAIR_UUID);
+	rc = pak_bt_get_gatt_characteristic_uuid(ctx, &pair_service, &pair_chr, CHR_PAIR_UUID);
 	if (rc) {
 		pak_global_log("pak_bt_get_gatt_characteristic_uuid");
 		return PAK_ERR_UNSUPPORTED;
@@ -180,7 +185,7 @@ int fuji_connect_bluetooth(struct PakBt *ctx, struct PakBtDevice *dev) {
 
 	char iden_str[0xff];
 	struct PakGattCharacteristic iden_chr;
-	rc = pak_bt_get_gatt_characteristic_uuid(ctx, &service, &iden_chr, CHR_IDEN_UUID);
+	rc = pak_bt_get_gatt_characteristic_uuid(ctx, &pair_service, &iden_chr, CHR_IDEN_UUID);
 	if (rc) {
 		pak_global_log("pak_bt_get_gatt_characteristic_uuid");
 		return rc;
@@ -198,6 +203,13 @@ int fuji_connect_bluetooth(struct PakBt *ctx, struct PakBtDevice *dev) {
 	subscribe(ctx, dev, SVC_CONF_UUID, CHR_NOT1_UUID, 1);
 	subscribe(ctx, dev, SVC_CONF_UUID, GEOTAG_UPDATE, 1);
 	subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND3_UUID, 1);
+
+	pak_rt_save_session_signature(mod, &(struct PakSavedConnection){
+		.name = name_buf,
+		.unique_id = dev->mac_address,
+		.aux_data = (uint8_t *)mfgdata.token.data,
+		.aux_data_length = sizeof(mfgdata.token.data),
+	});
 
 	{
 		struct PakGattService service;

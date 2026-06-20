@@ -17,6 +17,13 @@ void nothing(int x) {}
 
 pid_t child_pid = -1;
 
+void ptp_verbose_log(char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+
 int fudge_usb_connect(struct PtpRuntime *r, int num) {
 	static int attempts = 0;
 	int rc = fujiusb_try_connect(r, num);
@@ -119,7 +126,7 @@ int fudge_test_camera(const char *name) {
 		printf("Error connecting to %s:%d\n", ip_addr, FUJI_CMD_IP_PORT);
 		return -1;
 	}
-	
+
 	rc = fuji_test_setup(r);
 	if (rc) return rc;
 	
@@ -156,7 +163,9 @@ int fudge_test_all_cameras(void) {
 
 
 static int help(void) {
-	printf("TODO: help\n");
+	printf("--test-wifi\n");
+	printf("--dump-usb\n");
+	printf("--test-discovery\n");
 	return 0;
 }
 
@@ -181,6 +190,8 @@ int main(int argc, char **argv) {
 		printf("Invalid arg '%s'\n", argv[i]);
 		return -1;
 	}
+
+	help();
 
 	return 0;
 }

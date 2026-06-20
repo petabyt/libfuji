@@ -63,6 +63,7 @@ void tester_log(struct PtpRuntime *r, char *fmt, ...) {
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
+	putchar('\n');
 }
 
 __attribute__((weak))
@@ -72,6 +73,7 @@ void tester_fail(struct PtpRuntime *r, char *fmt, ...) {
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
+	putchar('\n');
 }
 
 __attribute__((weak))

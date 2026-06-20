@@ -277,7 +277,7 @@ int fuji_test_discovery(struct PtpRuntime *r) {
 		strcpy(fuji_get(r)->ip_address, info.camera_ip);
 
 		//rc = fujitether_setup(r);
-		rc = fuji_setup(r);
+		rc = fuji_setup(r, "fudge");
 		if (rc) return rc;
 
 		try_download(r);

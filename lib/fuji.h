@@ -6,10 +6,6 @@
 #include "fujiptp.h"
 #include "app.h"
 
-#define DEVICE_NAME "Fudge"
-
-// For a long time transfers over 1mb worked but for one image
-// X-A2 decided to freak out and stall. So, we have to do it the Fuji way :)
 #define FUJI_MAX_PARTIAL_OBJECT 0x100000
 
 enum DiscoverUpdateMessages {
@@ -44,8 +40,9 @@ struct DiscoverInfo {
 	int product_id;
 };
 
-/// @brief Holds runtime info about the camera
-struct FujiDeviceKnowledge {
+/// Fujifilm priv struct for PtpRuntime->priv variable
+struct PtpUserPriv {
+	struct FujiModulePriv *priv;
 	/// @note applied from struct DiscoverInfo
 	struct NetworkHandle net;
 	/// @note applied from struct DiscoverInfo
@@ -68,15 +65,9 @@ struct FujiDeviceKnowledge {
 	int num_objects;
 	int open_capture_trans_id;
 };
-struct FujiDeviceKnowledge *fuji_get(struct PtpRuntime *r);
 
-// Private struct for PtpRuntime variable
-struct PtpUserPriv {
-	//struct FujiDeviceKnowledge fuji;
-	struct FujiModulePriv *priv;
-};
-
-//int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info);
+typedef struct PtpUserPriv fujipriv_t;
+fujipriv_t *fuji_get(struct PtpRuntime *r);
 
 /// @brief Do a weird hack where we GetPartialObject on the first few kb of a file, then grab the thumbnail
 /// from the exif data. Not reliable.
@@ -161,7 +152,7 @@ int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port);
 int fujiusb_try_connect(struct PtpRuntime *r, int num);
 /// @brief Sets up PTP session and tries to detect USB mode (fills in f->transport)
 int fujiusb_setup(struct PtpRuntime *r);
-int fujitether_setup(struct PtpRuntime *r);
+int fujitether_setup(struct PtpRuntime *r, const char *client_name);
 
 int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data);
 

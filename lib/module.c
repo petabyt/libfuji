@@ -1,9 +1,10 @@
+#include <stdarg.h>
 #include <stdlib.h>
 #include <runtime.h>
 #include <wifi.h>
 #include <fuji.h>
 
-int fuji_connect_bluetooth(struct PakBt *ctx, struct PakBtDevice *dev);
+int fuji_connect_bluetooth(struct Module *mod, struct PakBt *ctx, struct PakBtDevice *dev, struct PakSavedConnection *saved);
 
 struct ModulePriv {
 	struct PtpRuntime *r;
@@ -38,17 +39,21 @@ static struct Module *get_mod(struct PtpRuntime *r) {
 }
 
 int ptpip_set_extra_socket_settings(struct PtpRuntime *r, int sockfd) {
+	if (r->priv->priv == NULL) return 0;
 	if (!get_mod(r)->priv->adapter_is_present) return -1;
 	return pak_wifi_bind_socket_to_adapter(get_mod(r)->net, &get_mod(r)->priv->adapter, sockfd);
 }
 
+__attribute__((weak))
 void ptp_verbose_log(char *fmt, ...) {
+#if 0
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
-	//pak_global_log(buffer);
+	pak_global_log(buffer);
+#endif
 }
 
 __attribute__((weak))
@@ -95,6 +100,7 @@ static int init(struct Module *mod) {
 	mod->priv = calloc(1, sizeof(struct ModulePriv));
 	mod->priv->mod = mod;
 	pak_rt_set_tick_interval(mod, 1000 * 1000); // 1sec
+	pak_rt_set_screen_supported(mod, SCREEN_DASHBOARD, 1);
 	return 0;
 }
 
@@ -107,27 +113,28 @@ static int on_try_connect_wifi(struct Module *mod, struct PakWiFiAdapter *handle
 	mod->priv->r = r;
 	r->priv->priv = (struct FujiModulePriv *)mod->priv;
 
-	// TODO: Determine transport from connection info
-	fuji_get(r)->transport = FUJI_FEATURE_WIRELESS_COMM;
+	const char *client_name = pak_rt_get_client_name();
 
-	//strcpy(fuji_get(r)->ip_address, "192.168.0.1");
-	strcpy(fuji_get(r)->ip_address, "192.168.1.164");
-	pak_debug_log(mod, "Connecting to %s", fuji_get(r)->ip_address);
-	int rc = ptpip_connect(r, fuji_get(r)->ip_address, FUJI_CMD_IP_PORT, 1);
-	pak_debug_log(mod, "done");
-	if (rc) {
-		return PAK_ERR_NO_CONNECTION;
+	const char *setup_option = pak_rt_get_setup_option(mod);
+	if (!strcmp(setup_option, "wifi")) {
+		fuji_get(r)->transport = FUJI_FEATURE_WIRELESS_COMM;
+
+		strcpy(fuji_get(r)->ip_address, "192.168.0.1");
+		strcpy(fuji_get(r)->ip_address, "192.168.1.164");
+		int rc = ptpip_connect(r, fuji_get(r)->ip_address, FUJI_CMD_IP_PORT, 1);
+		if (rc) return PAK_ERR_NO_CONNECTION;
+	} else if (!strcmp(setup_option, "local-network")) {
+
 	}
 
-	pak_rt_set_screen_supported(mod, SCREEN_DASHBOARD, 1);
-
+#if 1
 	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_TETHER) {
-		rc = fujitether_setup(r);
+		int rc = fujitether_setup(r, client_name);
 		if (rc) {
 			return handle_ptperr(mod, rc, "fujitether_setup");
 		}
 	} else {
-		rc = fuji_setup(r, "fudge");
+		int rc = fuji_setup(r, client_name);
 		if (rc) {
 			return PAK_ERR_IO;
 		} else {
@@ -151,12 +158,13 @@ static int on_try_connect_wifi(struct Module *mod, struct PakWiFiAdapter *handle
 			}
 		}
 	}
+#endif
 
 	return 0;
 }
 
-static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *device, int job) {
-	return fuji_connect_bluetooth(mod->bt, device);
+static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
+	return fuji_connect_bluetooth(mod, mod->bt, device, saved);
 }
 
 static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
@@ -196,6 +204,7 @@ static int on_switch_screen(struct Module *mod, int old_screen, int new_screen, 
 }
 
 void ptp_report_read_progress(struct PtpRuntime *r, unsigned int size) {
+	if (r->priv->priv == NULL) return;
 	struct Module *mod = get_mod(r);
 	if (mod->priv->update_progress_bar_job) {
 		mod->priv->total_read += size;

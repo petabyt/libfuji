@@ -44,7 +44,7 @@ int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data) {
 
 		//plat_dbg("data type: %X\n", pd.data_type);
 
-		int payload_len = this_length - 2 - 4;
+		unsigned int payload_len = this_length - 2 - 4;
 		for (int x = 0; x < payload_len; x++) {
 			uint8_t b;
 			of += ptp_read_u8(data + of, &b);

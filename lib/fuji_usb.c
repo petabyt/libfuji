@@ -136,21 +136,21 @@ int fujiusb_setup(struct PtpRuntime *r) {
 	return rc;
 }
 
-int fujitether_setup(struct PtpRuntime *r) {
+int fujitether_setup(struct PtpRuntime *r, const char *client_name) {
 	app_print(r, "Waiting on the camera...");
 	app_print(r, "Make sure you pressed OK.");
 
 	if (r->connection_type == PTP_IP_USB) {
 		struct PtpFujiInitResp resp;
-		int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+		int rc = ptpip_fuji_init_req(r, client_name, &resp);
 		if (rc == PTP_RUNTIME_ERR) {
-			rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+			rc = ptpip_fuji_init_req(r, client_name, &resp);
 		}
 		if (rc == PTP_RUNTIME_ERR) {
-			rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+			rc = ptpip_fuji_init_req(r, client_name, &resp);
 		}
 		if (rc == PTP_RUNTIME_ERR) {
-			rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+			rc = ptpip_fuji_init_req(r, client_name, &resp);
 		}
 		if (rc) {
 			app_print(r, "Failed to initialize connection");
@@ -315,6 +315,7 @@ int fuji_send_raf(struct PtpRuntime *r, const char *path) {
 		return rc;
 	}
 
+	// Windows 11 does this
 	r->max_packet_size = 261632;
 
 	rc = fuji_send_object_ex(r, buffer, file_size);
@@ -328,7 +329,7 @@ int fuji_send_raf(struct PtpRuntime *r, const char *path) {
 int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const char *output_path, const char *profile_xml_path) {
 	int rc;
 
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 	if (fuji->transport != FUJI_FEATURE_RAW_CONV) {
 		ptp_error_log("Not in raw transfer mode\n");
 		return PTP_RUNTIME_ERR;
@@ -344,7 +345,7 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 		ptp_mutex_unlock(r);
 		return rc;
 	}
-	int profile_len = ptp_get_payload_length(r);
+	unsigned int profile_len = ptp_get_payload_length(r);
 	void *profile = malloc(profile_len);
 	memcpy(profile, ptp_get_payload(r), profile_len);
 	ptp_mutex_unlock(r);

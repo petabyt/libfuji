@@ -113,7 +113,7 @@ int temp_file_handle(void *arg, void *buffer, int size, int read) {
 }
 
 int fuji_test_filesystem(struct PtpRuntime *r) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 	if (fuji->num_objects == 0) {
 		tester_log(r, "There are no images on the SD card!");
 		return 0;
@@ -259,7 +259,7 @@ int fuji_test_setup(struct PtpRuntime *r) {
 	tester_log(r, "Running test suite from C");
 
 	struct PtpFujiInitResp resp;
-	int rc = ptpip_fuji_init_req(r, DEVICE_NAME, &resp);
+	int rc = ptpip_fuji_init_req(r, "fuji_test", &resp);
 	if (rc) {
 		tester_fail(r, "Failed to initialize command socket");
 		return rc;
@@ -328,7 +328,7 @@ int fuji_test_usb(struct PtpRuntime *r) {
 }
 
 int fuji_test_suite(struct PtpRuntime *r) {
-	struct FujiDeviceKnowledge *fuji = fuji_get(r);
+	fujipriv_t *fuji = fuji_get(r);
 
 	if (r->connection_type == PTP_USB) {
 		return fuji_test_usb(r);
