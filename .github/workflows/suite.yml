@@ -14,17 +14,26 @@ jobs:
       with:
         submodules: recursive
     - name: Install deps
-      run: sudo apt update && sudo apt install gcc g++ git cmake libgtk-3-dev liblua5.3-dev libusb-1.0-0-dev curl libexif-dev ninja-build libfreetype-dev libvulkan-dev libglfw3-dev libxml2-dev libimgui-dev
+      run: sudo apt update && sudo apt install -y --no-install-recommends gcc g++ git cmake liblua5.3-dev libusb-1.0-0-dev curl libexif-dev ninja-build libbluetooth-dev libdbus-1-dev
     - name: Checkout submodules
       run: git submodule update --init --recursive
     - name: Config to use https in case ssh isn't setup
       run: git config --global url."https://github.com/".insteadOf "git@github.com:"
-    - name: Get latest vcam
+    - name: Install libpak
+      run: |
+        git clone https://github.com/petabyt/libpak.git --depth 1 --recurse-submodules /tmp/libpak
+        cd /tmp/libpak
+        cmake -G Ninja -B build
+        cmake --build build
+        sudo cmake --install build
+    - name: Install vcam
       run: |
         git clone https://github.com/petabyt/vcam --depth 1 --recurse-submodules /tmp/vcam
         cd /tmp/vcam
-        sudo make install
-    - name: Compile desktop
+        cmake -G Ninja -B build
+        cmake --build build
+        sudo cmake --install build
+    - name: Compile cli
       run: cmake -G Ninja -B build -DLIBFUJI_INCLUDE_CLI=ON && cmake --build build
     - name: Run unit test
       run: build/libfuji-cli --test-wifi
