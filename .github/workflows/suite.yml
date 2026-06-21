@@ -23,7 +23,7 @@ jobs:
       run: |
         git clone https://github.com/petabyt/libpak.git --depth 1 --recurse-submodules /tmp/libpak
         cd /tmp/libpak
-        cmake -G Ninja -B build
+        cmake -G Ninja -B build -DPAK_QUICKJS=OFF -DPAK_WASM=OFF
         cmake --build build
         sudo cmake --install build
     - name: Install vcam
