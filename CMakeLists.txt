@@ -14,8 +14,8 @@ set(FUJI_CORE
     lib/plat.c
 )
 
-find_package(PkgConfig OPTIONAL)
-if(PKG_CONFIG_FOUND)
+find_package(PkgConfig)
+if(PKG_CONFIG_FOUND AND NOT ANDROID)
     list(APPEND CMAKE_PREFIX_PATH "/usr/local")
     pkg_check_modules(LIBPAK IMPORTED_TARGET GLOBAL libpak)
     if(LIBPAK_FOUND)

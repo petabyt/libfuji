@@ -3,20 +3,7 @@
 #include <runtime.h>
 #include <wifi.h>
 #include <fuji.h>
-
-int fuji_connect_bluetooth(struct Module *mod, struct PakBt *ctx, struct PakBtDevice *dev, struct PakSavedConnection *saved);
-
-struct ModulePriv {
-	struct PtpRuntime *r;
-	struct Module *mod;
-	int current_job;
-
-	int update_progress_bar_job;
-	unsigned int total_read;
-	unsigned to_read_target;
-	int adapter_is_present;
-	struct PakWiFiAdapter adapter;
-};
+#include "module.h"
 
 struct FujiModulePriv {
 	struct ModulePriv priv;
@@ -164,41 +151,50 @@ static int on_try_connect_wifi(struct Module *mod, struct PakWiFiAdapter *handle
 }
 
 static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
-	return fuji_connect_bluetooth(mod, mod->bt, device, saved);
+	mod->priv->current_job = job;
+	int rc = fuji_connect_bluetooth(mod, mod->bt, device, saved);
+	if (rc) return rc;
+	mod->priv->dev = *device;
+	return 0;
 }
 
 static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
 	struct PtpRuntime *r = mod->priv->r;
-	if (r == NULL) {
-		return 0;
-	}
-	if (r->connection_type == PTP_USB) {
-		int rc = ptpusb_get_status(r);
-		if (rc) return handle_ptperr(mod, rc, "ptpusb_get_status");
-	}
+	if (r != NULL) {
+		if (r->connection_type == PTP_USB) {
+			int rc = ptpusb_get_status(r);
+			if (rc) return handle_ptperr(mod, rc, "ptpusb_get_status");
+		}
 
-	int rc = fuji_get_events(r);
-	if (rc) return handle_ptperr(mod, rc, "fuji_get_events");
+		int rc = fuji_get_events(r);
+		if (rc) return handle_ptperr(mod, rc, "fuji_get_events");
+	}
+	if (mod->priv->dev.priv != NULL) {
+		pak_bt_device_update(mod->bt, &mod->priv->dev);
+		pak_global_log("isconnected: %d", mod->priv->dev.is_connected);
+		if (!mod->priv->dev.is_connected) {
+			pak_rt_fatal_error(mod, "Disconnected");
+			return PAK_ERR_DISCONNECTED;
+		}
+	}
 	return 0;
 }
 
 static int on_disconnect(struct Module *mod) {
 	struct PtpRuntime *r = mod->priv->r;
-	if (r == NULL) {
-		return 0;
+	if (r != NULL) {
+		ptp_report_error(r, "requested disconnect", 0);
 	}
-	ptp_report_error(r, "requested disconnect", 0);
 	return 0;
 }
 
 static int on_switch_screen(struct Module *mod, int old_screen, int new_screen, int job) {
 	struct PtpRuntime *r = mod->priv->r;
-	if (r == NULL) {
-		return 0;
-	}
-	if (new_screen == SCREEN_FILE_GALLERY) {
-		int rc = fuji_config_image_viewer(r);
-		if (rc) return handle_ptperr(mod, rc, "fuji_config_image_viewer");
+	if (r != NULL) {
+		if (new_screen == SCREEN_FILE_GALLERY) {
+			int rc = fuji_config_image_viewer(r);
+			if (rc) return handle_ptperr(mod, rc, "fuji_config_image_viewer");
+		}
 	}
 	return 0;
 }
@@ -327,6 +323,11 @@ static int on_request_file_metadata(struct Module *mod, int job, struct FileHand
 	return plat_update_object_info(r, file->index_in_view + 1, &info);
 }
 
+static int on_command(struct Module *mod, int job, int argc, const char * const *argv) {
+	if (mod->priv->dev.priv != NULL) return fuji_bt_handle_command(mod, &mod->priv->dev, argc, argv);
+	return PAK_ERR_UNIMPLEMENTED;
+}
+
 int get_module_libfuji(struct Module *mod) {
 	mod->init = init;
 	mod->free = on_free;
@@ -339,6 +340,7 @@ int get_module_libfuji(struct Module *mod) {
 	mod->on_idle_tick = on_idle_tick;
 	mod->on_disconnect = on_disconnect;
 	mod->on_switch_screen = on_switch_screen;
+	mod->on_custom_command = on_command;
 	return 0;
 }
 __attribute__((weak)) int get_module(struct Module *mod) { return get_module_libfuji(mod); }

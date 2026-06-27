@@ -265,7 +265,6 @@ int fuji_test_setup(struct PtpRuntime *r) {
 		return rc;
 	}
 	tester_log(r, "Initialized command socket");
-
 	tester_log(r, "Connected to %s", resp.cam_name);
 
 	tester_log(r, "sleep 500ms for good measure...");

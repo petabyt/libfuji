@@ -1,6 +1,8 @@
+// Derivative work of https://github.com/gkoh/furble
 #include <stdint.h>
 #include <runtime.h>
 #include <bluetooth.h>
+#include "module.h"
 
 // 0x4001
 #define SVC_PAIR_UUID "91f1de68-dff6-466e-8b65-ff13b0f16fb8"
@@ -37,7 +39,12 @@
 #define TOKEN_LEN 4
 #define TYPE_TOKEN 0x02
 
-#define MAX_NAME (64)
+#define MAX_NAME 64
+
+const static uint8_t SHUTTER_RELEASE[] = {0x00, 0x00};
+const static uint8_t SHUTTER_CMD[] = {0x01, 0x00};
+const static uint8_t SHUTTER_PRESS[] = {0x02, 0x00};
+const static uint8_t SHUTTER_FOCUS[] = {0x03, 0x00};
 
 /**
  * Advertisement manufacturer data.
@@ -92,7 +99,7 @@ typedef struct __attribute__((packed)) _fujigeotag_t {
 	fujifilm_time_t gps_time;
 } geotag_t;
 
-int subscribe(struct PakBt *ctx, struct PakBtDevice *dev, const char *uuid_svc, const char *uuid_chr, int notif) {
+static int subscribe(struct PakBt *ctx, struct PakBtDevice *dev, const char *uuid_svc, const char *uuid_chr, int notif) {
 	struct PakGattService service;
 	int rc = pak_bt_get_gatt_service_uuid(ctx, dev, &service, uuid_svc);
 	if (rc) {
@@ -123,17 +130,65 @@ int subscribe(struct PakBt *ctx, struct PakBtDevice *dev, const char *uuid_svc, 
 	return 0;
 }
 
+static int send_shutter_command(struct Module *mod, struct PakBtDevice *dev, const uint8_t *cmd, const uint8_t *params) {
+	struct PakBt *ctx = mod->bt;
+	struct PakGattService service;
+	if (pak_bt_get_gatt_service_uuid(ctx, dev, &service, SVC_SHUTTER_UUID)) {
+		return PAK_ERR_UNSUPPORTED;
+	}
+	struct PakGattCharacteristic chr;
+	if (pak_bt_get_gatt_characteristic_uuid(ctx, &service, &chr, CHR_SHUTTER_UUID)) {
+		pak_bt_unref_gatt_service(ctx, &service);
+		return PAK_ERR_UNSUPPORTED;
+	}
+	pak_bt_write_characteristic(ctx, &chr, cmd, 2, 1);
+	pak_bt_write_characteristic(ctx, &chr, params, 2, 1);
+	pak_bt_unref_gatt_characteristic(ctx, &chr);
+	pak_bt_unref_gatt_service(ctx, &service);
+	return 0;
+}
+
+int fuji_bt_handle_command(struct Module *mod, struct PakBtDevice *dev, int argc, const char * const *argv) {
+	pak_global_log("cmd: %s", argv[0]);
+	if (!strcmp(argv[0], PAK_CMD_SHUTTER_DOWN)) {
+		return send_shutter_command(mod, dev, SHUTTER_CMD, SHUTTER_PRESS);
+	}
+	if (!strcmp(argv[0], PAK_CMD_FOCUS_DOWN)) {
+		return send_shutter_command(mod, dev, SHUTTER_CMD, SHUTTER_FOCUS);
+	}
+	if (!strcmp(argv[0], PAK_CMD_FOCUS_UP) || !strcmp(argv[0], PAK_CMD_SHUTTER_UP)) {
+		return send_shutter_command(mod, dev, SHUTTER_CMD, SHUTTER_RELEASE);
+	}
+	return PAK_ERR_UNIMPLEMENTED;
+}
+
+static int device_callback(struct PakBt *ctx, enum PakBtEvent ev, struct PakBtDevice *dev, struct PakGattCharacteristic *chr, void *arg) {
+	struct Module *mod = arg;
+	if (ev == PAK_BT_EVENT_SERVICES_DISCOVERED) {
+		pak_debug_log(mod, "Services discovered");
+		pak_rt_set_progress_bar(mod, mod->priv->current_job, 30);
+	} else if (ev == PAK_BT_EVENT_CONNECTED) {
+		pak_debug_log(mod, "Connected");
+		pak_rt_set_progress_bar(mod, mod->priv->current_job, 20);
+	}
+	return 0;
+}
+
 int fuji_connect_bluetooth(struct Module *mod, struct PakBt *ctx, struct PakBtDevice *dev, struct PakSavedConnection *saved) {
+	pak_bt_set_device_callback(ctx, dev, device_callback, mod);
+
+	pak_rt_set_progress_bar(mod, mod->priv->current_job, 10);
+
 	char name_buf[32];
 	adv_basic_t mfgdata;
 	if (saved == NULL) {
 		unsigned int sz = pak_bt_get_manufacturer_data(ctx, dev, 0, (uint8_t *)&mfgdata, sizeof(mfgdata));
 		if (sz == 0) {
-			pak_global_log("Device is not in pairing mode");
+			pak_debug_log(mod, "Device is not in pairing mode");
 			return PAK_ERR_NO_CONNECTION;
 		}
-		pak_global_log("mfgdata sz: %u", sz);
-		pak_global_log("Token = %02x%02x%02x%02x", mfgdata.token.data[0], mfgdata.token.data[1], mfgdata.token.data[2],
+		pak_debug_log(mod, "mfgdata sz: %u", sz);
+		pak_debug_log(mod, "Token = %02x%02x%02x%02x", mfgdata.token.data[0], mfgdata.token.data[1], mfgdata.token.data[2],
 			   mfgdata.token.data[3]);
 	} else {
 		memcpy(mfgdata.token.data, saved->aux_data, TOKEN_LEN);
@@ -141,7 +196,7 @@ int fuji_connect_bluetooth(struct Module *mod, struct PakBt *ctx, struct PakBtDe
 
 	int rc = pak_bt_device_connect(ctx, dev);
 	if (rc) {
-		pak_global_log("pak_bt_device_connect");
+		pak_debug_log(mod, "pak_bt_device_connect");
 		return rc;
 	}
 
@@ -166,42 +221,50 @@ int fuji_connect_bluetooth(struct Module *mod, struct PakBt *ctx, struct PakBtDe
 	struct PakGattService pair_service;
 	rc = pak_bt_get_gatt_service_uuid(ctx, dev, &pair_service, SVC_PAIR_UUID);
 	if (rc) {
-		pak_global_log("pak_bt_get_gatt_service_uuid");
+		pak_debug_log(mod, "pak_bt_get_gatt_service_uuid");
 		return rc;
 	}
 
 	struct PakGattCharacteristic pair_chr;
 	rc = pak_bt_get_gatt_characteristic_uuid(ctx, &pair_service, &pair_chr, CHR_PAIR_UUID);
 	if (rc) {
-		pak_global_log("pak_bt_get_gatt_characteristic_uuid");
+		pak_debug_log(mod, "pak_bt_get_gatt_characteristic_uuid");
 		return PAK_ERR_UNSUPPORTED;
 	}
 
 	rc = pak_bt_write_characteristic(ctx, &pair_chr, mfgdata.token.data, sizeof(mfgdata.token.data), 1);
 	if (rc) {
-		pak_global_log("pak_bt_write_characteristic");
+		pak_debug_log(mod, "pak_bt_write_characteristic");
 		return rc;
 	}
+
+	pak_rt_set_progress_bar(mod, mod->priv->current_job, 40);
 
 	char iden_str[0xff];
 	struct PakGattCharacteristic iden_chr;
 	rc = pak_bt_get_gatt_characteristic_uuid(ctx, &pair_service, &iden_chr, CHR_IDEN_UUID);
 	if (rc) {
-		pak_global_log("pak_bt_get_gatt_characteristic_uuid");
+		pak_debug_log(mod, "pak_bt_get_gatt_characteristic_uuid");
 		return rc;
 	}
-	char client_name[] = "Pixel-6a-1234";
-	rc = pak_bt_write_characteristic(ctx, &iden_chr, (uint8_t *)client_name, sizeof(client_name) - 1, 1);
+
+	const char *client_name = pak_rt_get_client_name();
+	rc = pak_bt_write_characteristic(ctx, &iden_chr, (const uint8_t *)client_name, strlen(client_name), 1);
 	if (rc) {
-		pak_global_log("pak_bt_write_characteristic");
+		pak_debug_log(mod, "pak_bt_write_characteristic");
 		return rc;
 	}
+
+	pak_rt_set_progress_bar(mod, mod->priv->current_job, 50);
 
 	subscribe(ctx, dev, "4e941240-d01d-46b9-a5ea-67636806830b", "bf6dc9cf-3606-4ec9-a4c8-d77576e93ea4", 1);
 	subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND1_UUID, 1);
 	subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND2_UUID, 1);
+	pak_rt_set_progress_bar(mod, mod->priv->current_job, 60);
 	subscribe(ctx, dev, SVC_CONF_UUID, CHR_NOT1_UUID, 1);
+	pak_rt_set_progress_bar(mod, mod->priv->current_job, 70);
 	subscribe(ctx, dev, SVC_CONF_UUID, GEOTAG_UPDATE, 1);
+	pak_rt_set_progress_bar(mod, mod->priv->current_job, 80);
 	subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND3_UUID, 1);
 
 	pak_rt_save_session_signature(mod, &(struct PakSavedConnection){
@@ -242,6 +305,10 @@ int fuji_connect_bluetooth(struct Module *mod, struct PakBt *ctx, struct PakBtDe
 		pak_bt_unref_gatt_characteristic(ctx, &chr);
 		pak_bt_unref_gatt_service(ctx, &service);
 	}
+
+	pak_rt_set_progress_bar(mod, mod->priv->current_job, 100);
+
+	pak_rt_set_screen_supported(mod, SCREEN_INTERVALOMETER, 1);
 
 	return 0;
 }
