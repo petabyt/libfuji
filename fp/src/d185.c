@@ -4,6 +4,72 @@
 #include <stdint.h>
 #include "fp.h"
 
+//enum D185Props {
+//	D185_UNKNOWN_0 = 0,
+//	D185_SHOOTING_CONDITION = 1,
+//	D185_FILE_TYPE = 2,
+//	D185_IMAGE_SIZE = 3,
+//	D185_IMAGE_QUALITY = 4,
+//	D185_EXPOSURE_BIAS = 5,
+//	D185_DYNAMIC_RANGE = 6,
+//	D185_WIDE_D_RANGE = 7,
+//	D185_FILM_SIMULATION = 8,
+//	D185_GRAIN_EFFECT_AND_SIZE = 9,
+//	D185_CHROME_EFFECT = 10,
+//	D185_WHITE_BALANCE_SHOOT_COND = 11,
+//	D185_WHITE_BALANCE_MODE = 12,
+//	D185_WHITE_BALANCE_SHIFT_RED_GREEN = 13,
+//	D185_WHITE_BALANCE_SHIFT_BLUE_YELLOW = 14,
+//	D185_WHITE_BALANCE_COLOR_TEMP = 15,
+//	D185_HIGHLIGHT_TONE = 16,
+//	D185_SHADOW_TONE = 17,
+//	D185_COLOR = 18,
+//	D185_SHARPNESS = 19,
+//	D185_NOISE_REDUCTION = 20,
+//	D185_LENS_MODULATION_OPTIMIZATION = 21,
+//	D185_COLOR_SPACE = 22,
+//	D185_BLACK_IMAGE_TONE = 23,
+//	D185_UNKNOWN_24 = 24,
+//	D185_COLOR_CHROME_BLUE = 25,
+//	D185_MONOCHROMATIC_COLOR_RG = 26,
+//	D185_CLARITY = 27,
+//	D185_UNKNOWN_28 = 28,
+//	D185_UNKNOWN_29 = 29,
+//	NR_OF_D185_PROPERTIES,
+//};
+
+enum D185Props {
+	D185_SHOOTING_CONDITION = 0,
+	D185_FILE_TYPE = 1,
+	D185_IMAGE_SIZE = 2,
+	D185_IMAGE_QUALITY = 3,
+	D185_EXPOSURE_BIAS = 4,
+	D185_DYNAMIC_RANGE = 5,
+	D185_WIDE_D_RANGE = 6,
+	D185_FILM_SIMULATION = 7,
+	D185_GRAIN_EFFECT_AND_SIZE = 8,
+	D185_CHROME_EFFECT = 9,
+	D185_WHITE_BALANCE_SHOOT_COND = 10,
+	D185_WHITE_BALANCE_MODE = 11,
+	D185_WHITE_BALANCE_SHIFT_RED_GREEN = 12,
+	D185_WHITE_BALANCE_SHIFT_BLUE_YELLOW = 13,
+	D185_WHITE_BALANCE_COLOR_TEMP = 14,
+	D185_HIGHLIGHT_TONE = 15,
+	D185_SHADOW_TONE = 16,
+	D185_COLOR = 17,
+	D185_SHARPNESS = 18,
+	D185_NOISE_REDUCTION = 19,
+	D185_LENS_MODULATION_OPTIMIZATION = 20,
+	D185_COLOR_SPACE = 21,
+	D185_BLACK_IMAGE_TONE = 22,
+	D185_UNKNOWN_24 = 23,
+	D185_COLOR_CHROME_BLUE = 24,
+	D185_MONOCHROMATIC_COLOR_RG = 25,
+	D185_CLARITY = 26,
+	D185_UNKNOWN_28 = 27,
+	D185_UNKNOWN_29 = 28,
+};
+
 inline static int read_u8(const void *buf, uint8_t *out) {
 	const uint8_t *b = buf;
 	*out = b[0];
@@ -38,143 +104,184 @@ inline static int write_u32(void *buf, uint32_t out) {
 	return 4;
 }
 
-int validate_prop(uint32_t value, uint32_t *output, struct FujiLookup *tbl) {
-	// TODO: output should be uint32_t
+int copy_value_if_valid(uint32_t value, uint32_t *output, struct FujiLookup *tbl) {
 	for (int i = 0; tbl[i].key != NULL; i++) {
 		if (value == tbl[i].value) {
-			output[0] = value;
+			*output = value;
 			return 0;
 		}
 	}
+	if (value == 0) return 0;
 	return -1;
 }
 
 static int parse_prop(struct FujiProfile *fp, int idx, uint32_t value) {
-	switch (idx) {
-	case 0:
-		// 2
-		fp->ShootingCondition = value; 
-		return 0;
-	case 1:
-		// 7
-		fp->FileType = value;
-		return 0;
-	case 2:
-		return validate_prop(value, &fp->ImageSize, fp_image_size);
-	case 3:
-		return validate_prop(value, &fp->ImageQuality, fp_image_quality);
-	case 4:
-		return validate_prop(value, &fp->ExposureBias, fp_exposure_bias);
-	case 5:
-		return validate_prop(value, &fp->DynamicRange, fp_drange);
-	case 6:
-		return validate_prop(value, &fp->WideDRange, fp_drange_priority);
-	case 7:
-		return validate_prop(value, &fp->FilmSimulation, fp_film_sim);
-	case 8:
-		return validate_prop(value, &fp->GrainEffect, fp_grain_effect);
-	case 9:
-		fp->SmoothSkinEffect = value; // TODO
-		return 0;
-	case 10:
-		fp->WBShootCond = value; // TODO
-		return 0;
-	case 11:
-		return validate_prop(value, &fp->WhiteBalance, fp_white_balance);
-	case 12:
-		return validate_prop(value, &fp->WBShiftR, fp_range);
-	case 13:
-		return validate_prop(value, &fp->WBShiftB, fp_range);
-	case 14:
-		return validate_prop(value, &fp->WBColorTemp, fp_color_temp);
-	case 15:
-		return validate_prop(value, &fp->HighlightTone, fp_get_highlight_tone(fp));
-	case 16:
-		return validate_prop(value, &fp->ShadowTone, fp_get_shadow_tone(fp));
-	case 17:
-		return validate_prop(value, &fp->Color, fp_range);
-	case 18:
-		return validate_prop(value, &fp->Sharpness, fp_range);
-	case 19:
-		return validate_prop(value, &fp->NoisReduction, fp_noise_reduction);
-	case 20:
-		return validate_prop(value, &fp->Clarity, fp_clarity);
-	case 21:
-		return validate_prop(value, &fp->ColorSpace, fp_color_space);
-	case 22:
-		// HDR??
-	case 23:
-		// DigitalTeleConv??
-	case 24:
-		// PortraitEnhancer
-	case 25:
-		// Something to do with RejectedValue?
-	case 26:
-	case 27:
-	case 28:
-		// ????
-		return 0;
-	default:
-		return -1;
-	}
+    switch (idx) {
+    case D185_SHOOTING_CONDITION:
+        return copy_value_if_valid(value, &fp->ShootingCondition, fp_shooting_condition);
+    case D185_FILE_TYPE:
+        return copy_value_if_valid(value, &fp->FileType, fp_file_type);
+    case D185_IMAGE_SIZE:
+        return copy_value_if_valid(value, &fp->ImageSize, fp_image_size);
+    case D185_IMAGE_QUALITY:
+        return copy_value_if_valid(value, &fp->ImageQuality, fp_image_quality);
+    case D185_EXPOSURE_BIAS:
+        return copy_value_if_valid(value, &fp->ExposureBias, fp_exposure_bias);
+    case D185_DYNAMIC_RANGE:
+        // can only select equal or lower than in RAW
+        // Note: shared with HDR field. HDR rejects drange. can go up to HDR800 (800)
+        // HDR_PLUS = 800 + drange_prio = 3
+        return copy_value_if_valid(value, &fp->DynamicRange, fp_drange);
+    case D185_WIDE_D_RANGE:
+        // Note: inhibits: DynamicRange (keeps original)
+        // 		 rejects: HighlightTone (sets 0), ShadowTone (sets 0)
+        return copy_value_if_valid(value, &fp->WideDRange, fp_drange_priority);
+    case D185_FILM_SIMULATION:
+        return copy_value_if_valid(value, &fp->FilmSimulation, fp_film_sim);
+    case D185_GRAIN_EFFECT_AND_SIZE: {
+        // Note: FP_GRAIN_OFF inhibits FujiGrainEffectSize
+        uint32_t value_no_grain_size = value;
+        if (value_no_grain_size > FP_GRAIN_STRONG) {
+            value_no_grain_size -= FP_GRAIN_SIZE_LARGE;
+        }
+        if (copy_value_if_valid(value_no_grain_size, &fp->GrainEffect, fp_grain_effect)) return -1;
+        if (copy_value_if_valid((value - value_no_grain_size), &fp->GrainEffectSize, fp_grain_effect_size)) return -1;
+        return 0;
+    };
+    case D185_CHROME_EFFECT:
+        // COLOR CHROME EFFECT
+        return copy_value_if_valid(value, &fp->ChromeEffect, fp_chrome_effect);
+    case D185_WHITE_BALANCE_SHOOT_COND:
+        // use as shot (wb shoot condition)
+        fp->WBShootCond = value; // TODO
+        // precedence: WBShootCond, WhiteBalance, WBColorTemp
+        return copy_value_if_valid(value, &fp->WBShootCond, fp_white_balance_shoot_cond);
+    case D185_WHITE_BALANCE_MODE:
+        return copy_value_if_valid(value, &fp->WhiteBalance, fp_white_balance_mode);
+        // Note: inhibits prop 14, unless WB_TEMPERATURE
+    case D185_WHITE_BALANCE_SHIFT_RED_GREEN:
+        return copy_value_if_valid(value, &fp->WBShiftR, fp_range_wb_shift);
+    case D185_WHITE_BALANCE_SHIFT_BLUE_YELLOW:
+        return copy_value_if_valid(value, &fp->WBShiftB, fp_range_wb_shift);
+    case D185_WHITE_BALANCE_COLOR_TEMP:
+        return copy_value_if_valid(value, &fp->WBColorTemp, fp_color_temp);
+    case D185_HIGHLIGHT_TONE:
+        return copy_value_if_valid(value, &fp->HighlightTone, fp_get_highlight_tone(fp));
+    case D185_SHADOW_TONE:
+        return copy_value_if_valid(value, &fp->ShadowTone, fp_get_shadow_tone(fp));
+    case D185_COLOR:
+        return copy_value_if_valid(value, &fp->Color, fp_range);
+    case D185_SHARPNESS:
+        return copy_value_if_valid(value, &fp->Sharpness, fp_range);
+    case D185_NOISE_REDUCTION:
+        return copy_value_if_valid(value, &fp->NoisReduction, fp_noise_reduction);
+    case D185_LENS_MODULATION_OPTIMIZATION:
+        return copy_value_if_valid(value, &fp->LensModulationOpt, fp_lens_modulation);
+    case D185_COLOR_SPACE:
+        return copy_value_if_valid(value, &fp->ColorSpace, fp_color_space);
+    case D185_BLACK_IMAGE_TONE:
+        // something with WB presets
+        //				22				25
+        // take some "random values", that are reset to 0, when setting WB shift
+        // e.g.
+        // AsShot		0x08B08000		0x004F4005
+        // Underwater	0x08FA2B80		0x08FA2B10
+        // Incadecent	0x095C7000		0x004F4005
+        // Shade		0x18C7A858		0x0
+        // Daylight		0x09026000		0x004F4005
+        // Fluo-1		0x097D3000		0x004F4005
+        //
+        // or if Acros or Monochrome, then: WC (WARM-COOL) shift in 0.1 steps up to +/-180
+        return copy_value_if_valid(value, &fp->BlackImageTone, fp_range_mono_shift_warm_cold);
+    case D185_UNKNOWN_24:
+        return 0; // TODO, unknown
+    case D185_COLOR_CHROME_BLUE:
+        // COLOR CHROME FX BLUE
+        return copy_value_if_valid(value, &fp->ColorChromeBlue, fp_color_chrome_blue);
+    case D185_MONOCHROMATIC_COLOR_RG:
+        // see prop 22 above
+        // or if Acros or Monochrome, then: MG (MAGENTA-GREEN) shift up to +/-180
+        return copy_value_if_valid(value, &fp->MonochromaticColor_RG, fp_range_mono_green_magenta);
+    case D185_CLARITY:
+        return copy_value_if_valid(value, &fp->Clarity, fp_clarity);
+    case D185_UNKNOWN_28:
+    case D185_UNKNOWN_29:
+        return 0; // TODO, unknown
+    default:
+        return -1;
+    }
 }
 static int get_prop(const struct FujiProfile *fp, int idx, uint32_t *value) {
 	switch (idx) {
-	case 0:
-		(*value) = 0x2;
+	case D185_SHOOTING_CONDITION:
+		return copy_value_if_valid(fp->ShootingCondition, value, fp_shooting_condition);
+	case D185_FILE_TYPE:
+		return copy_value_if_valid(fp->FileType, value, fp_file_type);
+	case D185_IMAGE_SIZE:
+		return copy_value_if_valid(fp->ImageSize, value, fp_image_size);
+	case D185_IMAGE_QUALITY:
+		return copy_value_if_valid(fp->ImageQuality, value, fp_image_quality);
+	case D185_EXPOSURE_BIAS:
+		return copy_value_if_valid(fp->ExposureBias, value, fp_exposure_bias);
+	case D185_DYNAMIC_RANGE:
+		return copy_value_if_valid(fp->DynamicRange, value, fp_drange);
+	case D185_WIDE_D_RANGE:
+		return copy_value_if_valid(fp->WideDRange, value, fp_drange_priority);
+	case D185_FILM_SIMULATION:
+		return copy_value_if_valid(fp->FilmSimulation, value, fp_film_sim);
+	case D185_GRAIN_EFFECT_AND_SIZE: {
+		// this binary property is composed of 2 XML properties
+		int rc;
+		uint32_t value_size;
+		rc = copy_value_if_valid(fp->GrainEffect, value, fp_grain_effect);
+		rc |= copy_value_if_valid(fp->GrainEffectSize, &value_size, fp_grain_effect_size);
+		*value += value_size;
+		return rc;
+	};
+	case D185_CHROME_EFFECT:
+		return copy_value_if_valid(fp->ChromeEffect, value, fp_chrome_effect);
+	case D185_WHITE_BALANCE_SHOOT_COND:
+		return copy_value_if_valid(fp->WBShootCond, value, fp_white_balance_shoot_cond);
+	case D185_WHITE_BALANCE_MODE:
+		return copy_value_if_valid(fp->WhiteBalance, value, fp_white_balance_mode);
+	case D185_WHITE_BALANCE_SHIFT_RED_GREEN:
+		return copy_value_if_valid(fp->WBShiftR, value, fp_range_wb_shift);
+	case D185_WHITE_BALANCE_SHIFT_BLUE_YELLOW:
+		return copy_value_if_valid(fp->WBShiftB, value, fp_range_wb_shift);
+	case D185_WHITE_BALANCE_COLOR_TEMP:
+		return copy_value_if_valid(fp->WBColorTemp, value, fp_color_temp);
+	case D185_HIGHLIGHT_TONE:
+		return copy_value_if_valid(fp->HighlightTone, value, fp_get_highlight_tone(fp));
+	case D185_SHADOW_TONE:
+		return copy_value_if_valid(fp->ShadowTone, value, fp_get_shadow_tone(fp));
+	case D185_COLOR:
+		return copy_value_if_valid(fp->Color, value, fp_range);
+	case D185_SHARPNESS:
+		return copy_value_if_valid(fp->Sharpness, value, fp_range);
+	case D185_NOISE_REDUCTION:
+		return copy_value_if_valid(fp->NoisReduction, value, fp_noise_reduction);
+	case D185_LENS_MODULATION_OPTIMIZATION:
+		return copy_value_if_valid(fp->LensModulationOpt, value, fp_lens_modulation);
+	case D185_COLOR_SPACE:
+		return copy_value_if_valid(fp->ColorSpace, value, fp_color_space);
+	case D185_BLACK_IMAGE_TONE:
+		return copy_value_if_valid(fp->BlackImageTone, value, fp_range_mono_shift_warm_cold);
+	case D185_UNKNOWN_24:
+		// TODO, unknown
+		(*value) = 0;
 		return 0;
-	case 1:
-		(*value) = 0x7;
+	case D185_COLOR_CHROME_BLUE:
+		return copy_value_if_valid(fp->ColorChromeBlue, value, fp_color_chrome_blue);
+	case D185_MONOCHROMATIC_COLOR_RG:
+		return copy_value_if_valid(fp->MonochromaticColor_RG, value, fp_range_mono_green_magenta);
+	case D185_CLARITY:
+		return copy_value_if_valid(fp->Clarity, value, fp_clarity);
+	case D185_UNKNOWN_28:
+		// TODO, unknown
+		(*value) = 0;
 		return 0;
-	case 2:
-		return validate_prop(fp->ImageSize, value, fp_image_size);
-	case 3:
-		return validate_prop(fp->ImageQuality, value, fp_image_quality);
-	case 4:
-		return validate_prop(fp->ExposureBias, value, fp_exposure_bias);
-	case 5:
-		return validate_prop(fp->DynamicRange, value, fp_drange);
-	case 6:
-		return validate_prop(fp->WideDRange, value, fp_drange_priority);
-	case 7:
-		return validate_prop(fp->FilmSimulation, value, fp_film_sim);
-	case 8:
-		return validate_prop(fp->GrainEffect, value, fp_grain_effect);
-	case 9:
-		(*value) = fp->SmoothSkinEffect;
-		return 0;
-	case 10:
-		(*value) = fp->WBShootCond;
-		return 0;
-	case 11:
-		return validate_prop(fp->WhiteBalance, value, fp_white_balance);
-	case 12:
-		return validate_prop(fp->WBShiftR, value, fp_range);
-	case 13:
-		return validate_prop(fp->WBShiftB, value, fp_range);
-	case 14:
-		return validate_prop(fp->WBColorTemp, value, fp_color_temp);
-	case 15:
-		return validate_prop(fp->HighlightTone, value, fp_get_highlight_tone(fp));
-	case 16:
-		return validate_prop(fp->ShadowTone, value, fp_get_shadow_tone(fp));
-	case 17:
-		return validate_prop(fp->Color, value, fp_range);
-	case 18:
-		return validate_prop(fp->Sharpness, value, fp_range);
-	case 19:
-		return validate_prop(fp->NoisReduction, value, fp_noise_reduction);
-	case 20:
-		return validate_prop(fp->Clarity, value, fp_clarity);
-	case 21:
-		return validate_prop(fp->ColorSpace, value, fp_color_space);
-	case 22:
-	case 23:
-	case 24:
-	case 25:
-	case 26:
-	case 27:
-	case 28:
+	case D185_UNKNOWN_29:
+		// TODO, unknown
 		(*value) = 0;
 		return 0;
 	default:
@@ -217,6 +324,7 @@ int fp_parse_d185(const uint8_t *bin, int len, struct FujiProfile *fp) {
 	if (len < 0x200) return -1;
 
 	memset(fp, 0, sizeof(struct FujiProfile));
+	fp->StructVer = 0x10000;
 
 	//const struct FujiBinaryProfile *profile = (const struct FujiBinaryProfile *)bin;
 
@@ -257,7 +365,7 @@ int fp_parse_d185(const uint8_t *bin, int len, struct FujiProfile *fp) {
 		}
 		int rc = parse_prop(fp, i, value);
 		if (rc) {
-			fp_set_error("Error parsing property of value %x at index %d", value, i);
+			fp_set_error("Error parsing property of value %d at index %d", value, i);
 			return -1;
 		}
 	}

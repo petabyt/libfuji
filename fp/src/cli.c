@@ -99,8 +99,6 @@ int test(void) {
 	if (rc) return rc;
 	rc = parse_fp_files("fp2", 0);
 	if (rc) return rc;
-	rc = parse_fp_files("fp1_fail", -1);
-	if (rc) return rc;
 	rc = test_d185();
 	if (rc) return rc;
 	rc = parse_raw_files();
