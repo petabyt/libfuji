@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ConversionProfile application="XRFC" version="1.12.0.0">
+    <PropertyGroup device="X-H1" version="X-H1_0100" label="">
+        <SerialNumber>593534313432190906AA602021CA2A</SerialNumber>
+        <TetherRAWConditonCode>X-H1_0100</TetherRAWConditonCode>
+        <Editable>TRUE</Editable>
+        <SourceFileName>DSCF2911.RAF</SourceFileName>
+        <Fileerror>NONE</Fileerror>
+        <RotationAngle>0</RotationAngle>
+        <StructVer>65536</StructVer>
+        <IOPCode>FF129506</IOPCode>
+        <ShootingCondition>OFF</ShootingCondition>
+        <FileType>JPG</FileType>
+        <ImageSize>L3x2</ImageSize>
+        <ImageQuality>Fine</ImageQuality>
+        <ExposureBias>0</ExposureBias>
+        <DynamicRange>100</DynamicRange>
+        <WideDRange>0</WideDRange>
+        <FilmSimulation>Provia</FilmSimulation>
+        <BlackImageTone>0</BlackImageTone>
+        <MonochromaticColor_RG>0</MonochromaticColor_RG>
+        <GrainEffect>OFF</GrainEffect>
+        <GrainEffectSize>SMALL</GrainEffectSize>
+        <ChromeEffect>OFF</ChromeEffect>
+        <ColorChromeBlue/>
+        <SmoothSkinEffect/>
+        <WBShootCond>ON</WBShootCond>
+        <WhiteBalance>INVALID</WhiteBalance>
+        <WBShiftR>0</WBShiftR>
+        <WBShiftB>0</WBShiftB>
+        <WBColorTemp>0K</WBColorTemp>
+        <HighlightTone>0</HighlightTone>
+        <ShadowTone>0</ShadowTone>
+        <Color>0</Color>
+        <Sharpness>-4</Sharpness>
+        <NoisReduction>-4</NoisReduction>
+        <Clarity>0</Clarity>
+        <LensModulationOpt>OFF</LensModulationOpt>
+        <ColorSpace>AdobeRGB</ColorSpace>
+        <HDR/>
+        <DigitalTeleConv/>
+        <PortraitEnhancer/>
+        <RejectedValue>
+            <Color>0</Color>
+            <BlackImageTone>0</BlackImageTone>
+        </RejectedValue>
+    </PropertyGroup>
+</ConversionProfile>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ConversionProfile application="XRFC" version="1.10.0.0">
+    <PropertyGroup device="X-T3" version="X-T3_0100" label="Night">
+        <SerialNumber></SerialNumber>
+        <TetherRAWConditonCode></TetherRAWConditonCode>
+        <Editable>TRUE</Editable>
+        <SourceFileName/>
+        <Fileerror>NONE</Fileerror>
+        <RotationAngle>0</RotationAngle>
+        <StructVer>65536</StructVer>
+        <IOPCode>FF159501</IOPCode>
+        <ShootingCondition>OFF</ShootingCondition>
+        <FileType>JPG</FileType>
+        <ImageSize>L3x2</ImageSize>
+        <ImageQuality>Fine</ImageQuality>
+        <ExposureBias>0</ExposureBias>
+        <DynamicRange>100</DynamicRange>
+        <WideDRange>0</WideDRange>
+        <FilmSimulation>AcrosYe</FilmSimulation>
+        <BlackImageTone>0</BlackImageTone>
+        <MonochromaticColor_RG>0</MonochromaticColor_RG>
+        <GrainEffect>OFF</GrainEffect>
+        <GrainEffectSize>SMALL</GrainEffectSize>
+        <ChromeEffect>OFF</ChromeEffect>
+        <ColorChromeBlue/>
+        <SmoothSkinEffect/>
+        <WBShootCond>ON</WBShootCond>
+        <WhiteBalance>INVALID</WhiteBalance>
+        <WBShiftR>5</WBShiftR>
+        <WBShiftB>-6</WBShiftB>
+        <WBColorTemp>0K</WBColorTemp>
+        <HighlightTone>0</HighlightTone>
+        <ShadowTone>1</ShadowTone>
+        <Color>4</Color>
+        <Sharpness>0</Sharpness>
+        <NoisReduction>-2</NoisReduction>
+        <Clarity>0</Clarity>
+        <LensModulationOpt>ON</LensModulationOpt>
+        <ColorSpace>sRGB</ColorSpace>
+        <HDR/>
+    </PropertyGroup>
+</ConversionProfile>

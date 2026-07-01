@@ -1,0 +1,8 @@
+*.o
+fp
+compile_commands.json
+.cache
+build
+cmake-build-debug
+cmake-build-debug
+.idea

@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ConversionProfile application="XRFC" version="1.12.0.0">
+    <PropertyGroup device="X-T5" version="X-T5_0200" label="">
+        <SerialNumber>5935363838312311230A9310114022</SerialNumber>
+        <TetherRAWConditonCode>X-T5_0200</TetherRAWConditonCode>
+        <Editable>TRUE</Editable>
+        <SourceFileName>20250112_0060.RAF</SourceFileName>
+        <Fileerror>NONE</Fileerror>
+        <RotationAngle>0</RotationAngle>
+        <StructVer>65536</StructVer>
+        <IOPCode>FA179502</IOPCode>
+        <ShootingCondition>OFF</ShootingCondition>
+        <FileType>JPG</FileType>
+        <ImageSize>L3x2</ImageSize>
+        <ImageQuality>Fine</ImageQuality>
+        <ExposureBias>0</ExposureBias>
+        <DynamicRange>200</DynamicRange>
+        <WideDRange>0</WideDRange>
+        <FilmSimulation>Classic</FilmSimulation>
+        <BlackImageTone>0</BlackImageTone>
+        <MonochromaticColor_RG>-1</MonochromaticColor_RG>
+        <GrainEffect>OFF</GrainEffect>
+        <GrainEffectSize>SMALL</GrainEffectSize>
+        <ChromeEffect>STRONG</ChromeEffect>
+        <ColorChromeBlue>WEAK</ColorChromeBlue>
+        <SmoothSkinEffect>OFF</SmoothSkinEffect>
+        <WBShootCond>ON</WBShootCond>
+        <WhiteBalance>INVALID</WhiteBalance>
+        <WBShiftR>2</WBShiftR>
+        <WBShiftB>-3</WBShiftB>
+        <WBColorTemp>0K</WBColorTemp>
+        <HighlightTone>-0.5</HighlightTone>
+        <ShadowTone>1.5</ShadowTone>
+        <Color>3</Color>
+        <Sharpness>1</Sharpness>
+        <NoisReduction>0</NoisReduction>
+        <Clarity>3</Clarity>
+        <LensModulationOpt>OFF</LensModulationOpt>
+        <ColorSpace>AdobeRGB</ColorSpace>
+        <HDR/>
+        <DigitalTeleConv>OFF</DigitalTeleConv>
+        <PortraitEnhancer/>
+        <RejectedValue>
+            <BlackImageTone>-1</BlackImageTone>
+        </RejectedValue>
+    </PropertyGroup>
+</ConversionProfile>

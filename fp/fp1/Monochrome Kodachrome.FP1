@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ConversionProfile application="XRFC" version="1.10.0.0">
+    <PropertyGroup device="X-T3" version="X-T3_0100" label="Monochrome Kodachrome">
+        <SerialNumber></SerialNumber>
+        <TetherRAWConditonCode></TetherRAWConditonCode>
+        <Editable>TRUE</Editable>
+        <SourceFileName/>
+        <Fileerror>NONE</Fileerror>
+        <RotationAngle>0</RotationAngle>
+        <StructVer>65536</StructVer>
+        <IOPCode>FF159501</IOPCode>
+        <ShootingCondition>OFF</ShootingCondition>
+        <FileType>JPG</FileType>
+        <ImageSize>L3x2</ImageSize>
+        <ImageQuality>Fine</ImageQuality>
+        <ExposureBias>0</ExposureBias>
+        <DynamicRange>100</DynamicRange>
+        <WideDRange>0</WideDRange>
+        <FilmSimulation>AcrosR</FilmSimulation>
+        <BlackImageTone>0</BlackImageTone>
+        <MonochromaticColor_RG>0</MonochromaticColor_RG>
+        <GrainEffect>STRONG</GrainEffect>
+        <GrainEffectSize>SMALL</GrainEffectSize>
+        <ChromeEffect>OFF</ChromeEffect>
+        <ColorChromeBlue/>
+        <SmoothSkinEffect/>
+        <WBShootCond>OFF</WBShootCond>
+        <WhiteBalance>Auto</WhiteBalance>
+        <WBShiftR>0</WBShiftR>
+        <WBShiftB>9</WBShiftB>
+        <WBColorTemp>10000K</WBColorTemp>
+        <HighlightTone>4</HighlightTone>
+        <ShadowTone>-2</ShadowTone>
+        <Color>0</Color>
+        <Sharpness>1</Sharpness>
+        <NoisReduction>-4</NoisReduction>
+        <Clarity>0</Clarity>
+        <LensModulationOpt>ON</LensModulationOpt>
+        <ColorSpace>sRGB</ColorSpace>
+        <HDR/>
+    </PropertyGroup>
+</ConversionProfile>
