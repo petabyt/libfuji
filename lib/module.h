@@ -19,3 +19,5 @@ struct ModulePriv {
 int fuji_connect_bluetooth(struct Module *mod, struct PakBt *ctx, struct PakBtDevice *dev, struct PakSavedConnection *saved);
 
 int fuji_bt_handle_command(struct Module *mod, struct PakBtDevice *dev, int argc, const char * const *argv);
+
+int fuji_bluetooth_connect_to_wifi(struct Module *mod, struct PakBt *ctx, struct PakBtDevice *dev);

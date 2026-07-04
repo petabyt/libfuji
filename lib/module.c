@@ -12,7 +12,9 @@ struct FujiModulePriv {
 static int handle_ptperr(struct Module *mod, int rc, const char *action) {
 	switch (rc) {
 		case PTP_IO_ERR: {
-			pak_rt_fatal_error(mod, "%s", action);
+			if (mod->priv->dev.priv == NULL) {
+				pak_rt_fatal_error(mod, "%s", action);
+			}
 			return PAK_ERR_IO;
 		}
 		case PTP_NO_DEVICE: return PAK_ERR_NO_CONNECTION;
@@ -101,13 +103,12 @@ static int on_try_connect_wifi(struct Module *mod, struct PakWiFiAdapter *handle
 	r->priv->priv = (struct FujiModulePriv *)mod->priv;
 
 	const char *client_name = pak_rt_get_client_name();
-
 	const char *setup_option = pak_rt_get_setup_option(mod);
 	if (!strcmp(setup_option, "wifi")) {
 		fuji_get(r)->transport = FUJI_FEATURE_WIRELESS_COMM;
 
 		strcpy(fuji_get(r)->ip_address, "192.168.0.1");
-		strcpy(fuji_get(r)->ip_address, "192.168.1.164");
+		//strcpy(fuji_get(r)->ip_address, "192.168.1.164");
 		int rc = ptpip_connect(r, fuji_get(r)->ip_address, FUJI_CMD_IP_PORT, 1);
 		if (rc) return PAK_ERR_NO_CONNECTION;
 	} else if (!strcmp(setup_option, "local-network")) {
@@ -151,6 +152,12 @@ static int on_try_connect_wifi(struct Module *mod, struct PakWiFiAdapter *handle
 }
 
 static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
+	pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
+			.name = "switch-wifi",
+			.title = "Connect over WiFi",
+			.type = PAK_BUTTON,
+	});
+
 	mod->priv->current_job = job;
 	int rc = fuji_connect_bluetooth(mod, mod->bt, device, saved);
 	if (rc) return rc;
@@ -171,7 +178,6 @@ static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
 	}
 	if (mod->priv->dev.priv != NULL) {
 		pak_bt_device_update(mod->bt, &mod->priv->dev);
-		pak_global_log("isconnected: %d", mod->priv->dev.is_connected);
 		if (!mod->priv->dev.is_connected) {
 			pak_rt_fatal_error(mod, "Disconnected");
 			return PAK_ERR_DISCONNECTED;
@@ -328,6 +334,14 @@ static int on_command(struct Module *mod, int job, int argc, const char * const 
 	return PAK_ERR_UNIMPLEMENTED;
 }
 
+static int on_prop_changed(struct Module *mod, int job, struct PakUserSetting *prop) {
+	//pak_rt_add_wifi_connection(mod, );
+	if (!strcmp(prop->name, "switch-wifi")) {
+		return fuji_bluetooth_connect_to_wifi(mod, mod->bt, &mod->priv->dev);
+	}
+	return 0;
+}
+
 int get_module_libfuji(struct Module *mod) {
 	mod->init = init;
 	mod->free = on_free;
@@ -341,6 +355,7 @@ int get_module_libfuji(struct Module *mod) {
 	mod->on_disconnect = on_disconnect;
 	mod->on_switch_screen = on_switch_screen;
 	mod->on_custom_command = on_command;
+	mod->on_setting_changed = on_prop_changed;
 	return 0;
 }
 __attribute__((weak)) int get_module(struct Module *mod) { return get_module_libfuji(mod); }
