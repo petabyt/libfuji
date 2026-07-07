@@ -12,7 +12,7 @@ struct FujiModulePriv {
 static int handle_ptperr(struct Module *mod, int rc, const char *action) {
 	switch (rc) {
 		case PTP_IO_ERR: {
-			if (mod->priv->dev.priv == NULL) {
+			if (mod->priv->dev == NULL) {
 				pak_rt_fatal_error(mod, "%s", action);
 			}
 			return PAK_ERR_IO;
@@ -161,7 +161,7 @@ static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *devi
 	mod->priv->current_job = job;
 	int rc = fuji_connect_bluetooth(mod, mod->bt, device, saved);
 	if (rc) return rc;
-	mod->priv->dev = *device;
+	mod->priv->dev = device;
 	return 0;
 }
 
@@ -176,9 +176,9 @@ static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
 		int rc = fuji_get_events(r);
 		if (rc) return handle_ptperr(mod, rc, "fuji_get_events");
 	}
-	if (mod->priv->dev.priv != NULL) {
-		pak_bt_device_update(mod->bt, &mod->priv->dev);
-		if (!mod->priv->dev.is_connected) {
+	if (mod->priv->dev != NULL) {
+		pak_bt_device_update(mod->bt, mod->priv->dev);
+		if (!mod->priv->dev->is_connected) {
 			pak_rt_fatal_error(mod, "Disconnected");
 			return PAK_ERR_DISCONNECTED;
 		}
@@ -330,14 +330,14 @@ static int on_request_file_metadata(struct Module *mod, int job, struct FileHand
 }
 
 static int on_command(struct Module *mod, int job, int argc, const char * const *argv) {
-	if (mod->priv->dev.priv != NULL) return fuji_bt_handle_command(mod, &mod->priv->dev, argc, argv);
+	if (mod->priv->dev != NULL) return fuji_bt_handle_command(mod, mod->priv->dev, argc, argv);
 	return PAK_ERR_UNIMPLEMENTED;
 }
 
 static int on_prop_changed(struct Module *mod, int job, struct PakUserSetting *prop) {
 	//pak_rt_add_wifi_connection(mod, );
 	if (!strcmp(prop->name, "switch-wifi")) {
-		return fuji_bluetooth_connect_to_wifi(mod, mod->bt, &mod->priv->dev);
+		return fuji_bluetooth_connect_to_wifi(mod, mod->bt, mod->priv->dev);
 	}
 	return 0;
 }

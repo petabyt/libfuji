@@ -6,7 +6,7 @@
 struct ModulePriv {
 	struct PtpRuntime *r;
 	struct Module *mod;
-	struct PakBtDevice dev;
+	struct PakBtDevice *dev;
 	int current_job;
 
 	int update_progress_bar_job;

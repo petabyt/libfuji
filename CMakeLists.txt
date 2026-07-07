@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 project(libfuji)
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(LIBFUJI_INCLUDE_CLI "Include cli program for CI/testing" OFF)
 
 set(FUJI_CORE
@@ -36,7 +37,7 @@ if(NOT TARGET libpict)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libpict ${CMAKE_CURRENT_BINARY_DIR}/libpict)
 endif()
 
-add_library(libfuji STATIC ${FUJI_CORE})
+add_library(libfuji ${FUJI_CORE})
 target_compile_options(libfuji
     PRIVATE -Wall -Wshadow -Wcast-qual -Wpedantic -Werror=incompatible-pointer-types -Werror=deprecated-declarations
 )
