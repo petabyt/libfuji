@@ -9,12 +9,14 @@ struct FujiModulePriv {
 	struct ModulePriv priv;
 };
 
-static int handle_ptperr(struct Module *mod, int rc, const char *action) {
+static int handle_ptperr(struct PakModule *mod, int rc, const char *action) {
 	switch (rc) {
 		case PTP_IO_ERR: {
 			if (mod->priv->dev == NULL) {
 				pak_rt_fatal_error(mod, "%s", action);
+				// on_disconnect will be called
 			}
+			mod->priv->dev = NULL; // leak
 			return PAK_ERR_IO;
 		}
 		case PTP_NO_DEVICE: return PAK_ERR_NO_CONNECTION;
@@ -23,19 +25,18 @@ static int handle_ptperr(struct Module *mod, int rc, const char *action) {
 	}
 }
 
-static struct Module *get_mod(struct PtpRuntime *r) {
+static struct PakModule *get_mod(struct PtpRuntime *r) {
 	return r->priv->priv->priv.mod;
 }
 
-int ptpip_set_extra_socket_settings(struct PtpRuntime *r, int sockfd) {
+static int ptpip_set_extra_socket_settings(struct PtpRuntime *r, int sockfd) {
 	if (r->priv->priv == NULL) return 0;
-	if (!get_mod(r)->priv->adapter_is_present) return -1;
-	return pak_wifi_bind_socket_to_adapter(get_mod(r)->net, &get_mod(r)->priv->adapter, sockfd);
+	if (get_mod(r)->priv->adapter != NULL) return pak_wifi_bind_socket_to_adapter(get_mod(r)->net, get_mod(r)->priv->adapter, sockfd);
+	return 0;
 }
 
-__attribute__((weak))
 void ptp_verbose_log(char *fmt, ...) {
-#if 0
+#if 1
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
@@ -45,7 +46,6 @@ void ptp_verbose_log(char *fmt, ...) {
 #endif
 }
 
-__attribute__((weak))
 void ptp_error_log(char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
@@ -78,81 +78,134 @@ void app_send_cam_name(struct PtpRuntime *r, const char *name) {
 	pak_rt_set_session_property(get_mod(r), PAK_PROP_NAME, name);
 }
 
-static int on_free(struct Module *mod) {
-	if (mod->priv->r != NULL) ptp_close(mod->priv->r);
+static int on_free(struct PakModule *mod) {
+	if (mod->priv->r != NULL) {
+		if (mod->priv->r->priv != NULL) free(mod->priv->r->priv);
+		ptp_close(mod->priv->r);
+	}
+	if (mod->priv->dev != NULL) pak_bt_unref_device(mod->bt, mod->priv->dev);
+	if (mod->priv->adapter != NULL) pak_wifi_unref_adapter(mod->net, mod->priv->adapter);
 	free(mod->priv);
 	return 0;
 }
 
-static int init(struct Module *mod) {
-	pak_debug_log(mod, "libfuji init");
+static int init(struct PakModule *mod) {
+	pak_debug_log(mod, "WIP libfuji - please report bugs");
 	mod->priv = calloc(1, sizeof(struct ModulePriv));
 	mod->priv->mod = mod;
 	pak_rt_set_tick_interval(mod, 1000 * 1000); // 1sec
-	pak_rt_set_screen_supported(mod, SCREEN_DASHBOARD, 1);
+	pak_rt_set_screen_supported(mod, PAK_SCREEN_DASHBOARD, 1);
 	return 0;
 }
 
-static int on_try_connect_wifi(struct Module *mod, struct PakWiFiAdapter *handle, int job) {
+int fuji_discovery_check_cancel(struct PtpRuntime *r) {
+	return pak_rt_is_job_cancelled(get_mod(r), get_mod(r)->priv->current_job);
+}
+
+void ptp_report_read_progress(struct PtpRuntime *r, unsigned int size) {
+	if (r->priv->priv == NULL) return;
+	struct PakModule *mod = get_mod(r);
+	if (mod->priv->update_progress_bar_job) {
+		mod->priv->total_read += size;
+		unsigned int percent = (mod->priv->total_read * 100) / (mod->priv->to_read_target);
+		pak_rt_set_progress_bar(mod, mod->priv->update_progress_bar_job, (int)percent);
+	}
+}
+
+static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *handle, struct PakSavedConnection *saved, int job) {
 	mod->priv->current_job = job;
-	mod->priv->adapter_is_present = 1;
-	memcpy(&mod->priv->adapter, handle, sizeof(struct PakWiFiAdapter));
-	struct PtpRuntime *r = ptp_new(PTP_IP_USB);
-	fuji_reset_ptp(r);
+	mod->priv->adapter = handle;
+
+	struct PtpRuntime *r = fuji_ptp_new(PTP_IP_USB);
+	r->set_extra_socket_settings = ptpip_set_extra_socket_settings;
+	r->report_read_progress = ptp_report_read_progress;
 	mod->priv->r = r;
 	r->priv->priv = (struct FujiModulePriv *)mod->priv;
 
 	const char *client_name = pak_rt_get_client_name();
 	const char *setup_option = pak_rt_get_setup_option(mod);
+	if (setup_option == NULL) return PAK_ERR_UNSUPPORTED;
 	if (!strcmp(setup_option, "wifi")) {
-		fuji_get(r)->transport = FUJI_FEATURE_WIRELESS_COMM;
-
-		strcpy(fuji_get(r)->ip_address, "192.168.0.1");
-		//strcpy(fuji_get(r)->ip_address, "192.168.1.164");
-		int rc = ptpip_connect(r, fuji_get(r)->ip_address, FUJI_CMD_IP_PORT, 1);
+		r->priv->transport = FUJI_FEATURE_WIRELESS_COMM;
+		strcpy(r->priv->ip_address, "192.168.0.1");
+		int rc = ptpip_connect(r, r->priv->ip_address, FUJI_CMD_IP_PORT, 1);
+		if (rc) return PAK_ERR_NO_CONNECTION;
+	} else if (!strcmp(setup_option, "wifi-from-bt")) {
+		r->priv->transport = FUJI_FEATURE_XAPP_WIRELESS_COMM;
+		strcpy(r->priv->ip_address, "192.168.0.1");
+		int rc = ptpip_connect(r, r->priv->ip_address, FUJI_CMD_IP_PORT, 1);
 		if (rc) return PAK_ERR_NO_CONNECTION;
 	} else if (!strcmp(setup_option, "local-network")) {
-
+		struct DiscoverInfo info = {0};
+		int rc = fuji_discover_thread(r, &info, client_name);
+		if (rc < 0) {
+			pak_debug_log(mod, "fuji_discover_thread: %d", rc);
+			return PAK_ERR_NO_CONNECTION;
+		}
+		if (rc == FUJI_D_GO_PTP) {
+			r->priv->transport = info.transport;
+			strlcpy(r->priv->ip_address, info.camera_ip, sizeof(info.camera_ip));
+			rc = ptpip_connect(r, r->priv->ip_address, info.camera_port, 10); // ???
+			if (rc) {
+				pak_debug_log(mod, "ptpip_connect %s:%d", r->priv->ip_address, info.camera_port);
+				return PAK_ERR_NO_CONNECTION;
+			}
+		} else if (rc == FUJI_D_REGISTERED) {
+			// todo
+			pak_debug_log(mod, "Device registered");
+			return 0;
+		}
+	} else {
+		return PAK_ERR_UNSUPPORTED;
 	}
 
-#if 1
-	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_TETHER) {
+	if (r->priv->transport == FUJI_FEATURE_WIRELESS_TETHER) {
 		int rc = fujitether_setup(r, client_name);
 		if (rc) {
 			return handle_ptperr(mod, rc, "fujitether_setup");
 		}
-	} else {
-		int rc = fuji_setup(r, client_name);
-		if (rc) {
-			return PAK_ERR_IO;
-		} else {
-			if (fuji_get(r)->camera_state == FUJI_MULTIPLE_TRANSFER) {
-				pak_rt_set_screen_supported(mod, SCREEN_LIVE_FEED, 1);
-				// TODO: Do downloading after connected
-				rc = fuji_download_classic(r);
-				if (rc) {
-					app_print(r, "Error downloading images");
-					return PAK_ERR_DISCONNECTED;
-				}
-				app_print(r, "Check your file manager app/gallery.");
-				ptp_report_error(r, "Disconnected", 0);
-				return PAK_ERR_DISCONNECTED;
-			} else {
-				pak_rt_set_screen_supported(mod, SCREEN_FILE_VIEWER, 1);
-				pak_rt_set_screen_supported(mod, SCREEN_FILE_GALLERY, 1);
-				pak_rt_set_screen_supported(mod, SCREEN_GEOTAGGING, 1);
-				pak_rt_set_screen_supported(mod, SCREEN_LIVEVIEW, 1);
-				pak_rt_set_storage_info(mod, "sdcard", fuji_get(r)->num_objects, PAK_NEWEST_FIRST);
-			}
-		}
+		return 0;
 	}
-#endif
+
+	int rc = fuji_setup(r, client_name);
+	if (rc) return PAK_ERR_NO_CONNECTION;
+
+	if (r->priv->camera_state == FUJI_MULTIPLE_TRANSFER) {
+		// TODO:
+		pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVE_FEED, 1);
+		// TODO: Do downloading after connected
+		rc = fuji_download_classic(r);
+		if (rc) {
+			app_print(r, "Error downloading images");
+			return PAK_ERR_DISCONNECTED;
+		}
+		app_print(r, "Check your file manager app/gallery.");
+		ptp_report_error(r, "Disconnected", 0);
+		return PAK_ERR_DISCONNECTED;
+	} else if (r->priv->camera_state == FUJI_FULL_ACCESS || r->priv->camera_state == FUJI_REMOTE_ACCESS) {
+		pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
+		pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
+		pak_rt_set_screen_supported(mod, PAK_SCREEN_GEOTAGGING, 1);
+		pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVEVIEW, 1);
+	} else if (r->priv->camera_state == FUJI_PC_AUTO_SAVE) {
+		pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
+		pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
+
+		pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
+			.name = "autosave-thumbnails",
+			.title = "Enable thumbnails (buggy)",
+			.type = PAK_BOOLEAN,
+			.u.boolv.v = 0,
+		});
+	}
+
+	pak_rt_set_storage_info(mod, "sdcard", r->priv->num_objects, PAK_NEWEST_FIRST);
 
 	return 0;
 }
 
-static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
-	pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
+static int on_try_connect_bluetooth(struct PakModule *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
+	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
 			.name = "switch-wifi",
 			.title = "Connect over WiFi",
 			.type = PAK_BUTTON,
@@ -165,7 +218,7 @@ static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *devi
 	return 0;
 }
 
-static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
+static int on_idle_tick(struct PakModule *mod, unsigned int us_since_last_tick) {
 	struct PtpRuntime *r = mod->priv->r;
 	if (r != NULL) {
 		if (r->connection_type == PTP_USB) {
@@ -186,18 +239,21 @@ static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
 	return 0;
 }
 
-static int on_disconnect(struct Module *mod) {
+static int on_disconnect(struct PakModule *mod) {
 	struct PtpRuntime *r = mod->priv->r;
 	if (r != NULL) {
 		ptp_report_error(r, "requested disconnect", 0);
 	}
+	if (mod->priv->dev != NULL) {
+		pak_bt_device_disconnect(mod->bt, mod->priv->dev);
+	}
 	return 0;
 }
 
-static int on_switch_screen(struct Module *mod, int old_screen, int new_screen, int job) {
+static int on_switch_screen(struct PakModule *mod, int old_screen, int new_screen, int job) {
 	struct PtpRuntime *r = mod->priv->r;
 	if (r != NULL) {
-		if (new_screen == SCREEN_FILE_GALLERY) {
+		if (new_screen == PAK_SCREEN_FILE_GALLERY) {
 			int rc = fuji_config_image_viewer(r);
 			if (rc) return handle_ptperr(mod, rc, "fuji_config_image_viewer");
 		}
@@ -205,29 +261,21 @@ static int on_switch_screen(struct Module *mod, int old_screen, int new_screen, 
 	return 0;
 }
 
-void ptp_report_read_progress(struct PtpRuntime *r, unsigned int size) {
-	if (r->priv->priv == NULL) return;
-	struct Module *mod = get_mod(r);
-	if (mod->priv->update_progress_bar_job) {
-		mod->priv->total_read += size;
-		unsigned int percent = (mod->priv->total_read * 100) / (mod->priv->to_read_target);
-		pak_rt_set_progress_bar(mod, mod->priv->update_progress_bar_job, (int)percent);
-	}
-}
-
 struct TempStruct {
-	struct Module *mod;
-	struct FileHandle *file;
-	int target_size;
+	struct PakModule *mod;
+	struct PakFileHandle *file;
+	unsigned int target_size;
+	unsigned int target_offset;
 };
 
-static int jbytearray_add(void *arg, void *data, int size, int read) {
+static int download_add(void *arg, void *data, int size, int read) {
 	struct TempStruct *temp = arg;
-	pak_rt_add_file_contents(temp->mod, temp->file, data, size, read < temp->target_size);
+	pak_rt_add_file_contents(temp->mod, temp->file, data, size, temp->target_offset, temp->target_size);
+	temp->target_offset += size;
 	return 0;
 }
 
-static int on_request_file_contents(struct Module *mod, int job, struct FileHandle *file) {
+static int on_request_file_contents(struct PakModule *mod, int job, struct PakFileHandle *file) {
 	struct PtpRuntime *r = mod->priv->r;
 	if (r == NULL) {
 		return 0;
@@ -237,7 +285,7 @@ static int on_request_file_contents(struct Module *mod, int job, struct FileHand
 	int rc = fuji_begin_download_get_object_info(r, file->index_in_view + 1, &oi);
 	if (rc) return handle_ptperr(mod, rc, "fuji_begin_download_get_object_info");
 
-	struct FileMetadata *md = pak_rt_get_metadata(mod, file);
+	struct PakFileMetadata *md = pak_rt_get_metadata(mod, file);
 	if (md == NULL) {
 		rc = ptp_get_object_info(r, file->index_in_view + 1, &oi);
 		if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR) {
@@ -254,27 +302,26 @@ static int on_request_file_contents(struct Module *mod, int job, struct FileHand
 	mod->priv->total_read = 0;
 
 	pak_rt_set_progress_bar(mod, job, 0);
-	rc = fuji_download_file(r, file->index_in_view + 1, md->file_size, jbytearray_add, &(struct TempStruct){
+	rc = fuji_download_file(r, file->index_in_view + 1, md->file_size, download_add, &(struct TempStruct){
 		.mod = mod,
 		.file = file,
 		.target_size = md->file_size,
+		.target_offset = 0,
 	});
-	//pak_rt_set_progress_bar(mod, job, 100);
-	pak_rt_add_file_contents(mod, file, file, 0, 0); // bad
+	pak_rt_add_file_contents(mod, file, NULL, 0, 0, 0);
 	pak_rt_release_metadata(mod, md);
 	mod->priv->update_progress_bar_job = 0;
 	if (rc) return handle_ptperr(mod, rc, "fuji_download_file");
 	return 0;
 }
 
-static int on_request_thumbnail(struct Module *mod, int job, struct FileHandle *file) {
+static int on_request_thumbnail(struct PakModule *mod, int job, struct PakFileHandle *file) {
 	unsigned int offset, length;
 	struct PtpRuntime *r = mod->priv->r;
-	if (r == NULL) {
-		return 0;
-	}
+	if (r == NULL) return 0;
 
 	ptp_mutex_lock(r);
+
 	int rc = fuji_get_thumb(r, file->index_in_view + 1, &offset, &length);
 	if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR) {
 		pak_rt_add_file_metadata(mod, file, NULL);
@@ -291,7 +338,7 @@ static int on_request_thumbnail(struct Module *mod, int job, struct FileHandle *
 static const char *get_mime_type(uint16_t object_format) {
 	switch (object_format) {
 		case PTP_OF_JPEG: return "image/jpeg";
-		case PTP_OF_MOV: return "image/quicktime";
+		case PTP_OF_MOV: return "video/quicktime";
 		case PTP_OF_PNG: return "image/png";
 		default: return "application/unknown";
 	}
@@ -299,13 +346,13 @@ static const char *get_mime_type(uint16_t object_format) {
 
 
 int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpObjectInfo *oi) {
-	struct Module *mod = get_mod(r);
+	struct PakModule *mod = get_mod(r);
 
-	struct FileHandle file = {0};
+	struct PakFileHandle file = {0};
 	file.index_in_view = handle - 1;
 	file.storage_name = "sdcard";
 
-	return pak_rt_add_file_metadata(mod, &file, &(struct FileMetadata){
+	return pak_rt_add_file_metadata(mod, &file, &(struct PakFileMetadata){
 		.filename = oi->filename,
 		.file_size = (int)oi->compressed_size,
 		.mime_type = get_mime_type(oi->obj_format),
@@ -314,7 +361,7 @@ int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpOb
 	});
 }
 
-static int on_request_file_metadata(struct Module *mod, int job, struct FileHandle *file) {
+static int on_request_file_metadata(struct PakModule *mod, int job, struct PakFileHandle *file) {
 	struct PtpObjectInfo info;
 	struct PtpRuntime *r = mod->priv->r;
 	if (r == NULL) {
@@ -329,20 +376,21 @@ static int on_request_file_metadata(struct Module *mod, int job, struct FileHand
 	return plat_update_object_info(r, file->index_in_view + 1, &info);
 }
 
-static int on_command(struct Module *mod, int job, int argc, const char * const *argv) {
+static int on_command(struct PakModule *mod, int job, int argc, const char * const *argv) {
 	if (mod->priv->dev != NULL) return fuji_bt_handle_command(mod, mod->priv->dev, argc, argv);
 	return PAK_ERR_UNIMPLEMENTED;
 }
 
-static int on_prop_changed(struct Module *mod, int job, struct PakUserSetting *prop) {
-	//pak_rt_add_wifi_connection(mod, );
+static int on_prop_changed(struct PakModule *mod, int job, struct PakWidget *prop) {
 	if (!strcmp(prop->name, "switch-wifi")) {
 		return fuji_bluetooth_connect_to_wifi(mod, mod->bt, mod->priv->dev);
+	} else if (!strcmp(prop->name, "autosave-thumbnails")) {
+		mod->priv->r->priv->allow_autosave_thumbnails = prop->u.boolv.v;
 	}
 	return 0;
 }
 
-int get_module_libfuji(struct Module *mod) {
+int get_module_libfuji(struct PakModule *mod) {
 	mod->init = init;
 	mod->free = on_free;
 	mod->on_try_connect_wifi = on_try_connect_wifi;
@@ -350,7 +398,6 @@ int get_module_libfuji(struct Module *mod) {
 	mod->on_request_file_thumbnail = on_request_thumbnail;
 	mod->on_request_file_metadata = on_request_file_metadata;
 	mod->on_request_file_contents = on_request_file_contents;
-	//mod->on_find_connection = on_find_connection;
 	mod->on_idle_tick = on_idle_tick;
 	mod->on_disconnect = on_disconnect;
 	mod->on_switch_screen = on_switch_screen;
@@ -358,4 +405,4 @@ int get_module_libfuji(struct Module *mod) {
 	mod->on_setting_changed = on_prop_changed;
 	return 0;
 }
-__attribute__((weak)) int get_module(struct Module *mod) { return get_module_libfuji(mod); }
+__attribute__((weak)) int get_module(struct PakModule *mod) { return get_module_libfuji(mod); }

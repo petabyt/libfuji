@@ -6,25 +6,28 @@
 #define FUJI_PROTOCOL_VERSION 0x8f53e4f2
 
 /// @brief All of Fuji's protocols/transport features
+/// @note Not part of any protocol
 enum FujiTransport {
 	/// @brief 'PLAY BACK MENU' -> 'PC AUTO SAVE'
-	FUJI_FEATURE_AUTOSAVE = 1,
+	FUJI_FEATURE_AUTOSAVE,
 	/// @brief 'WIRELESS TETHER SHOOTING FIXED'
-	FUJI_FEATURE_WIRELESS_TETHER = 2,
+	FUJI_FEATURE_WIRELESS_TETHER,
 	/// @brief 'WIRELESS COMMUNICATION' or 'WIRELESS TRANSFER'
-	FUJI_FEATURE_WIRELESS_COMM = 3,
+	FUJI_FEATURE_WIRELESS_COMM,
 	/// @brief 'USB CARD READER'
-	FUJI_FEATURE_USB_CARD_READER = 4,
+	FUJI_FEATURE_USB_CARD_READER,
 	/// @brief 'USB TETHER SHOOTING FIXED/AUTO'
-	FUJI_FEATURE_USB_TETHER_SHOOT = 5,
+	FUJI_FEATURE_USB_TETHER_SHOOT,
 	/// @brief 'USB RAW CONV./BACKUP RESTORE'
-	FUJI_FEATURE_RAW_CONV = 6,
+	FUJI_FEATURE_RAW_CONV,
 	/// @brief Generic PTP/USB of unknown feature, assume MTP
-	FUJI_FEATURE_USB = 7,
+	FUJI_FEATURE_USB,
 	/// @brief Recently added 'X WEBCAM' mode
-	FUJI_FEATURE_WEBCAM = 8,
+	FUJI_FEATURE_WEBCAM,
 	/// @brief 'USB MOVIE SHOOTING FIXED/AUTO'
-	FUJI_FEATURE_MOVIE_SHOOT = 9,
+	FUJI_FEATURE_MOVIE_SHOOT,
+	/// @brief FUJI_FEATURE_WIRELESS_COMM but for Bluetooth handover
+	FUJI_FEATURE_XAPP_WIRELESS_COMM,
 };
 
 #define FUJI_CMD_IP_PORT 55740
@@ -96,9 +99,12 @@ enum FujiTransport {
 #define PTP_DPC_FUJI_RemoteVersion	0xdf24
 #define PTP_DPC_FUJI_RemoteGetObjectVersion	0xdf25 // same as GetObjectVersion, but for cams that support remote mode
 // 0xdf26 and 0xdf27 appear to be unused
-#define PTP_DPC_FUJI_Unknown_DF28	0xdf28 // xapp property, x-s10 sets to 1
+/// @brief Looks like newer xapp version prop, x-s10 sets to 1, x-t5 sets to 3
+#define PTP_DPC_FUJI_Unknown_DF28	0xdf28
 #define PTP_DPC_FUJI_GeoTagVersion	0xdf31
 #define PTP_DPC_FUJI_Unknown11		0xdf44
+
+/// @}
 
 /// @brief Possible values of PTP_DPC_FUJI_ClientState / 0xdf01
 enum ClientStates {

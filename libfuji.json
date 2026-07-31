@@ -1,12 +1,23 @@
 {
   "name": "libfuji",
   "description": "Supports Fujifilm X-series cameras",
+  "website": "https://github.com/petabyt/libfuji",
   "author": "Daniel Cook",
   "version": 1,
+  "moduleType": "so",
+  "modulePath": "libfuji.so",
   "targets": [
     {
       "deviceType": "professional-camera",
       "company": "Fujifilm",
+      "wifiDiscovery": {
+        "ssidPattern": "FUJIFILM-.*"
+      },
+      "bluetoothDiscovery": [{
+        "serviceUuids": ["117c4142-edd4-4c77-8696-dd18eebb770a"]
+      }, {
+        "serviceUuids": ["a9d2b304-e8d6-4902-8336-352b772d7597"]
+      }],
       "products": [
         "X-E5",
         "X-M5",

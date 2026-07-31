@@ -64,6 +64,7 @@ struct PtpUserPriv {
 	int remote_version;
 	int num_objects;
 	int open_capture_trans_id;
+	int allow_autosave_thumbnails;
 };
 
 typedef struct PtpUserPriv fujipriv_t;
@@ -83,7 +84,7 @@ int fuji_get_thumb(struct PtpRuntime *r, int handle, unsigned int *offset, unsig
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code);
 
 /// @note This will block
-int fuji_discover_thread(struct PtpRuntime *r, struct DiscoverInfo *info, char *client_name);
+int fuji_discover_thread(struct PtpRuntime *r, struct DiscoverInfo *info, const char *client_name);
 
 /// @brief Callback for discovery. Called when a new device wanting to pair is discovered. Return 1 if connection accepted
 /// @note to be defined by frontend
@@ -93,7 +94,8 @@ int fuji_discover_ask_connect(struct PtpRuntime *r, struct DiscoverInfo *info);
 /// @note to be defined by frontend
 int fuji_discovery_check_cancel(struct PtpRuntime *r);
 
-/// @brief Initializes allocations for Fuji PTP session
+/// @brief New Fuji PTP session
+struct PtpRuntime *fuji_ptp_new(int options);
 int fuji_reset_ptp(struct PtpRuntime *r);
 
 /// @brief Set up the event/liveview sockets for remote mode
@@ -102,10 +104,10 @@ int fuji_setup_remote_mode(struct PtpRuntime *r);
 /// @brief Main entry function for PTP/IP
 int fuji_setup(struct PtpRuntime *r, const char *client_name);
 
-int fuji_connection_entry(struct PtpRuntime *r);
+//int fuji_connection_entry(struct PtpRuntime *r);
 
 /// @brief Import files, based on an array of object IDs. Object Info will be fetched for each, mask will dictate if it's skipped or not.
-int fuji_import_objects(struct PtpRuntime *r, int *object_ids, int length, int mask);
+//int fuji_import_objects(struct PtpRuntime *r, int *object_ids, int length, int mask);
 
 // Test suite stuff
 int fuji_test_suite(struct PtpRuntime *r);

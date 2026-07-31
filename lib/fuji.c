@@ -9,24 +9,25 @@
 #include "app.h"
 #include "fuji.h"
 #include "fujiptp.h"
+#include <runtime_ext.h>
 
 fujipriv_t *fuji_get(struct PtpRuntime *r) {
 	return r->priv;
-}
-
-struct NetworkHandle *ptp_get_network_info(struct PtpRuntime *r) {
-	return &fuji_get(r)->net;
 }
 
 int fuji_reset_ptp(struct PtpRuntime *r) {
 	ptp_reset(r);
 	if (r->priv == NULL)
 		r->priv = calloc(1, sizeof(struct PtpUserPriv));
-//	if (r->userdata == NULL)
-//		r->userdata = calloc(1, sizeof(struct FujiDeviceKnowledge));
 	r->connection_type = PTP_IP_USB;
 	r->response_wait_default = 3; // Fuji cams are slow!
 	return 0;
+}
+
+struct PtpRuntime *fuji_ptp_new(int options) {
+	struct PtpRuntime *r = ptp_new(options);
+	fuji_reset_ptp(r);
+	return r;
 }
 
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
@@ -72,6 +73,7 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	}
 }
 
+#if 0
 // New function to connect from struct instead of passing in IP/port/etc
 int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info) {
 	fuji_reset_ptp(r);
@@ -93,6 +95,7 @@ int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *in
 
 	return 0;
 }
+#endif
 
 #if 0
 int fuji_connection_entry(struct PtpRuntime *r) {
@@ -136,14 +139,14 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		rc = ptpip_fuji_init_req(r, client_name, &resp);
 	}
 	if (rc) {
-		app_print(r, "Failed to initialize connection");
+		app_print(r, "Failed to initialize connection (%d)", rc);
 		return rc;
 	}
 	app_print(r, "Initialized connection.");
 
 	app_send_cam_name(r, resp.cam_name);
 
-	if (fuji->transport == FUJI_FEATURE_WIRELESS_COMM) {
+	if (fuji->transport == FUJI_FEATURE_WIRELESS_COMM || fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
 		app_print(r, "The camera is thinking...");
 		usleep(50000); // Fuji cameras require at least 50ms delay after init
 	}
@@ -260,7 +263,10 @@ static int ptpip_fuji_init_req_(struct PtpRuntime *r, const char *device_name, s
 
 	ptp_write_unicode_string(p->device_name, device_name);
 
-	if (ptpip_cmd_write(r, r->data, (int)p->length) != (int)p->length) return PTP_IO_ERR;
+	if (ptpip_cmd_write(r, r->data, (int)p->length) != (int)p->length) {
+		ptp_verbose_log("First TCP packet failed");
+		return PTP_IO_ERR;
+	}
 
 	// Read the packet size, then receive the rest
 	int x = ptpip_cmd_read(r, r->data, 4);
@@ -305,7 +311,6 @@ int fuji_d228(void) {
 	return 0;
 }
 
-#if 0
 struct MyAddInfo {
 	struct PtpRuntime *r;
 	int handle;
@@ -313,7 +318,7 @@ struct MyAddInfo {
 	int size;
 };
 
-static uint8_t *my_add(void *arg, uint8_t *buffer, int new_len, int old_len) {
+static uint8_t *my_add(void *arg, uint8_t *buffer, unsigned int new_len, unsigned int old_len) {
 	// Needs to be a new buffer
 	ptp_verbose_log("downloading more exif %d %d\n", new_len, old_len);
 	struct MyAddInfo *i = (struct MyAddInfo *)arg;
@@ -353,13 +358,8 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset,
 	memcpy(temp.buffer, ptp_get_payload(r), ptp_get_payload_length(r));
 
 	struct ExifParser c = {0};
-	c.length = ptp_get_payload_length(r);
-	c.buf = temp.buffer;
-	c.arg = &temp;
-	c.get_more = my_add;
-
-	rc = exif_start_raw(&c);
-	ptp_verbose_log("Exif: %d\n", rc);
+	rc = exif_start_raw(&c, temp.buffer, ptp_get_payload_length(r), my_add, &temp);
+	ptp_verbose_log("exif_start_raw: %d\n", rc);
 
 	if (c.thumb_of == 0 || c.thumb_size == 0) {
 		rc = PTP_RUNTIME_ERR;
@@ -370,6 +370,7 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset,
 	*length = c.thumb_size;
 	ptp_verbose_log("Exif thumb offset: %u size: %u\n", c.thumb_of, c.thumb_size);
 
+	// Some timing issues have to be worked around to make this work.
 	// Given transfer speed/camera speed 5 event calls is generally enough for the camera
 	// to not stop responding to object-related PTP commands
 	rc = fuji_get_events(r);
@@ -385,17 +386,16 @@ int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset,
 	ptp_mutex_unlock(r);
 	return rc;
 }
-#else
-int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset, unsigned int *length) {
-	return 0;
-}
-#endif
 
 int fuji_get_thumb(struct PtpRuntime *r, int handle, unsigned int *offset, unsigned int *length) {
 	(*offset) = 0;
 	(*length) = 0;
 	if (fuji_get(r)->transport == FUJI_FEATURE_AUTOSAVE) {
-		return ptp_get_partial_exif(r, handle, offset, length);
+		if (r->priv->allow_autosave_thumbnails) {
+			return ptp_get_partial_exif(r, handle, offset, length);
+		} else {
+			return 0;
+		}
 	} else {
 		// get_thumb blocks forever unless get_object_info is called on newer cameras
 		if (fuji_get(r)->remote_version > 0x20006) {
@@ -499,8 +499,7 @@ int fuji_get_events(struct PtpRuntime *r) {
 	if (rc == PTP_CHECK_CODE) {
 		ptp_mutex_unlock(r);
 		return 0;
-	}
-	if (rc) {
+	} else if (rc) {
 		ptp_mutex_unlock(r);
 		return rc;
 	}
@@ -604,17 +603,21 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 
 	// Determine preferred mode from state and version info
 	int mode = 0;
-	if (fuji->remote_version != -1 || fuji->camera_state == FUJI_REMOTE_ACCESS) {
-		mode = FUJI_REMOTE_MODE;
+	if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
+		mode = FUJI_MODE_REMOTE_IMG_VIEW_XAPP;
 	} else {
-		if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {
-			mode = FUJI_VIEW_MULTIPLE;
-		} else if (fuji->camera_state == FUJI_FULL_ACCESS) {
-			mode = FUJI_VIEW_ALL_IMGS;
-		} else if (fuji->camera_state == FUJI_PC_AUTO_SAVE) {
-			mode = FUJI_OLD_REMOTE;
+		if (fuji->remote_version != -1 || fuji->camera_state == FUJI_REMOTE_ACCESS) {
+			mode = FUJI_REMOTE_MODE;
 		} else {
-			mode = FUJI_VIEW_ALL_IMGS;
+			if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {
+				mode = FUJI_VIEW_MULTIPLE;
+			} else if (fuji->camera_state == FUJI_FULL_ACCESS) {
+				mode = FUJI_VIEW_ALL_IMGS;
+			} else if (fuji->camera_state == FUJI_PC_AUTO_SAVE) {
+				mode = FUJI_OLD_REMOTE;
+			} else {
+				mode = FUJI_VIEW_ALL_IMGS;
+			}
 		}
 	}
 
@@ -626,6 +629,11 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 
 	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState, mode);
 	if (rc) return rc;
+
+	if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
+		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_Unknown_DF28, 0x3);
+		if (rc) return rc;
+	}
 
 	rc = fuji_get_events(r);
 	if (rc) return rc;
