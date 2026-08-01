@@ -106,7 +106,7 @@ int fuji_init_setup(struct PtpRuntime *r) {
 	return 0;
 }
 
-int temp_file_handle(void *arg, void *buffer, int size, int read) {
+int temp_file_handle(void *arg, void *buffer, unsigned int size, unsigned int offset) {
 	struct PtpRuntime *r = arg;
 	tester_log(r, "Read %d bytes", size);
 	return 0;

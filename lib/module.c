@@ -5,6 +5,9 @@
 #include <fuji.h>
 #include "module.h"
 
+static int file_to_oh(struct PakFileHandle *file) { return file->index_in_view + 1; }
+//static int oh_to_file(struct PakFileHandle *file) { return file->index_in_view + 1; }
+
 struct FujiModulePriv {
 	struct ModulePriv priv;
 };
@@ -37,6 +40,9 @@ static int ptpip_set_extra_socket_settings(struct PtpRuntime *r, int sockfd) {
 
 void ptp_verbose_log(char *fmt, ...) {
 #if 1
+#ifdef NDEBUG
+#error "Disable ptp_verbose_log in production build"
+#endif
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
@@ -101,13 +107,19 @@ static int init(struct PakModule *mod) {
 int fuji_discovery_check_cancel(struct PtpRuntime *r) {
 	return pak_rt_is_job_cancelled(get_mod(r), get_mod(r)->priv->current_job);
 }
+int app_check_thread_cancel(struct PtpRuntime *r) {
+	return pak_rt_is_job_cancelled(get_mod(r), get_mod(r)->priv->current_job);
+}
+void app_report_download_speed(struct PtpRuntime *r, long time, size_t size) {
+	pak_rt_set_download_stats(get_mod(r), get_mod(r)->priv->current_job, time, size);
+}
 
 void ptp_report_read_progress(struct PtpRuntime *r, unsigned int size) {
 	if (r->priv->priv == NULL) return;
 	struct PakModule *mod = get_mod(r);
 	if (mod->priv->update_progress_bar_job) {
 		mod->priv->total_read += size;
-		unsigned int percent = (mod->priv->total_read * 100) / (mod->priv->to_read_target);
+		unsigned int percent = ((uint64_t)mod->priv->total_read * 100ULL) / ((uint64_t)mod->priv->to_read_target);
 		pak_rt_set_progress_bar(mod, mod->priv->update_progress_bar_job, (int)percent);
 	}
 }
@@ -145,9 +157,10 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 		if (rc == FUJI_D_GO_PTP) {
 			r->priv->transport = info.transport;
 			strlcpy(r->priv->ip_address, info.camera_ip, sizeof(info.camera_ip));
-			rc = ptpip_connect(r, r->priv->ip_address, info.camera_port, 10); // ???
+			usleep(1000 * 1000);
+			rc = ptpip_connect(r, r->priv->ip_address, info.camera_port, 3);
 			if (rc) {
-				pak_debug_log(mod, "ptpip_connect %s:%d", r->priv->ip_address, info.camera_port);
+				pak_debug_log(mod, "ptpip_connect(%s, %d): %d", r->priv->ip_address, info.camera_port, rc);
 				return PAK_ERR_NO_CONNECTION;
 			}
 		} else if (rc == FUJI_D_REGISTERED) {
@@ -253,9 +266,18 @@ static int on_disconnect(struct PakModule *mod) {
 static int on_switch_screen(struct PakModule *mod, int old_screen, int new_screen, int job) {
 	struct PtpRuntime *r = mod->priv->r;
 	if (r != NULL) {
+//		pak_debug_log(mod, "%d %d", old_screen, new_screen);
+//		if (new_screen == PAK_SCREEN_FILE_VIEWER && old_screen == PAK_SCREEN_FILE_VIEWER) return 0;
+		if (old_screen == PAK_SCREEN_FILE_VIEWER) {
+			int rc = fuji_end_file_download(r);
+			if (rc) return handle_ptperr(mod, rc, "fuji_end_file_download");
+		}
 		if (new_screen == PAK_SCREEN_FILE_GALLERY) {
 			int rc = fuji_config_image_viewer(r);
 			if (rc) return handle_ptperr(mod, rc, "fuji_config_image_viewer");
+		} else if (new_screen == PAK_SCREEN_FILE_VIEWER) {
+			int rc = fuji_begin_file_download(r);
+			if (rc) return handle_ptperr(mod, rc, "fuji_begin_file_download");
 		}
 	}
 	return 0;
@@ -265,51 +287,40 @@ struct TempStruct {
 	struct PakModule *mod;
 	struct PakFileHandle *file;
 	unsigned int target_size;
-	unsigned int target_offset;
 };
 
-static int download_add(void *arg, void *data, int size, int read) {
+static int download_add(void *arg, void *data, unsigned int size, unsigned int offset) {
 	struct TempStruct *temp = arg;
-	pak_rt_add_file_contents(temp->mod, temp->file, data, size, temp->target_offset, temp->target_size);
-	temp->target_offset += size;
+	pak_rt_add_file_contents(temp->mod, temp->file, data, size, offset, temp->target_size);
 	return 0;
 }
 
 static int on_request_file_contents(struct PakModule *mod, int job, struct PakFileHandle *file) {
 	struct PtpRuntime *r = mod->priv->r;
-	if (r == NULL) {
-		return 0;
-	}
+	if (r == NULL) return 0;
+
+	mod->priv->current_job = job;
 
 	struct PtpObjectInfo oi;
-	int rc = fuji_begin_download_get_object_info(r, file->index_in_view + 1, &oi);
-	if (rc) return handle_ptperr(mod, rc, "fuji_begin_download_get_object_info");
+	int rc = ptp_get_object_info(r, file->index_in_view + 1, &oi);
+	if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR) {
+		pak_rt_add_file_metadata(mod, file, NULL);
+		return PAK_ERR_NON_FATAL;
+	} else if (rc) return handle_ptperr(mod, rc, "fuji_begin_download_get_object_info");
 
-	struct PakFileMetadata *md = pak_rt_get_metadata(mod, file);
-	if (md == NULL) {
-		rc = ptp_get_object_info(r, file->index_in_view + 1, &oi);
-		if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR) {
-			pak_rt_add_file_metadata(mod, file, NULL);
-			return PAK_ERR_NON_FATAL;
-		} else if (rc) return handle_ptperr(mod, rc, "fuji_begin_download_get_object_info");
+	plat_update_object_info(r, file->index_in_view + 1, &oi);
 
-		plat_update_object_info(r, file->index_in_view + 1, &oi);
-		md = pak_rt_get_metadata(mod, file);
-		if (md == NULL) return PAK_ERR_UNDEFINED;
-	}
 	mod->priv->update_progress_bar_job = job;
-	mod->priv->to_read_target = md->file_size;
+	mod->priv->to_read_target = oi.compressed_size;
 	mod->priv->total_read = 0;
 
 	pak_rt_set_progress_bar(mod, job, 0);
-	rc = fuji_download_file(r, file->index_in_view + 1, md->file_size, download_add, &(struct TempStruct){
+	rc = fuji_download_file(r, file->index_in_view + 1, oi.compressed_size, download_add, &(struct TempStruct){
 		.mod = mod,
 		.file = file,
-		.target_size = md->file_size,
-		.target_offset = 0,
+		.target_size = oi.compressed_size,
 	});
 	pak_rt_add_file_contents(mod, file, NULL, 0, 0, 0);
-	pak_rt_release_metadata(mod, md);
 	mod->priv->update_progress_bar_job = 0;
 	if (rc) return handle_ptperr(mod, rc, "fuji_download_file");
 	return 0;
@@ -343,7 +354,6 @@ static const char *get_mime_type(uint16_t object_format) {
 		default: return "application/unknown";
 	}
 }
-
 
 int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpObjectInfo *oi) {
 	struct PakModule *mod = get_mod(r);
@@ -390,9 +400,15 @@ static int on_prop_changed(struct PakModule *mod, int job, struct PakWidget *pro
 	return 0;
 }
 
-int get_module_libfuji(struct PakModule *mod) {
+static int on_try_connect_usb(struct PakModule *mod, libusb_device *dev, struct PakSavedConnection *saved, int job) {
+	pak_debug_log(mod, "USB not supported yet");
+	return -1;
+}
+
+int get_module(struct PakModule *mod) {
 	mod->init = init;
 	mod->free = on_free;
+	mod->on_try_connect_usb = on_try_connect_usb;
 	mod->on_try_connect_wifi = on_try_connect_wifi;
 	mod->on_try_connect_bluetooth = on_try_connect_bluetooth;
 	mod->on_request_file_thumbnail = on_request_thumbnail;
@@ -405,4 +421,3 @@ int get_module_libfuji(struct PakModule *mod) {
 	mod->on_setting_changed = on_prop_changed;
 	return 0;
 }
-__attribute__((weak)) int get_module(struct PakModule *mod) { return get_module_libfuji(mod); }

@@ -172,7 +172,7 @@ int fujiusb_download_backup(struct PtpRuntime *r, FILE *f);
 
 /// @brief Respects cancel signals.
 /// @note If transport is FUJI_FEATURE_WIRELESS_COMM, compression property will be enabled after download
-int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (handle_add)(void *, void *, int, int), void *arg);
+int fuji_download_file(struct PtpRuntime *r, int handle, unsigned int file_size, int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset), void *arg);
 
 /// @brief Gets list of object handles regardless of transport
 int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a);

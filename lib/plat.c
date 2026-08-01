@@ -7,11 +7,11 @@
 #include <libpict.h>
 #include <fuji.h>
 #include <app.h>
-
-__attribute__((weak))
-int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpObjectInfo *oi) {
-	return 0;
-}
+//
+//__attribute__((weak))
+//int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpObjectInfo *oi) {
+//	return 0;
+//}
 
 __attribute__((weak))
 void plat_dbg(char *fmt, ...) {
@@ -41,20 +41,20 @@ void app_send_cam_name(struct PtpRuntime *r, const char *name) {
 	printf("Got camera name '%s'\n", name);
 }
 
-__attribute__((weak))
-int app_get_os_network_handle(struct NetworkHandle *h) {
-	return 0;
-}
+//__attribute__((weak))
+//int app_get_os_network_handle(struct NetworkHandle *h) {
+//	return 0;
+//}
 
 __attribute__((weak))
 int app_get_wifi_network_handle(struct NetworkHandle *h) {
 	return -1;
 }
-
-__attribute__((weak))
-int app_bind_socket_to_network(int fd, struct NetworkHandle *h) {
-	return 0;
-}
+//
+//__attribute__((weak))
+//int app_bind_socket_to_network(int fd, struct NetworkHandle *h) {
+//	return 0;
+//}
 
 __attribute__((weak))
 void tester_log(struct PtpRuntime *r, char *fmt, ...) {
@@ -76,20 +76,16 @@ void tester_fail(struct PtpRuntime *r, char *fmt, ...) {
 	putchar('\n');
 }
 
-__attribute__((weak))
-int fuji_discovery_check_cancel(struct PtpRuntime *r) {
-	return 0;
-}
+//__attribute__((weak))
+//int fuji_discovery_check_cancel(struct PtpRuntime *r) {
+//	return 0;
+//}
 
-__attribute__((weak))
-void app_increment_progress_bar(struct PtpRuntime *r, int read) {
-	printf("%d\n", read);
-}
-__attribute__((weak))
-void app_report_download_speed(struct PtpRuntime *r, long time, size_t size) {
-	int mbps = (int)((size * 8) / (time));
-	printf("Download speed: %dmbps\n", mbps);
-}
+//__attribute__((weak))
+//void app_report_download_speed(struct PtpRuntime *r, long time, size_t size) {
+//	int mbps = (int)((size * 8) / (time));
+//	printf("Download speed: %dmbps\n", mbps);
+//}
 __attribute__((weak))
 void app_downloaded_file(struct PtpRuntime *r, const struct PtpObjectInfo *oi, const char *path) {
 	printf("File has been downloaded to '%s'\n", path);
@@ -99,6 +95,6 @@ void app_get_file_path(struct PtpRuntime *r, char buffer[256], const char *filen
 __attribute__((weak))
 void app_downloading_file(struct PtpRuntime *r, const struct PtpObjectInfo *oi) {}
 __attribute__((weak))
-int app_check_thread_cancel(struct PtpRuntime *r) {return 0;}
-__attribute__((weak))
+//int app_check_thread_cancel(struct PtpRuntime *r) {return 0;}
+//__attribute__((weak))
 void app_get_tether_file_path(struct PtpRuntime *r, char buffer[256]) {abort();}

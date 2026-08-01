@@ -847,7 +847,7 @@ static long get_ms(void) {
 	return (long)(ts.tv_sec * 1000000L + ts.tv_nsec / 1000L);
 }
 
-int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (handle_add)(void *, void *, int, int), void *arg) {
+int fuji_download_file(struct PtpRuntime *r, int handle, unsigned int file_size, int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset), void *arg) {
 	int rc = 0;
 
 	ptp_verbose_log("Going to download object #%d\n", handle);
@@ -861,7 +861,7 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 
 	// Makes sure to set the compression prop back to 0 after finished
 	// (extra data won't go through for some reason)
-	int read = 0;
+	unsigned int read = 0;
 	while (1) {
 		if (app_check_thread_cancel(r)) {
 			rc = PTP_CANCELED;
@@ -870,7 +870,7 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 
 		long then_c = get_ms();
 
-		int cur = file_size - read;
+		unsigned int cur = file_size - read;
 		if (cur > FUJI_MAX_PARTIAL_OBJECT) cur = FUJI_MAX_PARTIAL_OBJECT;
 		rc = ptp_get_partial_object(r, handle, read, cur);
 		if (rc == PTP_CHECK_CODE) {
@@ -890,7 +890,7 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int file_size, int (han
 			goto end;
 		}
 
-		handle_add(arg, ptp_get_payload(r), (int)payload_size, read);
+		handle_add(arg, ptp_get_payload(r), payload_size, read);
 
 		read += (int)payload_size;
 
