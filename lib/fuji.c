@@ -73,56 +73,6 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	}
 }
 
-#if 0
-// New function to connect from struct instead of passing in IP/port/etc
-int fuji_connect_from_discoverinfo(struct PtpRuntime *r, struct DiscoverInfo *info) {
-	fuji_reset_ptp(r);
-	strncpy(fuji_get(r)->ip_address, info->camera_ip, 64);
-	strncpy(fuji_get(r)->autosave_client_name, info->client_name, 64);
-	fuji_get(r)->transport = info->transport;
-	memcpy(&fuji_get(r)->net, &info->h, sizeof(struct NetworkHandle));
-
-	int rc = ptpip_connect(r, info->camera_ip, info->camera_port, 5);
-	if (rc) {
-		// If camera ignored the TCP connect, try again
-		rc = ptpip_connect(r, info->camera_ip, info->camera_port, 5);
-	}
-
-	if (rc) {
-		plat_dbg("Error connecting to %s:%d\n", info->camera_ip, info->camera_port);
-		return rc;
-	}
-
-	return 0;
-}
-#endif
-
-#if 0
-int fuji_connection_entry(struct PtpRuntime *r) {
-	plat_dbg("transport: %d", fuji_get(r)->transport);
-	if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_TETHER || r->connection_type == PTP_USB) {
-		return fujitether_setup(r);
-	} else {
-		int rc = fuji_setup(r);
-
-		// TODO: Handle this less weird
-		if (!rc && fuji_get(r)->camera_state == FUJI_MULTIPLE_TRANSFER) {
-			rc = fuji_download_classic(r);
-			if (rc) {
-				app_print(r, "Error downloading images");
-				return rc;
-			}
-			app_print(r, "Check your file manager app/gallery.");
-			ptp_report_error(r, "Disconnected", 0);
-		}
-
-		return rc;
-	}
-
-	return 0;
-}
-#endif
-
 // Assumes cmd socket is valid
 int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	fujipriv_t *fuji = fuji_get(r);
@@ -471,6 +421,8 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 
 		app_downloading_file(r, &oi);
 
+		// TODO: rewrite
+#if 0
 		char buffer[256];
 		app_get_tether_file_path(r, buffer);
 		FILE *f = fopen(buffer, "wb");
@@ -480,6 +432,7 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 		fclose(f);
 
 		app_downloaded_file(r, &oi, buffer);
+#endif
 
 		if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_TETHER) {
 			ptp_delete_object(r, (int)a->data[i]);
@@ -786,60 +739,6 @@ int fuji_config_image_viewer(struct PtpRuntime *r) {
 
 	return 0;
 }
-
-#if 0
-static inline int do_download(int mask, int format) {
-	if (mask & PTP_SELET_JPEG && format == PTP_OF_JPEG) return 1;
-	if (mask & PTP_SELET_MOV && format == PTP_OF_MOV) return 1;
-	if (mask & PTP_SELET_RAW && format == PTP_OF_RAW) return 1;
-	return 0;
-}
-
-int fuji_import_objects(struct PtpRuntime *r, int *object_ids, int length, int mask) {
-	int rc;
-	for (int i = 0; i < length; i++) {
-		struct PtpObjectInfo oi;
-		rc = ptp_get_object_info(r, object_ids[i], &oi);
-		if (rc) {
-			return rc;
-		}
-
-		if (!do_download(mask, oi.obj_format)) continue;
-
-		app_downloading_file(r, &oi);
-
-		char path[256];
-		app_get_file_path(r, path, oi.filename);
-
-		struct stat buffer;
-		if (stat(path, &buffer) == 0) {
-			ptp_verbose_log("File already exists");
-			continue;
-		}
-
-		FILE *f = fopen(path, "wb");
-		if (f == NULL) {
-			ptp_verbose_log("fopen(%s) failed", path);
-			return PTP_RUNTIME_ERR;
-		}
-
-		rc = ptp_download_object(r, object_ids[i], f, 0x100000);
-		fclose(f);
-		if (rc) {
-			app_print(r, "Failed to save %s: %s", oi.filename, ptp_perror(rc));
-			return rc;
-		}
-
-		if (app_check_thread_cancel(r)) {
-			return 0;
-		}
-
-		app_downloaded_file(r, &oi, path);
-	}
-
-	return 0;
-}
-#endif
 
 static long get_ms(void) {
 	struct timespec ts;

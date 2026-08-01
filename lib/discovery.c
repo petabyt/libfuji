@@ -452,11 +452,6 @@ static int fuji_tether_accept(struct DiscoverInfo *info, struct DiscoveryState *
 		cur = strtok_r(NULL, delim, &saveptr);
 	}
 
-	if (fuji_discover_ask_connect(s->r, info) != 1) {
-		close(client_fd);
-		return -1;
-	}
-
 	const char resp[] = "HTTP/1.1 200 OK\r\n";
 	rc = (int)send(client_fd, resp, sizeof(resp), 0);
 	if (rc < 0) {
