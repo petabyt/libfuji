@@ -208,7 +208,7 @@ int bench_exif_thumb(struct PtpRuntime *r) {
 	return 0;
 }
 
-int handle_add(void *arg, void *data, unsigned int size, unsigned int read) {
+int handle_add(void *arg, void *data, unsigned int size, unsigned int read, unsigned int total_size) {
 	fwrite(data, size, 1, (FILE *)arg);
 	return 0;
 }
@@ -219,18 +219,8 @@ int try_download(struct PtpRuntime *r) {
 
 	bench_exif_thumb(r);
 
-	struct PtpObjectInfo oi;
-	int rc = ptp_get_object_info(r, id, &oi);
-	if (rc) {
-		return rc;
-	}
-
-	char buffer[1024];
-	ptp_object_info_json(&oi, buffer, sizeof(buffer));
-	plat_dbg(buffer);
-
 	FILE *f = fopen("TEST", "w");
-	fuji_download_file(r, id, oi.compressed_size, handle_add, (void *)f);
+	fuji_download_file(r, id, handle_add, (void *)f);
 
 	plat_dbg("Done downloading file");
 

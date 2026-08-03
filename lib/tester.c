@@ -9,13 +9,6 @@
 #include "fuji.h"
 #include "fujiptp.h"
 
-static void ptp_verbose_print_events(struct PtpRuntime *r) {
-	struct PtpFujiEvents *ev = (struct PtpFujiEvents *)(ptp_get_payload(r));
-	for (int i = 0; i < ev->length; i++) {
-		tester_log(r, "%X is %d", ev->events[i].code, ev->events[i].value);
-	}
-}
-
 static void log_payload(struct PtpRuntime *r) {
 	char buffer[512];
 	uint8_t *data = ptp_get_payload(r);
@@ -62,51 +55,7 @@ int fuji_test_get_props(struct PtpRuntime *r) {
 	return 0;
 }
 
-int fuji_test_init_access(struct PtpRuntime *r) {
-	tester_log(r, "Waiting for device access...");
-	int rc = fuji_wait_for_access(r);
-	if (rc) {
-		tester_fail(r, "Error trying to gain device access: %d", rc);
-		return rc;
-	} else {
-		tester_log(r, "Gained access to device (or already have access)");
-	}
-
-	return 0;
-}
-
-int fuji_init_setup(struct PtpRuntime *r) {
-	tester_log(r, "Configuring mode property");
-
-	int rc = fuji_config_init_mode(r);
-	if (rc) {
-		tester_fail(r, "Failed to setup mode: %d", rc);
-		return rc;
-	} else {
-		tester_log(r, "Mode property is configured.");
-	}
-
-	tester_log(r, "Configuring version properties");
-	rc = fuji_config_version(r);
-	if (rc) {
-		tester_fail(r, "Failed to configure FunctionMode: %d", rc);
-		return rc;
-	} else {
-		tester_log(r, "Configured FunctionMode, no errors detected (yet)");
-	}
-
-	rc = fuji_config_device_info_routine(r);
-	if (rc) {
-		tester_fail(r, "Failed to get device info");
-		return rc;
-	} else {
-		tester_log(r, "Received device info (or not supported)");
-	}
-
-	return 0;
-}
-
-int temp_file_handle(void *arg, void *buffer, unsigned int size, unsigned int offset) {
+int temp_file_handle(void *arg, void *buffer, unsigned int size, unsigned int offset, unsigned int total_size) {
 	struct PtpRuntime *r = arg;
 	tester_log(r, "Read %d bytes", size);
 	return 0;
@@ -175,17 +124,7 @@ int fuji_test_filesystem(struct PtpRuntime *r) {
 		}
 #endif
 
-		rc = fuji_begin_file_download(r);
-		if (rc) {
-			return rc;
-		}
-
-		rc = ptp_get_object_info(r, handle, &oi);
-		if (rc) {
-			return rc;
-		}
-
-		rc = fuji_download_file(r, handle, (int)oi.compressed_size, temp_file_handle, r);
+		rc = fuji_download_file(r, handle, temp_file_handle, r);
 		if (rc) {
 			return rc;
 		}
@@ -227,23 +166,7 @@ int fuji_simulate_app(struct PtpRuntime *r) {
 			int handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
 			tester_log(r, "Downloading an object (%d)", handle);
 
-			struct PtpObjectInfo oi;
-			rc = fuji_begin_download_get_object_info(r, handle, &oi);
-			if (rc == PTP_CHECK_CODE) {
-				fuji_end_file_download(r);
-				continue;
-			} else if (rc) {
-				tester_fail(r, "Failed to get object info");
-				return rc;
-			}
-
-			if (oi.compressed_size > (50 * 1000 * 1000)) {
-				tester_log(r, "Filesize too big, skipping file %s", oi.filename);
-				fuji_end_file_download(r);
-				continue;
-			}
-
-			rc = fuji_download_file(r, handle, (int)oi.compressed_size, temp_file_handle, NULL);
+			rc = fuji_download_file(r, handle, temp_file_handle, NULL);
 			if (rc) {
 				tester_fail(r, "fuji_download_file");
 				return rc;
@@ -258,34 +181,20 @@ int fuji_simulate_app(struct PtpRuntime *r) {
 int fuji_test_setup(struct PtpRuntime *r) {
 	tester_log(r, "Running test suite from C");
 
-	struct PtpFujiInitResp resp;
-	int rc = ptpip_fuji_init_req(r, "fuji_test", &resp);
+	int rc = fuji_setup(r, "tester");
 	if (rc) {
-		tester_fail(r, "Failed to initialize command socket");
+		tester_fail(r, "fuji_setup() failed");
 		return rc;
 	}
-	tester_log(r, "Initialized command socket");
-	tester_log(r, "Connected to %s", resp.cam_name);
 
-	tester_log(r, "sleep 500ms for good measure...");
-	PTP_SLEEP(500);
-
-	rc = ptp_open_session(r);
-	if (rc) {
-		tester_fail(r, "Failed to open session");
-		return rc;
-	}
-	tester_log(r, "Opened session");
-
-	// This has already been tested extensively, no need
+	// This has already been tested extensively
 	rc = fuji_test_get_props(r);
-	if (rc) return rc;
+	if (rc) {
+		tester_fail(r, "fuji_test_get_props() failed");
+		return rc;
+	}
 
-	rc = fuji_test_init_access(r);
-	if (rc) return rc;
-
-	rc = fuji_init_setup(r);
-	return rc;
+	return 0;
 }
 
 int fuji_test_usb(struct PtpRuntime *r) {
@@ -335,11 +244,6 @@ int fuji_test_suite(struct PtpRuntime *r) {
 
 	int rc = fuji_test_setup(r);
 	if (rc) return rc;
-
-	if (fuji->remote_version != -1) {
-		rc = fuji_setup_remote_mode(r);
-		if (rc) return rc;
-	}
 
 	rc = fuji_config_image_gallery(r);
 	if (rc) {

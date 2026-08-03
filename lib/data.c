@@ -35,8 +35,8 @@ int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data) {
 		of += ptp_read_u32(data + of, &this_length);
 		of += ptp_read_u16(data + of, &code);
 
-		plat_dbg("Code, %X", code);
-		plat_dbg("length, %d", this_length);
+		ptp_verbose_log("Code, %X\n", code);
+		ptp_verbose_log("length, %d\n", this_length);
 
 		//struct PtpPropDesc pd;
 		//int rc = ptp_get_prop_desc(r, code, &pd);
@@ -54,7 +54,7 @@ int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data) {
 	return 0;
 }
 
-int ptp_fuji_get_init_info(struct PtpRuntime *r, struct PtpFujiInitResp *resp) {
+int ptp_fuji_parse_init_struct(struct PtpRuntime *r, struct PtpFujiInitResp *resp) {
 	uint8_t *d = ptp_get_payload(r);
 
 	d += ptp_read_u32(d, &resp->x1);
@@ -81,5 +81,21 @@ int ptp_fuji_parse_object_info(struct PtpRuntime *r, struct PtpFujiObjectInfo *o
 		00 00 00
 	*/
 
+	return 0;
+}
+
+int fuji_d228(void) {
+	// Thing that PC AutoSave does
+	//	char buffer[64];
+	//	int s = 0;
+	//	s += ptp_write_u8(buffer + s, 6);
+	//	s += ptp_write_u32(buffer + s, 0x0020);
+	//	s += ptp_write_u32(buffer + s, 0x0030);
+	//	s += ptp_write_u32(buffer + s, 0x002f);
+	//	s += ptp_write_u32(buffer + s, 0x0036);
+	//	s += ptp_write_u32(buffer + s, 0x0030);
+	//	s += ptp_write_u32(buffer + s, 0x0000);
+	//
+	//	ptp_set_prop_value_data(r, 0xd228, buffer, s);
 	return 0;
 }

@@ -8,14 +8,6 @@
 
 #define FUJI_MAX_PARTIAL_OBJECT 0x100000
 
-enum DiscoverUpdateMessages {
-	FUJI_UM_GOT_FIRST_MESSAGE,
-	FUJI_UM_CONNECTING_TO_NOTIFY_SERVER,
-	FUJI_UM_STARTING_INVITE_SERVER,
-	FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER,
-	FUJI_UM_ALL_DONE,
-};
-
 enum DiscoverRet {
 	FUJI_D_REGISTERED = 1,
 	FUJI_D_GO_PTP = 2,
@@ -45,7 +37,6 @@ struct PtpUserPriv {
 	char ip_address[64];
 	enum FujiTransport transport;
 
-	char autosave_client_name[64];
 	int camera_state;
 	int selected_imgs_mode;
 
@@ -59,6 +50,7 @@ struct PtpUserPriv {
 	int image_get_version;
 	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteVersion
 	int remote_version;
+	int opened_liveview_sockets;
 	int num_objects;
 	int open_capture_trans_id;
 	int allow_autosave_thumbnails;
@@ -66,10 +58,6 @@ struct PtpUserPriv {
 
 typedef struct PtpUserPriv fujipriv_t;
 fujipriv_t *fuji_get(struct PtpRuntime *r);
-
-/// @brief Do a weird hack where we GetPartialObject on the first few kb of a file, then grab the thumbnail
-/// from the exif data. Not reliable.
-int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset, unsigned int *length);
 
 /// @brief Get a jpeg thumbnail for an object, through whatever means possible
 /// Caller must wrap this in a mutex lock. Once returns, r->data will hold the thumb
@@ -92,44 +80,29 @@ struct PtpRuntime *fuji_ptp_new(int options);
 int fuji_reset_ptp(struct PtpRuntime *r);
 
 /// @brief Set up the event/liveview sockets for remote mode
-int fuji_setup_remote_mode(struct PtpRuntime *r);
+//int fuji_setup_remote_mode(struct PtpRuntime *r);
 
 /// @brief Main entry function for PTP/IP
 int fuji_setup(struct PtpRuntime *r, const char *client_name);
-
-// Test suite stuff
-int fuji_test_suite(struct PtpRuntime *r);
-int fuji_test_setup(struct PtpRuntime *r);
-int fuji_test_filesystem(struct PtpRuntime *r);
 
 /// @brief Perform REQ/ACK for PTP/IP connection
 int ptpip_fuji_init_req(struct PtpRuntime *r, const char *device_name, struct PtpFujiInitResp *resp);
 
 /// @brief Configure some mandatory viewer/gallery related version properties
-int fuji_config_version(struct PtpRuntime *r);
+//int fuji_config_version(struct PtpRuntime *r);
 /// @brief Determine and set what ClientState we need to be in
-int fuji_config_init_mode(struct PtpRuntime *r);
+//int fuji_config_init_mode(struct PtpRuntime *r);
 
-/// @brief Configure the camera for the image viewer/gallery
+/// @brief Enters liveview
+int fuji_config_liveview(struct PtpRuntime *r);
+/// @brief Exits liveview
+int fuji_end_liveview(struct PtpRuntime *r);
+
+/// @brief Enter image gallery
 int fuji_config_image_gallery(struct PtpRuntime *r);
-/// @brief Fetch and parse initial device info
-int fuji_config_device_info_routine(struct PtpRuntime *r);
-
-int fuji_remote_mode_open_sockets(struct PtpRuntime *r);
-int fuji_remote_mode_end(struct PtpRuntime *r);
-
-/// @brief Poll events for setup event. Returns immediately if access is already granted.
-int fuji_wait_for_access(struct PtpRuntime *r);
 
 /// @brief Receives events once, and updates info struct with changes
 int fuji_get_events(struct PtpRuntime *r);
-
-/// @brief Set a prop needed to have the correct file size
-int fuji_end_file_download(struct PtpRuntime *r);
-/// @brief Unset the prop that fuji_end_file_download sets
-int fuji_begin_file_download(struct PtpRuntime *r);
-
-int fuji_begin_download_get_object_info(struct PtpRuntime *r, int handle, struct PtpObjectInfo *oi);
 
 /// @brief Covers classic 'SELECT_MULTIPLE' feature found in 2013-2017 cams.
 int fuji_download_classic(struct PtpRuntime *r);
@@ -140,6 +113,7 @@ int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port);
 /// Main entry function for all USB connections
 /// @param num Index of device to connect to, -1 to connect to first available device
 int fujiusb_try_connect(struct PtpRuntime *r, int num);
+
 /// @brief Sets up PTP session and tries to detect USB mode (fills in f->transport)
 int fujiusb_setup(struct PtpRuntime *r);
 int fujitether_setup(struct PtpRuntime *r, const char *client_name);
@@ -147,20 +121,11 @@ int fujitether_setup(struct PtpRuntime *r, const char *client_name);
 int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data);
 
 // Fuji (PTP/IP)
-int ptp_fuji_get_init_info(struct PtpRuntime *r, struct PtpFujiInitResp *resp);
-int ptp_fuji_parse_object_info(struct PtpRuntime *r, struct PtpFujiObjectInfo *oi);
-
-/// @brief Download camera settings backup file
-/// @note USB only, in backup/raw conv mode.
-int fujiusb_download_backup(struct PtpRuntime *r, FILE *f);
-
-#define PTP_SELET_JPEG (1 << 0)
-#define PTP_SELET_RAW  (1 << 1)
-#define PTP_SELET_MOV  (1 << 2)
+int ptp_fuji_parse_init_struct(struct PtpRuntime *r, struct PtpFujiInitResp *resp);
 
 /// @brief Respects cancel signals.
 /// @note If transport is FUJI_FEATURE_WIRELESS_COMM, compression property will be enabled after download
-int fuji_download_file(struct PtpRuntime *r, int handle, unsigned int file_size, int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset), void *arg);
+int fuji_download_file(struct PtpRuntime *r, int handle, int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset, unsigned int total_size), void *arg);
 
 /// @brief Gets list of object handles regardless of transport
 int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a);
@@ -174,5 +139,10 @@ int fuji_send_object_ex(struct PtpRuntime *r, const void *data, size_t length);
 /// @param input_raf_path Path for RAF file
 /// @param profile_xml_path String data for XML profile to be parsed by fp
 int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const char *output_path, const char *profile_xml_path);
+
+// Test suite stuff
+int fuji_test_suite(struct PtpRuntime *r);
+int fuji_test_setup(struct PtpRuntime *r);
+int fuji_test_filesystem(struct PtpRuntime *r);
 
 #endif

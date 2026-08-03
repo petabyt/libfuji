@@ -148,6 +148,7 @@ int fudge_test_camera(const char *name) {
 	struct PtpRuntime *r = ptp_new(PTP_IP_USB);
 	fuji_reset_ptp(r);
 	fuji_get(r)->transport = FUJI_FEATURE_WIRELESS_COMM;
+	strlcpy(r->priv->ip_address, ip_addr, sizeof(r->priv->ip_address));
 	if (ptpip_connect(r, ip_addr, FUJI_CMD_IP_PORT, 0)) {
 		printf("Error connecting to %s:%d\n", ip_addr, FUJI_CMD_IP_PORT);
 		return -1;

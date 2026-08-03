@@ -19,6 +19,14 @@
 #include "app.h"
 #include "fuji.h"
 
+enum DiscoverUpdateMessages {
+	FUJI_UM_GOT_FIRST_MESSAGE,
+	FUJI_UM_CONNECTING_TO_NOTIFY_SERVER,
+	FUJI_UM_STARTING_INVITE_SERVER,
+	FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER,
+	FUJI_UM_ALL_DONE,
+};
+
 struct DiscoveryState {
 	struct PtpRuntime *r;
 	int reg_fd;

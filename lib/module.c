@@ -38,16 +38,16 @@ static int ptpip_set_extra_socket_settings(struct PtpRuntime *r, int sockfd) {
 	return 0;
 }
 
-//void ptp_verbose_log(char *fmt, ...) {
-//#ifndef NDEBUG
-//	char buffer[512];
-//	va_list args;
-//	va_start(args, fmt);
-//	vsnprintf(buffer, sizeof(buffer), fmt, args);
-//	va_end(args);
-//	pak_global_log(buffer);
-//#endif
-//}
+void ptp_verbose_log(char *fmt, ...) {
+#ifndef NDEBUG
+	char buffer[512];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+	pak_global_log(buffer);
+#endif
+}
 
 void ptp_error_log(char *fmt, ...) {
 	va_list args;
@@ -266,16 +266,9 @@ static int on_switch_screen(struct PakModule *mod, int old_screen, int new_scree
 	if (r != NULL) {
 //		pak_debug_log(mod, "%d %d", old_screen, new_screen);
 //		if (new_screen == PAK_SCREEN_FILE_VIEWER && old_screen == PAK_SCREEN_FILE_VIEWER) return 0;
-		if (old_screen == PAK_SCREEN_FILE_VIEWER) {
-			int rc = fuji_end_file_download(r);
-			if (rc) return handle_ptperr(mod, rc, "fuji_end_file_download");
-		}
 		if (new_screen == PAK_SCREEN_FILE_GALLERY) {
 			int rc = fuji_config_image_gallery(r);
 			if (rc) return handle_ptperr(mod, rc, "fuji_config_image_gallery");
-		} else if (new_screen == PAK_SCREEN_FILE_VIEWER) {
-			int rc = fuji_begin_file_download(r);
-			if (rc) return handle_ptperr(mod, rc, "fuji_begin_file_download");
 		}
 	}
 	return 0;
@@ -284,12 +277,11 @@ static int on_switch_screen(struct PakModule *mod, int old_screen, int new_scree
 struct TempStruct {
 	struct PakModule *mod;
 	struct PakFileHandle *file;
-	unsigned int target_size;
 };
 
-static int download_add(void *arg, void *data, unsigned int size, unsigned int offset) {
+static int download_add(void *arg, void *data, unsigned int size, unsigned int offset, unsigned int total_size) {
 	struct TempStruct *temp = arg;
-	pak_rt_add_file_contents(temp->mod, temp->file, data, size, offset, temp->target_size);
+	pak_rt_add_file_contents(temp->mod, temp->file, data, size, offset, total_size);
 	return 0;
 }
 
@@ -313,10 +305,9 @@ static int on_request_file_contents(struct PakModule *mod, int job, struct PakFi
 	mod->priv->total_read = 0;
 
 	pak_rt_set_progress_bar(mod, job, 0);
-	rc = fuji_download_file(r, file->index_in_view + 1, oi.compressed_size, download_add, &(struct TempStruct){
+	rc = fuji_download_file(r, file->index_in_view + 1, download_add, &(struct TempStruct){
 		.mod = mod,
 		.file = file,
-		.target_size = oi.compressed_size,
 	});
 	pak_rt_add_file_contents(mod, file, NULL, 0, 0, 0);
 	mod->priv->update_progress_bar_job = 0;

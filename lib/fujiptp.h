@@ -52,7 +52,7 @@ enum FujiTransport {
 /// It has no noticeable performance impact on download speed there. But if this property is set in
 /// the setup process, then it will make the gallery slower (I think slowing down GetThumb calls).
 /// PC AutoSave will set this to 1 on startup, although this doesn't make a difference since it never calls GetThumb.
-#define PTP_DPC_FUJI_EnableCorrectFileSize	0xD227 // Enable full image download
+#define PTP_DPC_FUJI_EnableCorrectFileSize	0xD227
 
 // Fuji Camera Connect has this version - 2.11 if parsed as bytes. Or 11.2
 // XS10 on reported 0x02000A, camera connect set to 2000B
@@ -71,7 +71,7 @@ enum FujiTransport {
 #define PTP_DPC_FUJI_Unknown_D400	0xd400 // Possibly SelectedImgsMode2
 #define PTP_DPC_FUJI_ObjectCount2	0xd401
 #define PTP_DPC_FUJI_Unknown2		0xdc04
-#define PTP_DPC_FUJI_Unknown1		0xd246 //
+#define PTP_DPC_FUJI_Unknown1		0xd246
 #define PTP_DPC_FUJI_Unknown7		0xd406
 #define PTP_DPC_FUJI_Unknown8		0xd407
 #define PTP_DPC_FUJI_Geolocation		0xd500 // "0000.000000,N00000.000000,E00000.00,M 000.0,K0000:00:0000:00:00.000"
@@ -92,11 +92,11 @@ enum FujiTransport {
 // Same as GetObjectVersion, but for cams that support remote mode
 #define PTP_DPC_FUJI_RemoteGetObjectVersion	0xdf25
 // NOTE: 0xdf26 and 0xdf27 appear to be unused
-/// @brief Newer xapp version prop, x-s10 sets to 1, x-t5 sets to 3
+// x-s10 sets to 1, x-t5 sets to 3
 #define PTP_DPC_FUJI_RemotePhotoViewExVersion	0xdf28
-#define PTP_DPC_FUJI_RemoteUnknown12Version	0xdf21
+#define PTP_DPC_FUJI_Unknown_DF2A	0xdf2a
 #define PTP_DPC_FUJI_GeoTagVersion	0xdf31
-#define PTP_DPC_FUJI_Unknown11		0xdf44
+#define PTP_DPC_FUJI_Unknown_DF44	0xdf44
 
 /// @}
 
@@ -427,7 +427,7 @@ struct __attribute__((packed)) FujiInitPacket {
 _Static_assert(sizeof(struct FujiInitPacket) == 82, "fail");
 
 // Response to struct FujiInitPacket
-struct __attribute__((packed)) PtpFujiInitResp {
+struct PtpFujiInitResp {
 	uint32_t x1;
 	uint32_t x2;
 	uint32_t x3;
@@ -435,7 +435,7 @@ struct __attribute__((packed)) PtpFujiInitResp {
 	char cam_name[54];
 };
 
-_Static_assert(sizeof(struct PtpFujiInitResp) == 70, "fail");
+//_Static_assert(sizeof(struct PtpFujiInitResp) == 70, "fail");
 
 // Appears to be an array for events
 struct __attribute__((packed)) PtpFujiEvents {
