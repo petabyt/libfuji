@@ -208,7 +208,7 @@ JNI_FUNC(jint, cFujiSetup)(JNIEnv *env, jobject thiz) {
 
 JNI_FUNC(jint, cFujiConfigImageGallery)(JNIEnv *env, jobject thiz) {
 	set_jni_env(env);
-	int rc = fuji_config_image_viewer(&backend.r);
+	int rc = fuji_config_image_gallery(&backend.r);
 	return rc;
 }
 

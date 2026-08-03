@@ -5,6 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 project(libfuji)
 option(LIBFUJI_SHARED "Build using shared libraries" OFF)
 option(LIBFUJI_INCLUDE_CLI "Include cli program for CI/testing" OFF)
+option(LIBFUJI_MODULE "Compile as libpak module" OFF)
 
 set(FUJI_CORE
     lib/fuji.c
@@ -13,18 +14,18 @@ set(FUJI_CORE
     lib/discovery.c
     lib/fuji_usb.c
     lib/plat.c
+    lib/exif.c
 )
 
-find_package(PkgConfig)
-if(PKG_CONFIG_FOUND AND NOT ANDROID)
-    list(APPEND CMAKE_PREFIX_PATH "/usr/local")
-    pkg_check_modules(LIBPAK IMPORTED_TARGET GLOBAL libpak)
-    if(LIBPAK_FOUND)
-        add_library(pak ALIAS PkgConfig::LIBPAK)
+if(LIBFUJI_MODULE)
+    find_package(PkgConfig)
+    if(PKG_CONFIG_FOUND AND NOT ANDROID)
+        list(APPEND CMAKE_PREFIX_PATH "/usr/local")
+        pkg_check_modules(LIBPAK IMPORTED_TARGET GLOBAL libpak)
+        if(LIBPAK_FOUND)
+            add_library(pak ALIAS PkgConfig::LIBPAK)
+        endif()
     endif()
-endif()
-
-if(TARGET pak)
     set(FUJI_CORE ${FUJI_CORE} lib/module.c lib/bluetooth.c)
 endif()
 
@@ -54,12 +55,11 @@ endif()
 if(TARGET pak)
     target_link_libraries(fuji PUBLIC pak)
 endif()
-#set_target_properties(fuji PROPERTIES OUTPUT_NAME libfuji)
 
 if(LIBFUJI_INCLUDE_CLI)
     add_executable(libfuji-cli
         lib/cli.c
         lib/jank.c
     )
-    target_link_libraries(libfuji-cli PUBLIC libfuji)
+    target_link_libraries(libfuji-cli PUBLIC fuji)
 endif()

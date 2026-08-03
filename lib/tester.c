@@ -37,13 +37,13 @@ static void log_payload(struct PtpRuntime *r) {
 
 int fuji_test_get_props(struct PtpRuntime *r) {
 	uint16_t test_props[] = {
-		PTP_DPC_FUJI_ImageGetVersion,
-		PTP_DPC_FUJI_GetObjectVersion,
-		PTP_DPC_FUJI_RemoteVersion,
-		PTP_DPC_FUJI_RemoteGetObjectVersion,
-		PTP_DPC_FUJI_Unknown_D400,
-		PTP_DPC_FUJI_Unknown_D52F,
-		PTP_DPC_FUJI_Unknown_DF28,
+			PTP_DPC_FUJI_ImageGetVersion,
+			PTP_DPC_FUJI_GetObjectVersion,
+			PTP_DPC_FUJI_RemoteVersion,
+			PTP_DPC_FUJI_RemoteGetObjectVersion,
+			PTP_DPC_FUJI_Unknown_D400,
+			PTP_DPC_FUJI_Unknown_D52F,
+			PTP_DPC_FUJI_RemotePhotoViewExVersion,
 	};
 
 	for (int i = 0; i < (int)(sizeof(test_props) / sizeof(uint16_t)); i++) {
@@ -341,7 +341,7 @@ int fuji_test_suite(struct PtpRuntime *r) {
 		if (rc) return rc;
 	}
 
-	rc = fuji_config_image_viewer(r);
+	rc = fuji_config_image_gallery(r);
 	if (rc) {
 		tester_fail(r, "Failed to config image viewer");
 		return rc;

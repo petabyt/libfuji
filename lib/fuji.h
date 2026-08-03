@@ -30,7 +30,6 @@ enum DiscoverRet {
 /// @brief Holds all information about a camera that has been detected (through any means)
 struct DiscoverInfo {
 	enum FujiTransport transport;
-	struct NetworkHandle h;
 	char camera_ip[64];
 	char camera_name[64];
 	char camera_model[64];
@@ -43,11 +42,7 @@ struct DiscoverInfo {
 /// Fujifilm priv struct for PtpRuntime->priv variable
 struct PtpUserPriv {
 	struct FujiModulePriv *priv;
-	/// @note applied from struct DiscoverInfo
-	struct NetworkHandle net;
-	/// @note applied from struct DiscoverInfo
 	char ip_address[64];
-	/// @note applied from struct DiscoverInfo
 	enum FujiTransport transport;
 
 	char autosave_client_name[64];
@@ -58,6 +53,8 @@ struct PtpUserPriv {
 	int get_object_version;
 	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteGetObjectVersion
 	int remote_image_view_version;
+	/// @brief Camera's initial value of PTP_DPC_FUJI_RemotePhotoViewExVersion
+	int remote_image_view_ex_version;
 	/// @brief Camera's initial value of PTP_DPC_FUJI_ImageGetVersion
 	int image_get_version;
 	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteVersion
@@ -86,10 +83,6 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code);
 /// @note This will block
 int fuji_discover_thread(struct PtpRuntime *r, struct DiscoverInfo *info, const char *client_name);
 
-/// @brief Callback for discovery. Called when a new device wanting to pair is discovered. Return 1 if connection accepted
-/// @note to be defined by frontend
-int fuji_discover_ask_connect(struct PtpRuntime *r, struct DiscoverInfo *info);
-
 /// @brief Check if discovery is canceled
 /// @note to be defined by frontend
 int fuji_discovery_check_cancel(struct PtpRuntime *r);
@@ -103,11 +96,6 @@ int fuji_setup_remote_mode(struct PtpRuntime *r);
 
 /// @brief Main entry function for PTP/IP
 int fuji_setup(struct PtpRuntime *r, const char *client_name);
-
-//int fuji_connection_entry(struct PtpRuntime *r);
-
-/// @brief Import files, based on an array of object IDs. Object Info will be fetched for each, mask will dictate if it's skipped or not.
-//int fuji_import_objects(struct PtpRuntime *r, int *object_ids, int length, int mask);
 
 // Test suite stuff
 int fuji_test_suite(struct PtpRuntime *r);
@@ -123,7 +111,7 @@ int fuji_config_version(struct PtpRuntime *r);
 int fuji_config_init_mode(struct PtpRuntime *r);
 
 /// @brief Configure the camera for the image viewer/gallery
-int fuji_config_image_viewer(struct PtpRuntime *r);
+int fuji_config_image_gallery(struct PtpRuntime *r);
 /// @brief Fetch and parse initial device info
 int fuji_config_device_info_routine(struct PtpRuntime *r);
 

@@ -38,19 +38,16 @@ static int ptpip_set_extra_socket_settings(struct PtpRuntime *r, int sockfd) {
 	return 0;
 }
 
-void ptp_verbose_log(char *fmt, ...) {
-#if 1
-#ifdef NDEBUG
-#error "Disable ptp_verbose_log in production build"
-#endif
-	char buffer[512];
-	va_list args;
-	va_start(args, fmt);
-	vsnprintf(buffer, sizeof(buffer), fmt, args);
-	va_end(args);
-	pak_global_log(buffer);
-#endif
-}
+//void ptp_verbose_log(char *fmt, ...) {
+//#ifndef NDEBUG
+//	char buffer[512];
+//	va_list args;
+//	va_start(args, fmt);
+//	vsnprintf(buffer, sizeof(buffer), fmt, args);
+//	va_end(args);
+//	pak_global_log(buffer);
+//#endif
+//}
 
 void ptp_error_log(char *fmt, ...) {
 	va_list args;
@@ -137,6 +134,7 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 	const char *client_name = pak_rt_get_client_name();
 	const char *setup_option = pak_rt_get_setup_option(mod);
 	if (setup_option == NULL) return PAK_ERR_UNSUPPORTED;
+	pak_debug_log(mod, "setup opt: %s", setup_option);
 	if (!strcmp(setup_option, "wifi")) {
 		r->priv->transport = FUJI_FEATURE_WIRELESS_COMM;
 		strcpy(r->priv->ip_address, "192.168.0.1");
@@ -195,7 +193,7 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 		app_print(r, "Check your file manager app/gallery.");
 		ptp_report_error(r, "Disconnected", 0);
 		return PAK_ERR_DISCONNECTED;
-	} else if (r->priv->camera_state == FUJI_FULL_ACCESS || r->priv->camera_state == FUJI_REMOTE_ACCESS) {
+	} else if (r->priv->camera_state == FUJI_FULL_ACCESS || r->priv->camera_state == FUJI_REMOTE_ACCESS || r->priv->camera_state == FUJI_MODE_REMOTE_IMG_VIEW_XAPP) {
 		pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
 		pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
 		pak_rt_set_screen_supported(mod, PAK_SCREEN_GEOTAGGING, 1);
@@ -273,8 +271,8 @@ static int on_switch_screen(struct PakModule *mod, int old_screen, int new_scree
 			if (rc) return handle_ptperr(mod, rc, "fuji_end_file_download");
 		}
 		if (new_screen == PAK_SCREEN_FILE_GALLERY) {
-			int rc = fuji_config_image_viewer(r);
-			if (rc) return handle_ptperr(mod, rc, "fuji_config_image_viewer");
+			int rc = fuji_config_image_gallery(r);
+			if (rc) return handle_ptperr(mod, rc, "fuji_config_image_gallery");
 		} else if (new_screen == PAK_SCREEN_FILE_VIEWER) {
 			int rc = fuji_begin_file_download(r);
 			if (rc) return handle_ptperr(mod, rc, "fuji_begin_file_download");

@@ -17,12 +17,38 @@ void nothing(int x) {}
 
 pid_t child_pid = -1;
 
+__attribute__((weak))
 void ptp_verbose_log(char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
 }
+
+__attribute__((weak))
+void ptp_error_log(char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+
+__attribute__ ((noreturn))
+void ptp_panic(char *fmt, ...) {
+	printf("PTP abort: ");
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+	fflush(stdout);
+	putchar('\n');
+	abort();
+}
+
+int fuji_discovery_check_cancel(struct PtpRuntime *r) {return 0;}
+void app_report_download_speed(struct PtpRuntime *r, long time, size_t size) {}
+int app_check_thread_cancel(struct PtpRuntime *r) {return 0;}
+int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpObjectInfo *oi) {return 0;}
 
 int fudge_usb_connect(struct PtpRuntime *r, int num) {
 	static int attempts = 0;

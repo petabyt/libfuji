@@ -208,7 +208,7 @@ int bench_exif_thumb(struct PtpRuntime *r) {
 	return 0;
 }
 
-int handle_add(void *arg, void *data, int size, int read) {
+int handle_add(void *arg, void *data, unsigned int size, unsigned int read) {
 	fwrite(data, size, 1, (FILE *)arg);
 	return 0;
 }

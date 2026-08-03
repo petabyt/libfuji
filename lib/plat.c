@@ -33,7 +33,7 @@ void app_send_cam_name(struct PtpRuntime *r, const char *name) {
 
 __attribute__((weak))
 void tester_log(struct PtpRuntime *r, char *fmt, ...) {
-	printf("LOG: ");
+	printf("1LOG: ");
 	va_list args;
 	va_start(args, fmt);
 	vprintf(fmt, args);
