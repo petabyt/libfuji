@@ -401,7 +401,7 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	}
 
 	// These properties must be updated on the first get_events call
-	// num_objects will not be updated in 'GET MULTIPLE' mode
+	// num_objects will not be updated in FUJI_MULTIPLE_TRANSFER mode
 	fuji->camera_state = -1;
 	fuji->num_objects = -1;
 	fuji->selected_imgs_mode = -1;
@@ -455,10 +455,10 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		return 0;
 	}
 
-	app_print(r, "Setting up image viewer");
+	app_print(r, "Configuring version properties");
 	rc = fuji_config_version(r);
 	if (rc) {
-		app_print(r, "Failed to check versions.");
+		app_print(r, "fuji_config_version()");
 		return rc;
 	}
 
@@ -467,11 +467,12 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		if (rc) return rc;
 	}
 
-	// Check SD card slot, not really useful for now
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_StorageID);
 	if (rc == 0) {
-		ptp_verbose_log("Storage ID: %d\n", ptp_parse_prop_value(r));
-	} else if (rc == PTP_CHECK_CODE) {} else if (rc) {
+		sprintf(fuji->storage_device_name, "Card %d", ptp_parse_prop_value(r));
+	} else if (rc == PTP_CHECK_CODE) {
+		strcpy(fuji->storage_device_name, "Card");
+	} else if (rc) {
 		return rc;
 	}
 
@@ -481,6 +482,9 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		rc = fuji_config_liveview(r);
 		if (rc) return rc;
 		rc = fuji_end_liveview(r);
+		if (rc) return rc;
+		app_print(r, "Setting up image gallery");
+		rc = fuji_config_image_gallery(r);
 		if (rc) return rc;
 	}
 
@@ -737,7 +741,7 @@ int fuji_config_image_gallery(struct PtpRuntime *r) {
 			rc = fuji_get_events(r);
 			if (rc) return rc;
 
-			// xapp gets but doesn't set df25
+			// xapp gets but doesn't set df25 when switching gallery->liveview->gallery
 
 			rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion);
 			fuji->remote_image_view_version = ptp_parse_prop_value(r);
@@ -761,15 +765,11 @@ static long get_ms(void) {
 	return (long)(ts.tv_sec * 1000000L + ts.tv_nsec / 1000L);
 }
 
-int fuji_download_file(struct PtpRuntime *r, int handle, int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset, unsigned int total_size), void *arg) {
+int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg, struct PtpObjectInfo *oi), int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset, unsigned int total_size), void *arg) {
 	fujipriv_t *fuji = fuji_get(r);
 	int rc = 0;
 
 	ptp_verbose_log("Downloading object %d\n", handle);
-
-	// TODO: xapp thing (?)
-	//		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_CompressionCutOff);
-	//		if (rc) return rc;
 
 	if (fuji->transport == FUJI_FEATURE_WIRELESS_COMM) {
 		rc = fuji_get_events(r);
@@ -789,7 +789,10 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int (handle_add)(void *
 	if (rc) {
 		return rc;
 	}
-	plat_update_object_info(r, handle, &oi);
+
+	if (info != NULL) {
+		info(arg, &oi);
+	}
 
 	long then = get_ms();
 
@@ -851,6 +854,10 @@ int fuji_download_file(struct PtpRuntime *r, int handle, int (handle_add)(void *
 	}
 	ptp_mutex_unlock(r);
 	return rc;
+}
+
+int fuji_download_file(struct PtpRuntime *r, int handle, int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset, unsigned int total_size), void *arg) {
+	return fuji_download_file_ex(r, handle, NULL, handle_add, arg);
 }
 
 // Functionality of FUJI_MULTIPLE_TRANSFER

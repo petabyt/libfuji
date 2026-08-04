@@ -37,9 +37,10 @@ struct PtpUserPriv {
 	char ip_address[64];
 	enum FujiTransport transport;
 
+	/// @brief Current value of PTP_DPC_FUJI_CameraState
 	int camera_state;
+	/// @brief Current value of PTP_DPC_FUJI_SelectedImgsMode
 	int selected_imgs_mode;
-
 	/// @brief Camera's initial value of PTP_DPC_FUJI_GetObjectVersion
 	int get_object_version;
 	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteGetObjectVersion
@@ -50,8 +51,10 @@ struct PtpUserPriv {
 	int image_get_version;
 	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteVersion
 	int remote_version;
+	// has liveview sockets been opened already
 	int opened_liveview_sockets;
 	int num_objects;
+	char storage_device_name[64];
 	int open_capture_trans_id;
 	int allow_autosave_thumbnails;
 };
@@ -126,6 +129,7 @@ int ptp_fuji_parse_init_struct(struct PtpRuntime *r, struct PtpFujiInitResp *res
 /// @brief Respects cancel signals.
 /// @note If transport is FUJI_FEATURE_WIRELESS_COMM, compression property will be enabled after download
 int fuji_download_file(struct PtpRuntime *r, int handle, int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset, unsigned int total_size), void *arg);
+int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg, struct PtpObjectInfo *oi), int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset, unsigned int total_size), void *arg);
 
 /// @brief Gets list of object handles regardless of transport
 int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a);

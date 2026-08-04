@@ -12,6 +12,8 @@
 	#include <winsock2.h>
 	#include <ws2tcpip.h>
 #else
+	#include <sys/socket.h>
+	#include <sys/select.h>
 	#include <poll.h>
 	#include <arpa/inet.h>
 #endif

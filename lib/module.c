@@ -45,15 +45,17 @@ void ptp_verbose_log(char *fmt, ...) {
 	va_start(args, fmt);
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
-	pak_global_log(buffer);
+	pak_global_log("%s", buffer);
 #endif
 }
 
 void ptp_error_log(char *fmt, ...) {
+	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
-	vprintf(fmt, args);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
+	pak_global_log("<error>%s", buffer);
 }
 
 __attribute__ ((noreturn))
@@ -182,36 +184,43 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 	int rc = fuji_setup(r, client_name);
 	if (rc) return PAK_ERR_NO_CONNECTION;
 
-	if (r->priv->camera_state == FUJI_MULTIPLE_TRANSFER) {
-		// TODO:
-		pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVE_FEED, 1);
-		// TODO: Do downloading after connected
-		rc = fuji_download_classic(r);
-		if (rc) {
-			app_print(r, "Error downloading images");
+	pak_rt_set_storage_info(mod, r->priv->storage_device_name, r->priv->num_objects, PAK_NEWEST_FIRST);
+
+	switch (r->priv->camera_state) {
+		case FUJI_FULL_ACCESS:
+		case FUJI_MODE_REMOTE_IMG_VIEW:
+		case FUJI_REMOTE_ACCESS:
+		case FUJI_MODE_REMOTE_IMG_VIEW_XAPP: {
+			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
+			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
+			//pak_rt_set_screen_supported(mod, PAK_SCREEN_GEOTAGGING, 1);
+			//pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVEVIEW, 1);
+		} break;
+		case FUJI_MULTIPLE_TRANSFER: {
+			// TODO:
+			pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVE_FEED, 1);
+			// TODO: Do downloading after connected
+			rc = fuji_download_classic(r);
+			if (rc) {
+				app_print(r, "Error downloading images");
+				return PAK_ERR_DISCONNECTED;
+			}
+			app_print(r, "Check your file manager app/gallery.");
+			ptp_report_error(r, "Disconnected", 0);
 			return PAK_ERR_DISCONNECTED;
-		}
-		app_print(r, "Check your file manager app/gallery.");
-		ptp_report_error(r, "Disconnected", 0);
-		return PAK_ERR_DISCONNECTED;
-	} else if (r->priv->camera_state == FUJI_FULL_ACCESS || r->priv->camera_state == FUJI_REMOTE_ACCESS || r->priv->camera_state == FUJI_MODE_REMOTE_IMG_VIEW_XAPP) {
-		pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
-		pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
-		pak_rt_set_screen_supported(mod, PAK_SCREEN_GEOTAGGING, 1);
-		pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVEVIEW, 1);
-	} else if (r->priv->camera_state == FUJI_PC_AUTO_SAVE) {
-		pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
-		pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
+		} break;
+		case FUJI_PC_AUTO_SAVE: {
+			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
+			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
 
-		pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-			.name = "autosave-thumbnails",
-			.title = "Enable thumbnails (buggy)",
-			.type = PAK_BOOLEAN,
-			.u.boolv.v = 0,
-		});
+			pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
+				.name = "autosave-thumbnails",
+				.title = "Enable thumbnails (buggy)",
+				.type = PAK_BOOLEAN,
+				.u.boolv.v = 0,
+			});
+		} break;
 	}
-
-	pak_rt_set_storage_info(mod, "sdcard", r->priv->num_objects, PAK_NEWEST_FIRST);
 
 	return 0;
 }
@@ -264,12 +273,16 @@ static int on_disconnect(struct PakModule *mod) {
 
 static int on_switch_screen(struct PakModule *mod, int old_screen, int new_screen, int job) {
 	struct PtpRuntime *r = mod->priv->r;
+	int rc;
 	if (r != NULL) {
-//		pak_debug_log(mod, "%d %d", old_screen, new_screen);
-//		if (new_screen == PAK_SCREEN_FILE_VIEWER && old_screen == PAK_SCREEN_FILE_VIEWER) return 0;
-		if (new_screen == PAK_SCREEN_FILE_GALLERY) {
-//			int rc = fuji_config_image_gallery(r);
-//			if (rc) return handle_ptperr(mod, rc, "fuji_config_image_gallery");
+		// We treat dashboard and gallery as the same screen
+		if (new_screen == PAK_SCREEN_LIVEVIEW && old_screen == PAK_SCREEN_LIVEVIEW) return 0;
+		if (new_screen == PAK_SCREEN_LIVEVIEW) {
+			rc = fuji_config_liveview(r);
+			if (rc) return rc;
+		} else if (old_screen == PAK_SCREEN_LIVEVIEW) {
+			rc = fuji_end_liveview(r);
+			fuji_config_image_gallery(r);
 		}
 	}
 	return 0;
@@ -278,10 +291,21 @@ static int on_switch_screen(struct PakModule *mod, int old_screen, int new_scree
 struct TempStruct {
 	struct PakModule *mod;
 	struct PakFileHandle *file;
+	int job;
 };
+
+static int download_init(void *arg, struct PtpObjectInfo *oi) {
+	struct TempStruct *temp = arg;
+	temp->mod->priv->current_job = temp->job;
+	temp->mod->priv->update_progress_bar_job = temp->job;
+	temp->mod->priv->to_read_target = oi->compressed_size;
+	temp->mod->priv->total_read = 0;
+	pak_rt_set_progress_bar(temp->mod, temp->job, 0);
+}
 
 static int download_add(void *arg, void *data, unsigned int size, unsigned int offset, unsigned int total_size) {
 	struct TempStruct *temp = arg;
+	temp->mod->priv->to_read_target = total_size;
 	pak_rt_add_file_contents(temp->mod, temp->file, data, size, offset, total_size);
 	return 0;
 }
@@ -290,25 +314,11 @@ static int on_request_file_contents(struct PakModule *mod, int job, struct PakFi
 	struct PtpRuntime *r = mod->priv->r;
 	if (r == NULL) return 0;
 
-	mod->priv->current_job = job;
-
-	struct PtpObjectInfo oi;
-	int rc = ptp_get_object_info(r, file->index_in_view + 1, &oi);
-	if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR) {
-		pak_rt_add_file_metadata(mod, file, NULL);
-		return PAK_ERR_NON_FATAL;
-	} else if (rc) return handle_ptperr(mod, rc, "fuji_begin_download_get_object_info");
-
-	plat_update_object_info(r, file->index_in_view + 1, &oi);
-
-	mod->priv->update_progress_bar_job = job;
-	mod->priv->to_read_target = oi.compressed_size;
-	mod->priv->total_read = 0;
-
 	pak_rt_set_progress_bar(mod, job, 0);
-	rc = fuji_download_file(r, file->index_in_view + 1, download_add, &(struct TempStruct){
+	int rc = fuji_download_file_ex(r, file->index_in_view + 1, download_init, download_add, &(struct TempStruct){
 		.mod = mod,
 		.file = file,
+		.job = job,
 	});
 	pak_rt_add_file_contents(mod, file, NULL, 0, 0, 0);
 	mod->priv->update_progress_bar_job = 0;

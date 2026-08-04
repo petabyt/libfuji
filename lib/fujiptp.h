@@ -34,71 +34,66 @@ enum FujiTransport {
 #define FUJI_EVENT_IP_PORT 55741
 #define FUJI_LIVEVIEW_IP_PORT 55742
 
-/// @defgroup Device Property Codes
-/// @brief All the Fuji vendor codes defined in libfudge
-/// @addtogroup DPC
-/// @{
-
-#define PTP_DPC_FUJI_EventsList		0xd212
-#define PTP_DPC_FUJI_SelectedImgsMode	0xd220
-#define PTP_DPC_FUJI_ObjectCount		0xd222
-#define PTP_DPC_FUJI_CameraState		0xdf00
-#define PTP_DPC_FUJI_ClientState		0xdf01
-/// @brief If 1, will heavily compress images into 400kb-800kb. Fuji uses this for downloading a quick preview.
-#define PTP_DPC_FUJI_CompressSmall	0xD226
-/// @brief If 0 (default value), the compressed_size field of PtpObjectInfo will be set at 100kb.
-/// If 1, it will set the correct file size.
-/// Fuji sets this to 1 before GetObjectInfo and GetPartialObject(s) calls, and 0 after.
-/// It has no noticeable performance impact on download speed there. But if this property is set in
-/// the setup process, then it will make the gallery slower (I think slowing down GetThumb calls).
-/// PC AutoSave will set this to 1 on startup, although this doesn't make a difference since it never calls GetThumb.
-#define PTP_DPC_FUJI_EnableCorrectFileSize	0xD227
-
 // Fuji Camera Connect has this version - 2.11 if parsed as bytes. Or 11.2
 // XS10 on reported 0x02000A, camera connect set to 2000B
 #define FUJI_CAM_CONNECT_REMOTE_VER 0x2000C
 
-#define PTP_DPC_FUJI_UnknownD21C	0xd21c
-#define PTP_DPC_FUJI_Unknown_D224	0xd224
-// Client sets this in PC Autosave, likely for the camera to update it's database of images the client hasn't downloaded?
-// See `struct FujiD228` - structure appears similar to PTP_DPC_FUJI_BatteryInfo2
-// Setting this doesn't appear to be necessary for downloading photos
-#define PTP_DPC_FUJI_AutoSaveDatabaseStatus	0xD228
-#define PTP_DPC_FUJI_Unknown_D22B	0xD22B
-#define PTP_DPC_FUJI_Unknown_D22E	0xD22e
-#define PTP_DPC_FUJI_CompressionCutOff	0xD235
-#define PTP_DPC_FUJI_StorageID		0xd244
-#define PTP_DPC_FUJI_Unknown_D400	0xd400 // Possibly SelectedImgsMode2
-#define PTP_DPC_FUJI_ObjectCount2	0xd401
-#define PTP_DPC_FUJI_Unknown2		0xdc04
-#define PTP_DPC_FUJI_Unknown1		0xd246
-#define PTP_DPC_FUJI_Unknown7		0xd406
-#define PTP_DPC_FUJI_Unknown8		0xd407
-#define PTP_DPC_FUJI_Geolocation		0xd500 // "0000.000000,N00000.000000,E00000.00,M 000.0,K0000:00:0000:00:00.000"
-#define PTP_DPC_FUJI_Unknown_D52F	0xd52f
+enum FujiDevicePropertyCode {
+    PTP_DPC_FUJI_EventsList = 0xd212,
+    PTP_DPC_FUJI_SelectedImgsMode = 0xd220,
+    PTP_DPC_FUJI_ObjectCount = 0xd222,
+    PTP_DPC_FUJI_CameraState = 0xdf00,
+    PTP_DPC_FUJI_ClientState = 0xdf01,
+    /// @brief If 1, will heavily compress images into 400kb-800kb. Fuji uses this for downloading a quick preview.
+    PTP_DPC_FUJI_CompressSmall = 0xD226,
+    /// @brief If 0 (default value), the compressed_size field of PtpObjectInfo will be set at 100kb.
+    /// If 1, it will set the correct file size.
+    /// Fuji sets this to 1 before GetObjectInfo and GetPartialObject(s) calls, and 0 after.
+    /// It has no noticeable performance impact on download speed there. But if this property is set in
+    /// the setup process, then it will make the gallery slower (I think slowing down GetThumb calls).
+    /// PC AutoSave will set this to 1 on startup, although this doesn't make a difference since it never calls GetThumb.
+    PTP_DPC_FUJI_EnableCorrectFileSize = 0xD227,
 
-// New xapp properties
-#define PTP_DPC_FUJI_ImageImportObjectCount	0xD620
-#define PTP_DPC_FUJI_ImageImportObjectHandles	0xD621
+    PTP_DPC_FUJI_UnknownD21C = 0xd21c,
+    PTP_DPC_FUJI_Unknown_D224 = 0xd224,
+    // Client sets this in PC Autosave, likely for the camera to update it's database of images the client hasn't downloaded?
+    // See `struct FujiD228` - structure appears similar to PTP_DPC_FUJI_BatteryInfo2
+    // Setting this doesn't appear to be necessary for downloading photos
+    PTP_DPC_FUJI_AutoSaveDatabaseStatus = 0xD228,
+    PTP_DPC_FUJI_Unknown_D22B = 0xD22B,
+    PTP_DPC_FUJI_Unknown_D22E = 0xD22e,
+    PTP_DPC_FUJI_CompressionCutOff = 0xD235,
+    PTP_DPC_FUJI_StorageID = 0xd244,
+    PTP_DPC_FUJI_Unknown_D400 = 0xd400, // Possibly SelectedImgsMode2
+    PTP_DPC_FUJI_ObjectCount2 = 0xd401,
+    PTP_DPC_FUJI_Unknown2 = 0xdc04,
+    PTP_DPC_FUJI_Unknown1 = 0xd246,
+    PTP_DPC_FUJI_Unknown7 = 0xd406,
+    PTP_DPC_FUJI_Unknown8 = 0xd407,
+    PTP_DPC_FUJI_Geolocation = 0xd500, // "0000.000000,N00000.000000,E00000.00,M 000.0,K0000:00:0000:00:00.000"
+    PTP_DPC_FUJI_Unknown_D52F = 0xd52f,
 
-// NOTE: Most of 0xdfxx appear to be version/revision properties
+    // New xapp properties
+    PTP_DPC_FUJI_ImageImportObjectCount = 0xD620,
+    PTP_DPC_FUJI_ImageImportObjectHandles = 0xD621,
 
-/// @brief Prop checked before doing image related things
-#define PTP_DPC_FUJI_ImageGetVersion	0xdf21
-/// @brief Property that differentiates behavior for GetObjectInfo and GetObject
-#define PTP_DPC_FUJI_GetObjectVersion	0xdf22
-#define PTP_DPC_FUJI_AutoSaveVersion	0xdf23
-#define PTP_DPC_FUJI_RemoteVersion	0xdf24
-// Same as GetObjectVersion, but for cams that support remote mode
-#define PTP_DPC_FUJI_RemoteGetObjectVersion	0xdf25
-// NOTE: 0xdf26 and 0xdf27 appear to be unused
-// x-s10 sets to 1, x-t5 sets to 3
-#define PTP_DPC_FUJI_RemotePhotoViewExVersion	0xdf28
-#define PTP_DPC_FUJI_Unknown_DF2A	0xdf2a
-#define PTP_DPC_FUJI_GeoTagVersion	0xdf31
-#define PTP_DPC_FUJI_Unknown_DF44	0xdf44
+    // NOTE: Most of 0xdfxx appear to be version/revision properties
 
-/// @}
+    /// @brief Prop checked before doing image related things
+    PTP_DPC_FUJI_ImageGetVersion = 0xdf21,
+    /// @brief Property that differentiates behavior for GetObjectInfo and GetObject
+    PTP_DPC_FUJI_GetObjectVersion = 0xdf22,
+    PTP_DPC_FUJI_AutoSaveVersion = 0xdf23,
+    PTP_DPC_FUJI_RemoteVersion = 0xdf24,
+    // Same as GetObjectVersion, but for cams that support remote mode
+    PTP_DPC_FUJI_RemoteGetObjectVersion = 0xdf25,
+    // NOTE: 0xdf26 and 0xdf27 appear to be unused
+    // x-s10 sets to 1, x-t5 sets to 3
+    PTP_DPC_FUJI_RemotePhotoViewExVersion = 0xdf28,
+    PTP_DPC_FUJI_Unknown_DF2A = 0xdf2a,
+    PTP_DPC_FUJI_GeoTagVersion = 0xdf31,
+    PTP_DPC_FUJI_Unknown_DF44 = 0xdf44,
+};
 
 /// @brief Possible values of PTP_DPC_FUJI_ClientState / 0xdf01
 enum ClientStates {
@@ -131,7 +126,7 @@ enum ClientStates {
 	FUJI_MODE_REMOTE_LIVE_VIEW_XAPP = 22,
 };
 
-// Modes for SelectedImgsMode
+// Modes for PTP_DPC_FUJI_SelectedImgsMode
 #define FUJI_SELECT_MULTIPLE_MODE_1 1
 
 /// @brief Possible values of PTP_DPC_FUJI_CameraState (0xdf00)
@@ -147,6 +142,8 @@ enum FujiStates {
 	FUJI_PC_AUTO_SAVE = 3,
 	// We have all features of FUJI_FULL_ACCESS and remote mode.
 	FUJI_REMOTE_ACCESS = 6,
+	// Shared with 0xdf01
+	//FUJI_MODE_REMOTE_IMG_VIEW = 11,
 	// Commented out because the values are shared between df01/df00
 	//FUJI_MODE_REMOTE_IMG_VIEW_XAPP = 20,
 };
@@ -156,6 +153,41 @@ enum FujiUSBModes {
 	FUJI_USB_MODE_TETHER = 5,
 	FUJI_USB_MODE_RAWCONV = 6,
 	FUJI_USB_MODE_WEBCAM = 8,
+};
+
+enum FujiVendorOpcodes {
+    // Fuji USB and IP extensions, available on almost all cameras
+	/// @brief able to create a file
+    PTP_OC_FUJI_SendObjectInfo = 0x900c,
+	/// @brief Appears to be the same or very similar as 901d
+    PTP_OC_FUJI_SendObject2 = 0x900d,
+	/// @brief write to file
+    PTP_OC_FUJI_SendObject = 0x901d,
+
+    // WiFi opcodes, mostly from libgphoto2
+    PTP_OC_FUJI_InitiateMovieCapture = 0x9020,
+    PTP_OC_FUJI_TerminateMovieCapture = 0x9021,
+    PTP_OC_FUJI_GetCapturePreview = 0x9022,
+    PTP_OC_FUJI_StepZoom = 0x9023,
+    PTP_OC_FUJI_StartZoom = 0x9024,
+    PTP_OC_FUJI_StopZoom = 0x9025,
+    PTP_OC_FUJI_LockS1Lock = 0x9026,
+    PTP_OC_FUJI_UnlockS1Lock = 0x9027,
+    PTP_OC_FUJI_GetDeviceInfo = 0x902B,
+    PTP_OC_FUJI_StepShutterSpeed = 0x902C,
+    PTP_OC_FUJI_StepFNumber = 0x902D,
+    PTP_OC_FUJI_StepExposureBias = 0x902E,
+    PTP_OC_FUJI_CancelInitiateCapture = 0x9030,
+    PTP_OC_FUJI_FmSendObjectInfo = 0x9040,
+    PTP_OC_FUJI_FmSendObject = 0x9041,
+    PTP_OC_FUJI_FmSendPartialObject = 0x9042,
+
+    PTP_OC_FUJI_GetImageImportFolders = 0x9050,
+    PTP_OC_FUJI_GetImageImportDates = 0x9053,
+    PTP_OC_FUJI_GetExtensionObjectInfo = 0x9054,
+    PTP_OC_FUJI_GetExtensionThumb = 0x9055,
+    PTP_OC_FUJI_GetExtensionPartialObject = 0x9056,
+    PTP_OC_Unknown_9060 = 0x9060,
 };
 
 // ECs and PCs stuff from libgphoto2 ptp.h - some appear to be inaccurate or misplaced
@@ -378,37 +410,6 @@ enum FujiUSBModes {
 #define PTP_DPC_FUJI_FocusLimiter			0xD390
 #define PTP_DPC_FUJI_FocusArea4				0xD395
 
-// Fuji USB and IP extensions, available on almost all cameras
-#define PTP_OC_FUJI_SendObjectInfo	0x900c // create file
-#define PTP_OC_FUJI_SendObject2		0x900d // Appears to be the same as 901d
-#define PTP_OC_FUJI_SendObject		0x901d // write to file
-
-// WiFi opcodes, mostly from libgphoto2
-#define PTP_OC_FUJI_InitiateMovieCapture		0x9020
-#define PTP_OC_FUJI_TerminateMovieCapture		0x9021
-#define PTP_OC_FUJI_GetCapturePreview			0x9022
-#define PTP_OC_FUJI_StepZoom 0x9023
-#define PTP_OC_FUJI_StartZoom 0x9024
-#define PTP_OC_FUJI_StopZoom 0x9025
-#define PTP_OC_FUJI_LockS1Lock			0x9026
-#define PTP_OC_FUJI_UnlockS1Lock			0x9027
-#define PTP_OC_FUJI_GetDeviceInfo			0x902B
-#define PTP_OC_FUJI_StepShutterSpeed			0x902C
-#define PTP_OC_FUJI_StepFNumber				0x902D
-#define PTP_OC_FUJI_StepExposureBias		0x902E
-#define PTP_OC_FUJI_CancelInitiateCapture		0x9030
-#define PTP_OC_FUJI_FmSendObjectInfo			0x9040
-#define PTP_OC_FUJI_FmSendObject			0x9041
-#define PTP_OC_FUJI_FmSendPartialObject			0x9042
-
-#define PTP_OC_FUJI_GetImageImportFolders	0x9050
-#define PTP_OC_FUJI_GetImageImportDates		0x9053
-#define PTP_OC_FUJI_GetExtensionObjectInfo	0x9054
-#define PTP_OC_FUJI_GetExtensionThumb		0x9055
-#define PTP_OC_FUJI_GetExtensionPartialObject	0x9056
-#define PTP_OC_Unknown_9060					0x9060
-
-/** @}*/
 
 #define PTP_OF_FUJI_FFF1 0xFFF1
 
