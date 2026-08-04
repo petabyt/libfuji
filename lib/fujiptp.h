@@ -64,7 +64,7 @@ enum FujiTransport {
 // See `struct FujiD228` - structure appears similar to PTP_DPC_FUJI_BatteryInfo2
 // Setting this doesn't appear to be necessary for downloading photos
 #define PTP_DPC_FUJI_AutoSaveDatabaseStatus	0xD228
-#define PTP_DPC_FUJI_Unknown15		0xD22B
+#define PTP_DPC_FUJI_Unknown_D22B	0xD22B
 #define PTP_DPC_FUJI_Unknown_D22E	0xD22e
 #define PTP_DPC_FUJI_CompressionCutOff	0xD235
 #define PTP_DPC_FUJI_StorageID		0xd244
@@ -406,6 +406,7 @@ enum FujiUSBModes {
 #define PTP_OC_FUJI_GetExtensionObjectInfo	0x9054
 #define PTP_OC_FUJI_GetExtensionThumb		0x9055
 #define PTP_OC_FUJI_GetExtensionPartialObject	0x9056
+#define PTP_OC_Unknown_9060					0x9060
 
 /** @}*/
 

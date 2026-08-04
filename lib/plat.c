@@ -51,7 +51,6 @@ void tester_fail(struct PtpRuntime *r, char *fmt, ...) {
 	putchar('\n');
 }
 
-
 __attribute__((weak))
 void app_downloaded_file(struct PtpRuntime *r, const struct PtpObjectInfo *oi, const char *path) {
 	printf("File has been downloaded to '%s'\n", path);

@@ -134,7 +134,8 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 	const char *client_name = pak_rt_get_client_name();
 	const char *setup_option = pak_rt_get_setup_option(mod);
 	if (setup_option == NULL) return PAK_ERR_UNSUPPORTED;
-	pak_debug_log(mod, "setup opt: %s", setup_option);
+	pak_debug_log(mod, "Setup option: %s", setup_option);
+	// TODO: Retry ptpip_connect
 	if (!strcmp(setup_option, "wifi")) {
 		r->priv->transport = FUJI_FEATURE_WIRELESS_COMM;
 		strcpy(r->priv->ip_address, "192.168.0.1");
@@ -267,8 +268,8 @@ static int on_switch_screen(struct PakModule *mod, int old_screen, int new_scree
 //		pak_debug_log(mod, "%d %d", old_screen, new_screen);
 //		if (new_screen == PAK_SCREEN_FILE_VIEWER && old_screen == PAK_SCREEN_FILE_VIEWER) return 0;
 		if (new_screen == PAK_SCREEN_FILE_GALLERY) {
-			int rc = fuji_config_image_gallery(r);
-			if (rc) return handle_ptperr(mod, rc, "fuji_config_image_gallery");
+//			int rc = fuji_config_image_gallery(r);
+//			if (rc) return handle_ptperr(mod, rc, "fuji_config_image_gallery");
 		}
 	}
 	return 0;
