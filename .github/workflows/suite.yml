@@ -19,13 +19,13 @@ jobs:
       run: git submodule update --init --recursive
     - name: Config to use https in case ssh isn't setup
       run: git config --global url."https://github.com/".insteadOf "git@github.com:"
-    - name: Install libpak
-      run: |
-        git clone https://github.com/petabyt/libpak.git --depth 1 --recurse-submodules /tmp/libpak
-        cd /tmp/libpak
-        cmake -G Ninja -B build -DPAK_QUICKJS=OFF -DPAK_WASM=OFF
-        cmake --build build
-        sudo cmake --install build
+#    - name: Install libpak
+#      run: |
+#        git clone https://github.com/petabyt/libpak.git --depth 1 --recurse-submodules /tmp/libpak
+#        cd /tmp/libpak
+#        cmake -G Ninja -B build -DPAK_QUICKJS=OFF -DPAK_WASM=OFF
+#        cmake --build build
+#        sudo cmake --install build
     - name: Install vcam
       run: |
         git clone https://github.com/petabyt/vcam --depth 1 --recurse-submodules /tmp/vcam
