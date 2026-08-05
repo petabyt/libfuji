@@ -82,19 +82,12 @@ int fuji_discovery_check_cancel(struct PtpRuntime *r);
 struct PtpRuntime *fuji_ptp_new(int options);
 int fuji_reset_ptp(struct PtpRuntime *r);
 
-/// @brief Set up the event/liveview sockets for remote mode
-//int fuji_setup_remote_mode(struct PtpRuntime *r);
-
-/// @brief Main entry function for PTP/IP
+/// @brief Starts connection and configures everything for image gallery
+/// fuji_config_image_gallery should not be called after this
 int fuji_setup(struct PtpRuntime *r, const char *client_name);
 
 /// @brief Perform REQ/ACK for PTP/IP connection
 int ptpip_fuji_init_req(struct PtpRuntime *r, const char *device_name, struct PtpFujiInitResp *resp);
-
-/// @brief Configure some mandatory viewer/gallery related version properties
-//int fuji_config_version(struct PtpRuntime *r);
-/// @brief Determine and set what ClientState we need to be in
-//int fuji_config_init_mode(struct PtpRuntime *r);
 
 /// @brief Enters liveview
 int fuji_config_liveview(struct PtpRuntime *r);
@@ -102,6 +95,7 @@ int fuji_config_liveview(struct PtpRuntime *r);
 int fuji_end_liveview(struct PtpRuntime *r);
 
 /// @brief Enter image gallery
+/// This should only be called after fuji_end_liveview
 int fuji_config_image_gallery(struct PtpRuntime *r);
 
 /// @brief Receives events once, and updates info struct with changes

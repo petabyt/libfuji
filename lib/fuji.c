@@ -169,38 +169,6 @@ int fuji_get_events(struct PtpRuntime *r) {
 	return 0;
 }
 
-// Called immediately after OpenSession
-// Poll events if access is required
-int fuji_wait_for_access(struct PtpRuntime *r) {
-	fujipriv_t *fuji = fuji_get(r);
-	// We *need* these properties on camera init - otherwise, produce an error
-	fuji->camera_state = FUJI_WAIT_FOR_ACCESS;
-	fuji->num_objects = -1;
-	fuji->selected_imgs_mode = -1;
-
-	while (1) {
-		// After opening session, immediately get events
-		int rc = fuji_get_events(r);
-		if (rc) return rc;
-
-		// Wait until camera state is unlocked
-		if (fuji->camera_state != FUJI_WAIT_FOR_ACCESS) {
-			if (fuji->selected_imgs_mode != -1) {
-				// Multiple mode doesn't send num_objects
-				return 0;
-			} else {
-				if (fuji->num_objects == -1) {
-					ptp_verbose_log("Failed to get num_objects from first event\n");
-					return PTP_RUNTIME_ERR;
-				}
-			}
-			return 0;
-		}
-
-		PTP_SLEEP(100);
-	}
-}
-
 // Set PTP_DPC_FUJI_ClientState/0xdf01
 int fuji_config_init_mode(struct PtpRuntime *r) {
 	fujipriv_t *fuji = fuji_get(r);
@@ -447,6 +415,8 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	}
 
 	if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
+		// when xapp enters the gallery for the first time, 0xdf00 isn't set.
+		// It is set when otherwise switching between liveview and gallery.
 		rc = fuji_xapp_config_gallery(r);
 		if (rc) return rc;
 	}
@@ -476,13 +446,14 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		return rc;
 	}
 
-	// Start and end liveview mode - not sure why this is needed, but IIRC camera doesn't respond if this isn't done during setup
 	if (fuji->remote_version != -1 && fuji->camera_state == FUJI_REMOTE_ACCESS && fuji->transport != FUJI_FEATURE_XAPP_WIRELESS_COMM) {
+		// Start and end liveview mode - not sure why this is needed, but IIRC camera stops responding if this isn't done during setup
 		app_print(r, "Configuring remote mode");
 		rc = fuji_config_liveview(r);
 		if (rc) return rc;
 		rc = fuji_end_liveview(r);
 		if (rc) return rc;
+
 		app_print(r, "Setting up image gallery");
 		rc = fuji_config_image_gallery(r);
 		if (rc) return rc;
