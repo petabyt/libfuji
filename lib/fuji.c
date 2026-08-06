@@ -353,7 +353,14 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		usleep(50000); // Fuji cameras require at least 50ms before OpenSession
 	}
 
-	rc = ptp_open_session(r);
+	// Fuji seems to always start OpenSession with transaction ID 1 instead of 0
+	r->session++;
+	r->transaction = 1;
+	rc = ptp_send(r, &(struct PtpCommand){
+		.code = PTP_OC_OpenSession,
+		.params = {r->session},
+		.param_length = 1,
+	});
 	if (rc == PTP_CHECK_CODE) {
 		if (ptp_get_return_code(r) != PTP_RC_SessionAlreadyOpened) {
 			return rc;
@@ -377,9 +384,9 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	rc = fuji_get_events(r);
 	if (rc) return rc;
 
-	if (fuji->camera_state == FUJI_WAIT_FOR_ACCESS) {
+	if (fuji->camera_state == FUJI_WAIT_FOR_ACCESS || fuji->camera_state == -1) {
 		app_print(r, "Press OK to allow access.");
-			while (fuji->camera_state == FUJI_WAIT_FOR_ACCESS) {
+		while (fuji->camera_state == FUJI_WAIT_FOR_ACCESS  || fuji->camera_state == -1) {
 			rc = fuji_get_events(r);
 			if (rc) return rc;
 			PTP_SLEEP(100);
