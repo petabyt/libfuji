@@ -444,7 +444,7 @@ struct PtpFujiInitResp {
 // Appears to be an array for events
 struct __attribute__((packed)) PtpFujiEvents {
 	uint16_t length;
-	struct PtpFujiEventsEntry {
+	struct __attribute__((packed)) PtpFujiEventsEntry {
 		uint16_t code;
 		uint32_t value;
 	}events[];

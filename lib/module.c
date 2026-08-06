@@ -368,7 +368,7 @@ int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpOb
 
 	struct PakFileHandle file = {0};
 	file.index_in_view = handle - 1;
-	file.storage_name = "sdcard";
+	file.storage_name = r->priv->storage_device_name;
 
 	int orientation = 0;
 	if (!strcmp(oi->keywords, "Orientation: 8")) {
