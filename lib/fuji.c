@@ -121,7 +121,7 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 int fuji_get_events(struct PtpRuntime *r) {
 	fujipriv_t *fuji = fuji_get(r);
 	ptp_mutex_lock(r);
-	int rc = ptp_get_prop_value(r, PTP_DPC_FUJI_EventsList);
+	int rc = ptp_get_prop_value(r, PTP_DPC_FUJI_EventsList_D212);
 	if (rc == PTP_CHECK_CODE) {
 		ptp_mutex_unlock(r);
 		return 0;
@@ -148,13 +148,13 @@ int fuji_get_events(struct PtpRuntime *r) {
 		ptp_read_u16(&ev->events[i].code, &code);
 		ptp_read_u32(&ev->events[i].value, &value);
 		switch (ev->events[i].code) {
-		case PTP_DPC_FUJI_SelectedImgsMode:
+		case PTP_DPC_FUJI_SelectedImgsMode_D220:
 			fuji->selected_imgs_mode = (int)ev->events[i].value;
 			break;
-		case PTP_DPC_FUJI_ObjectCount:
+		case PTP_DPC_FUJI_ObjectCount_D2222:
 			fuji->num_objects = (int)ev->events[i].value;
 			break;
-		case PTP_DPC_FUJI_CameraState:
+		case PTP_DPC_FUJI_CameraState_DF00:
 			fuji->camera_state = (int)ev->events[i].value;
 			break;
 		case PTP_DPC_FUJI_FreeSDRAMImages:
@@ -169,7 +169,7 @@ int fuji_get_events(struct PtpRuntime *r) {
 	return 0;
 }
 
-// Set PTP_DPC_FUJI_ClientState/0xdf01
+// Set PTP_DPC_FUJI_ClientState_DF01/0xdf01
 int fuji_config_init_mode(struct PtpRuntime *r) {
 	fujipriv_t *fuji = fuji_get(r);
 
@@ -199,7 +199,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 	// We have to wait for a response in this case
 	r->wait_for_response = 255;
 
-	int rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState, mode);
+	int rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState_DF01, mode);
 	if (rc) return rc;
 
 	rc = fuji_get_events(r);
@@ -213,24 +213,24 @@ static int fuji_config_version_(struct PtpRuntime *r) {
 	if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) return 0;
 	int rc = 0;
 	if (fuji->camera_state == FUJI_PC_AUTO_SAVE) {
-		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_AutoSaveVersion);
+		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_AutoSaveVersion_DF23);
 		if (rc) return rc;
 		int code = ptp_parse_prop_value(r);
-		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_AutoSaveVersion, code);
+		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_AutoSaveVersion_DF23, code);
 		if (rc) return rc;
 	} else if (fuji->remote_version == -1) {
-		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion);
+		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion_DF22);
 		if (rc) return rc;
 		int version = ptp_parse_prop_value(r);
 		//fuji->image_view_version = version;
-		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_GetObjectVersion, version);
+		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_GetObjectVersion_DF22, version);
 		if (rc) return rc;
 	} else {
 		// Some cams set from 2000a to 2000b
 		// Others set 20006 to 2000c (?)
 		// X-T20 has 20004
 		// Setting to the highest (supported?) value (2000c) seems to be what Fuji does
-		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemoteVersion, FUJI_CAM_CONNECT_REMOTE_VER);
+		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemoteVersion_DF24, FUJI_CAM_CONNECT_REMOTE_VER);
 		if (rc) return rc;
 
 #if 0
@@ -277,17 +277,17 @@ int fuji_config_device_info_routine(struct PtpRuntime *r) {
 static int fuji_xapp_config_gallery(struct PtpRuntime *r) {
 	int rc;
 	fujipriv_t *fuji = fuji_get(r);
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemotePhotoViewExVersion);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28);
 	if (rc) return rc;
 	int val = ptp_parse_prop_value(r);
 	fuji->remote_image_view_ex_version = ptp_parse_prop_value(r);
 	ptp_verbose_log("RemotePhotoViewExVersion: 0x%X\n", fuji->remote_image_view_ex_version);
-	rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemotePhotoViewExVersion, val);
+	rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28, val);
 	if (rc) return rc;
 
-	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall, 0);
+	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 0);
 	if (rc) return rc;
-	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize, 0);
+	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 0);
 	if (rc) return rc;
 
 	struct PtpCommand cmd;
@@ -333,12 +333,12 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	app_print(r, "Make sure you pressed OK.");
 
 	struct PtpFujiInitResp resp;
-	int rc = ptpip_fuji_init_req(r, client_name, &resp);
+	int rc = ptpip_fuji_connect_handshake(r, client_name, &resp);
 	if (rc == PTP_RUNTIME_ERR) {
-		rc = ptpip_fuji_init_req(r, client_name, &resp);
+		rc = ptpip_fuji_connect_handshake(r, client_name, &resp);
 	} else if (rc) {
 		usleep(1000); // One last chance...
-		rc = ptpip_fuji_init_req(r, client_name, &resp);
+		rc = ptpip_fuji_connect_handshake(r, client_name, &resp);
 	}
 	if (rc) {
 		app_print(r, "Failed to initialize connection (%d)", rc);
@@ -360,6 +360,7 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		}
 	} else if (rc) {
 		app_print(r, "Failed to open session.");
+		// TODO: Maybe close and reopen socket
 		return rc;
 	}
 
@@ -387,25 +388,25 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		app_print(r, "Your camera loves you.");
 	}
 
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion_DF22);
 	if (rc) return rc;
 	fuji->get_object_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("PTP_DPC_FUJI_GetObjectVersion: 0x%X\n", fuji->get_object_version);
+	ptp_verbose_log("PTP_DPC_FUJI_GetObjectVersion_DF22: 0x%X\n", fuji->get_object_version);
 
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion_DF25);
 	if (rc) return rc;
 	fuji->remote_image_view_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("PTP_DPC_FUJI_RemoteGetObjectVersion: 0x%X\n", fuji->remote_image_view_version);
+	ptp_verbose_log("PTP_DPC_FUJI_RemoteGetObjectVersion_DF25: 0x%X\n", fuji->remote_image_view_version);
 
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_ImageGetVersion);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_ImageGetVersion_DF21);
 	if (rc) return rc;
 	fuji->image_get_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("PTP_DPC_FUJI_ImageGetVersion: 0x%X\n", fuji->image_get_version);
+	ptp_verbose_log("PTP_DPC_FUJI_ImageGetVersion_DF21: 0x%X\n", fuji->image_get_version);
 
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteVersion);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteVersion_DF24);
 	if (rc) return rc;
 	fuji->remote_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("PTP_DPC_FUJI_RemoteVersion: 0x%X\n", fuji->remote_version);
+	ptp_verbose_log("PTP_DPC_FUJI_RemoteVersion_DF24: 0x%X\n", fuji->remote_version);
 
 	rc = fuji_config_init_mode(r);
 	if (rc) {
@@ -418,7 +419,7 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		// when xapp enters the gallery for the first time, 0xdf00 isn't set.
 		// It is set when otherwise switching between liveview and gallery.
 		rc = fuji_xapp_config_gallery(r);
-		if (rc) return rc;
+		if (rc && rc != PTP_CHECK_CODE) return rc;
 	}
 
 	if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {
@@ -433,7 +434,7 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	}
 
 	if (fuji->transport == FUJI_FEATURE_AUTOSAVE) {
-		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize, 1);
+		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 1);
 		if (rc) return rc;
 	}
 
@@ -462,7 +463,7 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	return 0;
 }
 
-static int ptpip_fuji_init_req_(struct PtpRuntime *r, const char *device_name, struct PtpFujiInitResp *resp) {
+static int ptpip_fuji_connect_handshake_(struct PtpRuntime *r, const char *device_name, struct PtpFujiInitResp *resp) {
 	struct FujiInitPacket *p = (struct FujiInitPacket *)r->data;
 	memset(p, 0, sizeof(struct FujiInitPacket));
 	ptp_write_u32(&p->length, 0x52);
@@ -501,9 +502,9 @@ static int ptpip_fuji_init_req_(struct PtpRuntime *r, const char *device_name, s
 
 	return 0;
 }
-int ptpip_fuji_init_req(struct PtpRuntime *r, const char *device_name, struct PtpFujiInitResp *resp) {
+int ptpip_fuji_connect_handshake(struct PtpRuntime *r, const char *device_name, struct PtpFujiInitResp *resp) {
 	ptp_mutex_lock(r);
-	int rc = ptpip_fuji_init_req_(r, device_name, resp);
+	int rc = ptpip_fuji_connect_handshake_(r, device_name, resp);
 	ptp_mutex_unlock(r);
 	return rc;
 }
@@ -529,7 +530,8 @@ static uint8_t *my_add(void *arg, uint8_t *buffer, unsigned int new_len, unsigne
 	return i->buffer;
 }
 
-int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset, unsigned int *length) {
+// Experimental thumbnails in PC AutoSave mode hack
+static int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *offset, unsigned int *length) {
 	ptp_mutex_lock(r);
 
 	int rc = fuji_get_events(r);
@@ -638,9 +640,9 @@ int fuji_config_liveview(struct PtpRuntime *r) {
 	fujipriv_t *fuji = fuji_get(r);
 
 	if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
-		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
+		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CameraState_DF00, FUJI_REMOTE_ACCESS);
 		if (rc) return rc;
-		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState, FUJI_MODE_REMOTE_LIVE_VIEW_XAPP);
+		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState_DF01, FUJI_MODE_REMOTE_LIVE_VIEW_XAPP);
 		if (rc) return rc;
 
 		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_Unknown_DF2A);
@@ -663,7 +665,7 @@ int fuji_config_liveview(struct PtpRuntime *r) {
 		rc = fuji_get_events(r);
 		if (rc) return rc;
 
-		usleep(1000 * 50); // TODO: fix for vcam
+		usleep(1000 * 50); // TODO: fix for vcam's bad timing
 
 		if (!fuji->opened_liveview_sockets) {
 			rc = ptpip_connect_events(r, fuji->ip_address, FUJI_EVENT_IP_PORT);
@@ -687,7 +689,7 @@ int fuji_config_image_gallery(struct PtpRuntime *r) {
 		int rc = fuji_get_events(r);
 		if (rc) return rc;
 
-		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CameraState, FUJI_REMOTE_ACCESS);
+		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CameraState_DF00, FUJI_REMOTE_ACCESS);
 		if (rc) return rc;
 
 		// Will confirm CameraState is set
@@ -698,10 +700,10 @@ int fuji_config_image_gallery(struct PtpRuntime *r) {
 		if (rc) return rc;
 
 		if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
-			rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState, FUJI_MODE_REMOTE_IMG_VIEW_XAPP);
+			rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState_DF01, FUJI_MODE_REMOTE_IMG_VIEW_XAPP);
 			if (rc) return rc;
 		} else {
-			rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState, FUJI_MODE_REMOTE_IMG_VIEW);
+			rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState_DF01, FUJI_MODE_REMOTE_IMG_VIEW);
 			if (rc) return rc;
 		}
 
@@ -712,13 +714,13 @@ int fuji_config_image_gallery(struct PtpRuntime *r) {
 			rc = fuji_get_events(r);
 			if (rc) return rc;
 
-			// xapp gets but doesn't set df25 when switching gallery->liveview->gallery
+			// NOTE: xapp gets but doesn't set df25 when switching gallery->liveview->gallery
 
-			rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion);
+			rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion_DF25);
 			fuji->remote_image_view_version = ptp_parse_prop_value(r);
 			if (rc) return rc;
 			// Set the prop higher - X-S10 and X-H1 want 4
-			rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion, 5);
+			rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion_DF25, 5);
 			if (rc) return rc;
 		}
 
@@ -748,9 +750,9 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 
 		// Seems to take a while in some cases.
 		r->wait_for_response = 3;
-		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize, 1);
+		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 1);
 	} else if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
-		ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall, 2);
+		ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 2);
 	}
 
 	ptp_mutex_lock(r);
@@ -761,9 +763,7 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 		return rc;
 	}
 
-	if (info != NULL) {
-		info(arg, &oi);
-	}
+	if (info != NULL) info(arg, &oi);
 
 	long then = get_ms();
 
@@ -819,9 +819,9 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 			ptp_mutex_unlock(r);
 			return rc;
 		}
-		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize, 0);
+		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 0);
 	} else if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
-		ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall, 2);
+		ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 2);
 	}
 	ptp_mutex_unlock(r);
 	return rc;

@@ -142,18 +142,18 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 		r->priv->transport = FUJI_FEATURE_WIRELESS_COMM;
 		strcpy(r->priv->ip_address, "192.168.0.1");
 		int rc = ptpip_connect(r, r->priv->ip_address, FUJI_CMD_IP_PORT, 1);
-		if (rc) return PAK_ERR_NO_CONNECTION;
+		if (rc) goto cleanup;
 	} else if (!strcmp(setup_option, "wifi-from-bt")) {
 		r->priv->transport = FUJI_FEATURE_XAPP_WIRELESS_COMM;
 		strcpy(r->priv->ip_address, "192.168.0.1");
 		int rc = ptpip_connect(r, r->priv->ip_address, FUJI_CMD_IP_PORT, 1);
-		if (rc) return PAK_ERR_NO_CONNECTION;
+		if (rc) goto cleanup;
 	} else if (!strcmp(setup_option, "local-network")) {
 		struct DiscoverInfo info = {0};
 		int rc = fuji_discover_thread(r, &info, client_name);
 		if (rc < 0) {
 			pak_debug_log(mod, "fuji_discover_thread: %d", rc);
-			return PAK_ERR_NO_CONNECTION;
+			goto cleanup;
 		}
 		if (rc == FUJI_D_GO_PTP) {
 			r->priv->transport = info.transport;
@@ -162,7 +162,7 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 			rc = ptpip_connect(r, r->priv->ip_address, info.camera_port, 3);
 			if (rc) {
 				pak_debug_log(mod, "ptpip_connect(%s, %d): %d", r->priv->ip_address, info.camera_port, rc);
-				return PAK_ERR_NO_CONNECTION;
+				goto cleanup;
 			}
 		} else if (rc == FUJI_D_REGISTERED) {
 			// todo
@@ -170,7 +170,7 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 			return 0;
 		}
 	} else {
-		return PAK_ERR_UNSUPPORTED;
+		goto cleanup;
 	}
 
 	if (r->priv->transport == FUJI_FEATURE_WIRELESS_TETHER) {
@@ -182,9 +182,13 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 	}
 
 	int rc = fuji_setup(r, client_name);
-	if (rc) return PAK_ERR_NO_CONNECTION;
+	if (rc) goto cleanup;
 
-	pak_rt_set_storage_info(mod, r->priv->storage_device_name, r->priv->num_objects, PAK_NEWEST_FIRST);
+	if (r->priv->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
+		pak_rt_set_storage_info(mod, r->priv->storage_device_name, r->priv->num_objects, PAK_OLDEST_FIRST);
+	} else {
+		pak_rt_set_storage_info(mod, r->priv->storage_device_name, r->priv->num_objects, PAK_NEWEST_FIRST);
+	}
 
 	switch (r->priv->camera_state) {
 		case FUJI_FULL_ACCESS:
@@ -223,6 +227,10 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 	}
 
 	return 0;
+	cleanup:;
+	ptp_close(mod->priv->r);
+	mod->priv->r = NULL;
+	return PAK_ERR_NO_CONNECTION;
 }
 
 static int on_try_connect_bluetooth(struct PakModule *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
@@ -362,12 +370,18 @@ int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpOb
 	file.index_in_view = handle - 1;
 	file.storage_name = "sdcard";
 
+	int orientation = 0;
+	if (!strcmp(oi->keywords, "Orientation: 8")) {
+		orientation = 270;
+	}
+
 	return pak_rt_add_file_metadata(mod, &file, &(struct PakFileMetadata){
 		.filename = oi->filename,
 		.file_size = (int)oi->compressed_size,
 		.mime_type = get_mime_type(oi->obj_format),
 		.image_height = (int)oi->img_height,
 		.image_width = (int)oi->img_width,
+		.orientation = orientation,
 	});
 }
 

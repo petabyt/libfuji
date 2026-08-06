@@ -5,6 +5,14 @@
 
 #define FUJI_PROTOCOL_VERSION 0x8f53e4f2
 
+#define FUJI_CMD_IP_PORT 55740
+#define FUJI_EVENT_IP_PORT 55741
+#define FUJI_LIVEVIEW_IP_PORT 55742
+
+// Fuji Camera Connect has this version
+// XS10 on reported 0x02000A, camera connect set to 2000B
+#define FUJI_CAM_CONNECT_REMOTE_VER 0x2000C
+
 /// @brief All of Fuji's protocols/transport features
 /// @note Not part of any protocol
 enum FujiTransport {
@@ -30,29 +38,21 @@ enum FujiTransport {
 	FUJI_FEATURE_XAPP_WIRELESS_COMM,
 };
 
-#define FUJI_CMD_IP_PORT 55740
-#define FUJI_EVENT_IP_PORT 55741
-#define FUJI_LIVEVIEW_IP_PORT 55742
-
-// Fuji Camera Connect has this version - 2.11 if parsed as bytes. Or 11.2
-// XS10 on reported 0x02000A, camera connect set to 2000B
-#define FUJI_CAM_CONNECT_REMOTE_VER 0x2000C
-
 enum FujiDevicePropertyCode {
-    PTP_DPC_FUJI_EventsList = 0xd212,
-    PTP_DPC_FUJI_SelectedImgsMode = 0xd220,
-    PTP_DPC_FUJI_ObjectCount = 0xd222,
-    PTP_DPC_FUJI_CameraState = 0xdf00,
-    PTP_DPC_FUJI_ClientState = 0xdf01,
+    PTP_DPC_FUJI_EventsList_D212 = 0xd212,
+    PTP_DPC_FUJI_SelectedImgsMode_D220 = 0xd220,
+    PTP_DPC_FUJI_ObjectCount_D2222 = 0xd222,
+    PTP_DPC_FUJI_CameraState_DF00 = 0xdf00,
+    PTP_DPC_FUJI_ClientState_DF01 = 0xdf01,
     /// @brief If 1, will heavily compress images into 400kb-800kb. Fuji uses this for downloading a quick preview.
-    PTP_DPC_FUJI_CompressSmall = 0xD226,
+    PTP_DPC_FUJI_CompressSmall_D226 = 0xD226,
     /// @brief If 0 (default value), the compressed_size field of PtpObjectInfo will be set at 100kb.
     /// If 1, it will set the correct file size.
     /// Fuji sets this to 1 before GetObjectInfo and GetPartialObject(s) calls, and 0 after.
     /// It has no noticeable performance impact on download speed there. But if this property is set in
     /// the setup process, then it will make the gallery slower (I think slowing down GetThumb calls).
     /// PC AutoSave will set this to 1 on startup, although this doesn't make a difference since it never calls GetThumb.
-    PTP_DPC_FUJI_EnableCorrectFileSize = 0xD227,
+    PTP_DPC_FUJI_EnableCorrectFileSize_D227 = 0xD227,
 
     PTP_DPC_FUJI_UnknownD21C = 0xd21c,
     PTP_DPC_FUJI_Unknown_D224 = 0xd224,
@@ -80,22 +80,22 @@ enum FujiDevicePropertyCode {
     // NOTE: Most of 0xdfxx appear to be version/revision properties
 
     /// @brief Prop checked before doing image related things
-    PTP_DPC_FUJI_ImageGetVersion = 0xdf21,
+    PTP_DPC_FUJI_ImageGetVersion_DF21 = 0xdf21,
     /// @brief Property that differentiates behavior for GetObjectInfo and GetObject
-    PTP_DPC_FUJI_GetObjectVersion = 0xdf22,
-    PTP_DPC_FUJI_AutoSaveVersion = 0xdf23,
-    PTP_DPC_FUJI_RemoteVersion = 0xdf24,
+    PTP_DPC_FUJI_GetObjectVersion_DF22 = 0xdf22,
+    PTP_DPC_FUJI_AutoSaveVersion_DF23 = 0xdf23,
+    PTP_DPC_FUJI_RemoteVersion_DF24 = 0xdf24,
     // Same as GetObjectVersion, but for cams that support remote mode
-    PTP_DPC_FUJI_RemoteGetObjectVersion = 0xdf25,
+    PTP_DPC_FUJI_RemoteGetObjectVersion_DF25 = 0xdf25,
     // NOTE: 0xdf26 and 0xdf27 appear to be unused
     // x-s10 sets to 1, x-t5 sets to 3
-    PTP_DPC_FUJI_RemotePhotoViewExVersion = 0xdf28,
+    PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28 = 0xdf28,
     PTP_DPC_FUJI_Unknown_DF2A = 0xdf2a,
     PTP_DPC_FUJI_GeoTagVersion = 0xdf31,
     PTP_DPC_FUJI_Unknown_DF44 = 0xdf44,
 };
 
-/// @brief Possible values of PTP_DPC_FUJI_ClientState / 0xdf01
+/// @brief Possible values of PTP_DPC_FUJI_ClientState_DF01 / 0xdf01
 enum ClientStates {
 	// Set if camera state is FUJI_MULTIPLE_TRANSFER,
 	FUJI_VIEW_MULTIPLE = 1,
@@ -126,11 +126,14 @@ enum ClientStates {
 	FUJI_MODE_REMOTE_LIVE_VIEW_XAPP = 22,
 };
 
-// Modes for PTP_DPC_FUJI_SelectedImgsMode
-#define FUJI_SELECT_MULTIPLE_MODE_1 1
+// Modes for PTP_DPC_FUJI_SelectedImgsMode_D220
+enum SelectedImgsModes {
+	FUJI_SELECTED_IMG_MODE_0 = 0,
+	FUJI_SELECTED_IMG_MODE_1 = 1,
+};
 
-/// @brief Possible values of PTP_DPC_FUJI_CameraState (0xdf00)
-enum FujiStates {
+/// @brief Possible values of PTP_DPC_FUJI_CameraState_DF00 (0xdf00)
+enum CameraStates {
 	// We need to wait and poll camera for access
 	FUJI_WAIT_FOR_ACCESS = 0,
 	// Camera has indicated it has single or multiple photos to transfer. Go into loop to accept them.
@@ -142,9 +145,9 @@ enum FujiStates {
 	FUJI_PC_AUTO_SAVE = 3,
 	// We have all features of FUJI_FULL_ACCESS and remote mode.
 	FUJI_REMOTE_ACCESS = 6,
-	// Shared with 0xdf01
+	// Shared with PTP_DPC_FUJI_ClientState_DF01
 	//FUJI_MODE_REMOTE_IMG_VIEW = 11,
-	// Commented out because the values are shared between df01/df00
+	// Shared with PTP_DPC_FUJI_ClientState_DF01
 	//FUJI_MODE_REMOTE_IMG_VIEW_XAPP = 20,
 };
 
@@ -410,10 +413,9 @@ enum FujiVendorOpcodes {
 #define PTP_DPC_FUJI_FocusLimiter			0xD390
 #define PTP_DPC_FUJI_FocusArea4				0xD395
 
-
 #define PTP_OF_FUJI_FFF1 0xFFF1
 
-#pragma pack(push, 1)
+// TODO: Remove __attribute__((packed)) and parse with ptp_read_* methods
 
 struct __attribute__((packed)) FujiInitPacket {
 	uint32_t length;
@@ -489,7 +491,5 @@ struct __attribute__((packed)) FujiD228 {
 	// @note I think entries are object IDs
 	uint16_t data[];
 };
-
-#pragma pack(pop)
 
 #endif

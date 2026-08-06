@@ -289,7 +289,36 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 
 	pak_debug_log(mod, "ssid: %s", filter.ssid_pattern);
 
-	pak_rt_add_wifi_connection(mod, &filter, "wifi-from-bt");
+	{
+		struct PakGattService *service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_CONF_UUID);
+		if (service == NULL) {
+			pak_global_log("pak_bt_get_gatt_service_uuid");
+			return PAK_ERR_UNSUPPORTED;
+		}
+
+		struct PakGattCharacteristic *chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, CHR_IND1_UUID);
+		if (chr == NULL) {
+			pak_global_log("pak_bt_get_gatt_characteristic_uuid");
+			pak_bt_unref_gatt_service(ctx, service);
+			return PAK_ERR_UNSUPPORTED;
+		}
+
+		uint8_t buf[2] = {0xff, 0xff};
+		rc = pak_bt_watch_characteristic(ctx, chr, 500); // Normally updates a few seconds after
+		pak_global_log("pak_bt_watch_characteristic: %d", rc);
+		pak_bt_read_characteristic_cached_value(ctx, chr, buf, sizeof(buf));
+
+		if (buf[0] == 0) {
+			pak_debug_log(mod, "Camera is busy, not connecting");
+		} else {
+			// buf[0] should be 1 on success or 0xff on timeout
+			pak_rt_add_wifi_connection(mod, &filter, "wifi-from-bt");
+		}
+
+		pak_bt_unref_gatt_service(ctx, service);
+		pak_bt_unref_gatt_characteristic(ctx, chr);
+		return rc;
+	}
 
 	return 0;
 }
@@ -316,7 +345,7 @@ static int send_client_name(struct PakModule *mod, struct PakGattService *pair_s
 int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev, struct PakSavedConnection *saved) {
 	pak_bt_set_device_callback(ctx, dev, device_callback, mod);
 
-	pak_rt_set_progress_bar(mod, mod->priv->current_job, 10);
+	pak_rt_set_progress_bar(mod, mod->priv->current_job, 5);
 
 	char name_buf[32];
 	adv_basic_t mfgdata;
@@ -342,7 +371,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 
 	struct PakGattService *pair_service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_PAIR_UUID);
 	if (pair_service == NULL) {
-		pak_rt_set_progress_bar(mod, mod->priv->current_job, 20);
+		pak_rt_set_progress_bar(mod, mod->priv->current_job, 15);
 		if (saved == NULL) {
 			pak_debug_log(mod, "Create bond");
 			rc = pak_bt_device_create_bond(ctx, dev);
@@ -351,7 +380,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 				return PAK_ERR_NO_CONNECTION;
 			}
 		}
-		pak_rt_set_progress_bar(mod, mod->priv->current_job, 35);
+		pak_rt_set_progress_bar(mod, mod->priv->current_job, 25);
 
 		pair_service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_SECURE_PAIR_UUID);
 		if (pair_service == NULL) {
@@ -380,14 +409,14 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 			return PAK_ERR_NO_CONNECTION;
 		}
 
-		pak_rt_set_progress_bar(mod, mod->priv->current_job, 40);
+		pak_rt_set_progress_bar(mod, mod->priv->current_job, 30);
 
 		rc = send_client_name(mod, pair_service);
 		if (rc) return rc;
 
-		pak_rt_set_progress_bar(mod, mod->priv->current_job, 45);
+		pak_rt_set_progress_bar(mod, mod->priv->current_job, 35);
 
-		int percent = 50;
+		int percent = 40;
 		#define INCREMENT(x) pak_rt_set_progress_bar(mod, mod->priv->current_job, percent += x)
 
 		/* indication 1   */ subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND1_UUID, 0);
@@ -449,7 +478,6 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 		subscribe(ctx, dev, SVC_CONF_UUID, GEOTAG_UPDATE, 1);
 		pak_rt_set_progress_bar(mod, mod->priv->current_job, 80);
 		subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND3_UUID, 1);
-
 	}
 
 	{ // Send device name

@@ -30,13 +30,13 @@ static void log_payload(struct PtpRuntime *r) {
 
 int fuji_test_get_props(struct PtpRuntime *r) {
 	uint16_t test_props[] = {
-			PTP_DPC_FUJI_ImageGetVersion,
-			PTP_DPC_FUJI_GetObjectVersion,
-			PTP_DPC_FUJI_RemoteVersion,
-			PTP_DPC_FUJI_RemoteGetObjectVersion,
+			PTP_DPC_FUJI_ImageGetVersion_DF21,
+			PTP_DPC_FUJI_GetObjectVersion_DF22,
+			PTP_DPC_FUJI_RemoteVersion_DF24,
+			PTP_DPC_FUJI_RemoteGetObjectVersion_DF25,
 			PTP_DPC_FUJI_Unknown_D400,
 			PTP_DPC_FUJI_Unknown_D52F,
-			PTP_DPC_FUJI_RemotePhotoViewExVersion,
+			PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28,
 	};
 
 	for (int i = 0; i < (int)(sizeof(test_props) / sizeof(uint16_t)); i++) {

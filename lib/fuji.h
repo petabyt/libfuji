@@ -37,19 +37,19 @@ struct PtpUserPriv {
 	char ip_address[64];
 	enum FujiTransport transport;
 
-	/// @brief Current value of PTP_DPC_FUJI_CameraState
+	/// @brief Current value of PTP_DPC_FUJI_CameraState_DF00
 	int camera_state;
-	/// @brief Current value of PTP_DPC_FUJI_SelectedImgsMode
+	/// @brief Current value of PTP_DPC_FUJI_SelectedImgsMode_D220
 	int selected_imgs_mode;
-	/// @brief Camera's initial value of PTP_DPC_FUJI_GetObjectVersion
+	/// @brief Camera's initial value of PTP_DPC_FUJI_GetObjectVersion_DF22
 	int get_object_version;
-	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteGetObjectVersion
+	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteGetObjectVersion_DF25
 	int remote_image_view_version;
-	/// @brief Camera's initial value of PTP_DPC_FUJI_RemotePhotoViewExVersion
+	/// @brief Camera's initial value of PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28
 	int remote_image_view_ex_version;
-	/// @brief Camera's initial value of PTP_DPC_FUJI_ImageGetVersion
+	/// @brief Camera's initial value of PTP_DPC_FUJI_ImageGetVersion_DF21
 	int image_get_version;
-	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteVersion
+	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteVersion_DF24
 	int remote_version;
 	// has liveview sockets been opened already
 	int opened_liveview_sockets;
@@ -87,7 +87,7 @@ int fuji_reset_ptp(struct PtpRuntime *r);
 int fuji_setup(struct PtpRuntime *r, const char *client_name);
 
 /// @brief Perform REQ/ACK for PTP/IP connection
-int ptpip_fuji_init_req(struct PtpRuntime *r, const char *device_name, struct PtpFujiInitResp *resp);
+int ptpip_fuji_connect_handshake(struct PtpRuntime *r, const char *device_name, struct PtpFujiInitResp *resp);
 
 /// @brief Enters liveview
 int fuji_config_liveview(struct PtpRuntime *r);

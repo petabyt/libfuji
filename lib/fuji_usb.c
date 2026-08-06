@@ -142,15 +142,15 @@ int fujitether_setup(struct PtpRuntime *r, const char *client_name) {
 
 	if (r->connection_type == PTP_IP_USB) {
 		struct PtpFujiInitResp resp;
-		int rc = ptpip_fuji_init_req(r, client_name, &resp);
+		int rc = ptpip_fuji_connect_handshake(r, client_name, &resp);
 		if (rc == PTP_RUNTIME_ERR) {
-			rc = ptpip_fuji_init_req(r, client_name, &resp);
+			rc = ptpip_fuji_connect_handshake(r, client_name, &resp);
 		}
 		if (rc == PTP_RUNTIME_ERR) {
-			rc = ptpip_fuji_init_req(r, client_name, &resp);
+			rc = ptpip_fuji_connect_handshake(r, client_name, &resp);
 		}
 		if (rc == PTP_RUNTIME_ERR) {
-			rc = ptpip_fuji_init_req(r, client_name, &resp);
+			rc = ptpip_fuji_connect_handshake(r, client_name, &resp);
 		}
 		if (rc) {
 			app_print(r, "Failed to initialize connection");
