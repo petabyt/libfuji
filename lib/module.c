@@ -8,10 +8,6 @@
 static int file_to_oh(struct PakFileHandle *file) { return file->index_in_view + 1; }
 //static int oh_to_file(struct PakFileHandle *file) { return file->index_in_view + 1; }
 
-struct FujiModulePriv {
-	struct ModulePriv priv;
-};
-
 static int handle_ptperr(struct PakModule *mod, int rc, const char *action) {
 	switch (rc) {
 		case PTP_IO_ERR: {
@@ -29,33 +25,32 @@ static int handle_ptperr(struct PakModule *mod, int rc, const char *action) {
 }
 
 static struct PakModule *get_mod(struct PtpRuntime *r) {
-	return r->priv->priv->priv.mod;
+	return r->priv->mod;
 }
 
 static int ptpip_set_extra_socket_settings(struct PtpRuntime *r, int sockfd) {
-	if (r->priv->priv == NULL) return 0;
+	if (r->priv == NULL) return 0;
 	if (get_mod(r)->priv->adapter != NULL) return pak_wifi_bind_socket_to_adapter(get_mod(r)->net, get_mod(r)->priv->adapter, sockfd);
 	return 0;
 }
 
-void ptp_verbose_log(char *fmt, ...) {
-#ifndef NDEBUG
+void ptp_verbose_log(struct PtpRuntime *r, char *fmt, ...) {
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
-	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	int len = vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
-	pak_global_log("%s", buffer);
-#endif
+	pak_verbose_log(r->priv->mod, buffer);
 }
 
-void ptp_error_log(char *fmt, ...) {
+void ptp_error_log(struct PtpRuntime *r, char *fmt, ...) {
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
-	pak_global_log("<error>%s", buffer);
+	pak_debug_log(r->priv->mod, "<error>%s", buffer);
+	ptp_verbose_log(r, "<error>%s", buffer);
 }
 
 __attribute__ ((noreturn))
@@ -76,7 +71,7 @@ void app_print(struct PtpRuntime *r, char *fmt, ...) {
 	va_start(args, fmt);
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
-	pak_debug_log(r->priv->priv->priv.mod, buffer);
+	pak_debug_log(r->priv->mod, buffer);
 }
 
 void app_send_cam_name(struct PtpRuntime *r, const char *name) {
@@ -114,8 +109,8 @@ void app_report_download_speed(struct PtpRuntime *r, long time, size_t size) {
 }
 
 void ptp_report_read_progress(struct PtpRuntime *r, unsigned int size) {
-	if (r->priv->priv == NULL) return;
 	struct PakModule *mod = get_mod(r);
+	if (mod == NULL) return;
 	if (mod->priv->update_progress_bar_job) {
 		mod->priv->total_read += size;
 		unsigned int percent = ((uint64_t)mod->priv->total_read * 100ULL) / ((uint64_t)mod->priv->to_read_target);
@@ -130,8 +125,8 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 	struct PtpRuntime *r = fuji_ptp_new(PTP_IP_USB);
 	r->set_extra_socket_settings = ptpip_set_extra_socket_settings;
 	r->report_read_progress = ptp_report_read_progress;
+	r->priv->mod = mod;
 	mod->priv->r = r;
-	r->priv->priv = (struct FujiModulePriv *)mod->priv;
 
 	const char *client_name = pak_rt_get_client_name();
 	const char *setup_option = pak_rt_get_setup_option(mod);

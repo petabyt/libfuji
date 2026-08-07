@@ -107,7 +107,7 @@ int fujiusb_setup(struct PtpRuntime *r) {
 
 	if (strlen(di.manufacturer) > sizeof("FUJIFILM")) {
 		if (strncmp(di.manufacturer, "FUJIFILM", sizeof("FUJIFILM")) != 0) {
-			ptp_verbose_log("Weird - manufac doesn't start with 'fujifilm'??\n");
+			ptp_verbose_log(r, "Weird - manufac doesn't start with 'fujifilm'??\n");
 		}
 	}
 
@@ -128,7 +128,7 @@ int fujiusb_setup(struct PtpRuntime *r) {
 		} else if (mode == 8) {
 			fuji_get(r)->transport = FUJI_FEATURE_WEBCAM;
 		} else {
-			ptp_verbose_log("Unknown Fuji USB mode %d, assuming MTP\n", mode);
+			ptp_verbose_log(r, "Unknown Fuji USB mode %d, assuming MTP\n", mode);
 			fuji_get(r)->transport = FUJI_FEATURE_USB;
 		}
 	}
@@ -235,7 +235,7 @@ int fujiusb_restore_backup(struct PtpRuntime *r, FILE *input) {
 	if (buffer == NULL) abort();
 
 	if (fread(buffer, 1, file_size, input) != file_size) {
-		ptp_error_log("Error reading backup file");
+		ptp_error_log(r, "Error reading backup file");
 	}
 
 	rc = ptp_send_object(r, buffer, file_size);
@@ -288,7 +288,7 @@ print_payload(data + 1, sz  - 1, false);
 int fuji_send_raf(struct PtpRuntime *r, const char *path) {
 	FILE* f = fopen(path, "rb");
 	if (!f) {
-		ptp_error_log("'%s' not found\n", path);
+		ptp_error_log(r, "'%s' not found\n", path);
 		return PTP_RUNTIME_ERR;
 	}
 
@@ -331,7 +331,7 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 
 	fujipriv_t *fuji = fuji_get(r);
 	if (fuji->transport != FUJI_FEATURE_RAW_CONV) {
-		ptp_error_log("Not in raw transfer mode\n");
+		ptp_error_log(r, "Not in raw transfer mode\n");
 		return PTP_RUNTIME_ERR;
 	}
 
@@ -350,7 +350,7 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 	memcpy(profile, ptp_get_payload(r), profile_len);
 	ptp_mutex_unlock(r);
 
-	ptp_verbose_log("Got %d bytes of profile\n", profile_len);
+	ptp_verbose_log(r, "Got %d bytes of profile\n", profile_len);
 
 	uint8_t buffer[1024];
 	struct FujiProfile fp;
@@ -361,11 +361,11 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 	if (rc == 0) {
 		rc = fp_apply_profile(&user_fp, &fp);
 		if (rc) {
-			ptp_error_log("Failed to merge profile\n");
+			ptp_error_log(r, "Failed to merge profile\n");
 			return PTP_RUNTIME_ERR;
 		}
 	} else {
-		ptp_error_log("Failed to parse '%s', check console output\n", profile_xml_path);
+		ptp_error_log(r, "Failed to parse '%s', check console output\n", profile_xml_path);
 		return PTP_RUNTIME_ERR;
 	}
 
@@ -398,7 +398,7 @@ int fuji_process_raf(struct PtpRuntime *r, const char *input_raf_path, const cha
 
 			FILE *f = fopen(output_path, "wb");
 			if (f == NULL) {
-				ptp_error_log("Failed to write to output");
+				ptp_error_log(r, "Failed to write to output");
 				return PTP_RUNTIME_ERR;
 			}
 			fwrite(ptp_get_payload(r), 1, ptp_get_payload_length(r), f);

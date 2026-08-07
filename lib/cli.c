@@ -18,7 +18,7 @@ void nothing(int x) {}
 pid_t child_pid = -1;
 
 __attribute__((weak))
-void ptp_verbose_log(char *fmt, ...) {
+void ptp_verbose_log(struct PtpRuntime *r, char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	vprintf(fmt, args);
@@ -26,7 +26,7 @@ void ptp_verbose_log(char *fmt, ...) {
 }
 
 __attribute__((weak))
-void ptp_error_log(char *fmt, ...) {
+void ptp_error_log(struct PtpRuntime *r, char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	vprintf(fmt, args);

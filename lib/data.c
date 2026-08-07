@@ -35,8 +35,8 @@ int fuji_register_device_info(struct PtpRuntime *r, uint8_t *data) {
 		of += ptp_read_u32(data + of, &this_length);
 		of += ptp_read_u16(data + of, &code);
 
-		ptp_verbose_log("Code, %X\n", code);
-		ptp_verbose_log("length, %d\n", this_length);
+		ptp_verbose_log(r, "Code, %X\n", code);
+		ptp_verbose_log(r, "length, %d\n", this_length);
 
 		//struct PtpPropDesc pd;
 		//int rc = ptp_get_prop_desc(r, code, &pd);

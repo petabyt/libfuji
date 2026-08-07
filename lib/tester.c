@@ -40,7 +40,7 @@ int fuji_test_get_props(struct PtpRuntime *r) {
 	};
 
 	for (int i = 0; i < (int)(sizeof(test_props) / sizeof(uint16_t)); i++) {
-		ptp_verbose_log("Trying prop %x\n", test_props[i]);
+		ptp_verbose_log(r, "Trying prop %x\n", test_props[i]);
 		int rc = ptp_get_prop_value(r, test_props[i]);
 		if (rc) {
 			tester_fail(r, "Err getting prop 0x%X - rc: %d", test_props[i], rc);

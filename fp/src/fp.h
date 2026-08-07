@@ -364,7 +364,7 @@ int fp_parse_fp1(const char *path, struct FujiProfile *fp1);
 
 /// @brief Parse a raw binary profile from PTP property 0xd185
 /// @returns Non-zero for error
-int fp_parse_d185(const uint8_t *bin, int len, struct FujiProfile *fp1);
+int fp_parse_d185(const uint8_t *bin, unsigned int len, struct FujiProfile *fp1);
 
 /// @brief Dump struct as XML text to a file.
 /// @returns non-zero for error
@@ -372,7 +372,7 @@ int fp_dump_struct(FILE *f, struct FujiProfile *fp);
 
 /// @brief Convert to d185 structure that can be accepted by a camera
 /// @returns non-zero for error
-int fp_create_d185(const struct FujiProfile *fp, uint8_t *bin, int len);
+int fp_create_d185(const struct FujiProfile *fp, uint8_t *bin, unsigned int len);
 
 /// @brief Merge a profile 'from' into 'to'
 /// @returns non-zero for error

@@ -289,7 +289,7 @@ static int get_prop(const struct FujiProfile *fp, int idx, uint32_t *value) {
 	}
 }
 
-int fp_create_d185(const struct FujiProfile *fp, uint8_t *bin, int len) {
+int fp_create_d185(const struct FujiProfile *fp, uint8_t *bin, unsigned int len) {
 	if (!(len >= 0x274)) return -1;
 	int of = 0;
 	of += write_u16(bin + of, 0x1d);
@@ -320,7 +320,7 @@ int fp_create_d185(const struct FujiProfile *fp, uint8_t *bin, int len) {
 	return of;
 }
 
-int fp_parse_d185(const uint8_t *bin, int len, struct FujiProfile *fp) {
+int fp_parse_d185(const uint8_t *bin, unsigned int len, struct FujiProfile *fp) {
 	if (len < 0x200) return -1;
 
 	memset(fp, 0, sizeof(struct FujiProfile));

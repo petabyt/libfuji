@@ -40,13 +40,13 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 
 	// Safely disconnect if intentional
 	if (code == 0) {
-		ptp_verbose_log("Closing session\n");
+		ptp_verbose_log(r, "Closing session\n");
 		ptp_close_session(r);
 	}
 
 	r->operation_kill_switch = 1;
 
-	ptp_verbose_log("Goodbye\n");
+	ptp_verbose_log(r, "Goodbye\n");
 
 	if (r->connection_type == PTP_IP_USB) {
 		// Send Fuji's 'goodbye' packet - we don't care if this fails or not
@@ -137,11 +137,11 @@ int fuji_get_events(struct PtpRuntime *r) {
 
 	ptp_read_u16(&ev->length, &length);
 
-	ptp_verbose_log("Found %d events\n", ev->length);
+	ptp_verbose_log(r, "Found %d events\n", ev->length);
 	for (int i = 0; i < ev->length; i++) {
 		ptp_read_u16(&ev->events[i].code, &code);
 		ptp_read_u32(&ev->events[i].value, &value);
-		ptp_verbose_log("%X changed to %X\n", code, value);
+		ptp_verbose_log(r, "%X changed to %X\n", code, value);
 	}
 
 	for (int i = 0; i < ev->length; i++) {
@@ -193,7 +193,7 @@ int fuji_config_init_mode(struct PtpRuntime *r) {
 		}
 	}
 
-	ptp_verbose_log("Setting mode to %d\n", mode);
+	ptp_verbose_log(r, "Setting mode to %d\n", mode);
 
 	// On newer cams, setting client state causes cam to open a dialog (Yes/No accept connection)
 	// We have to wait for a response in this case
@@ -238,13 +238,13 @@ static int fuji_config_version_(struct PtpRuntime *r) {
 		struct PtpObjectInfo oi;
 		rc = ptp_get_object_info(r, 0xfffffff1, &oi);
 		if (rc == PTP_CHECK_CODE) {
-			ptp_verbose_log("Didn't get valid info for 0xfffffff1\n");
+			ptp_verbose_log(r, "Didn't get valid info for 0xfffffff1\n");
 		} else if (rc) {
 			return rc;
 		} else {
 			char buffer[512];
 			ptp_object_info_json(&oi, buffer, sizeof(buffer));
-			ptp_verbose_log("0xfffffff1: %s\n", buffer);
+			ptp_verbose_log(r, "0xfffffff1: %s\n", buffer);
 		}
 #endif
 
@@ -281,7 +281,7 @@ static int fuji_xapp_config_gallery(struct PtpRuntime *r) {
 	if (rc) return rc;
 	int val = ptp_parse_prop_value(r);
 	fuji->remote_image_view_ex_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("RemotePhotoViewExVersion: 0x%X\n", fuji->remote_image_view_ex_version);
+	ptp_verbose_log(r, "RemotePhotoViewExVersion: 0x%X\n", fuji->remote_image_view_ex_version);
 	rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28, val);
 	if (rc) return rc;
 
@@ -398,26 +398,26 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion_DF22);
 	if (rc) return rc;
 	fuji->get_object_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("PTP_DPC_FUJI_GetObjectVersion_DF22: 0x%X\n", fuji->get_object_version);
+	ptp_verbose_log(r, "PTP_DPC_FUJI_GetObjectVersion_DF22: 0x%X\n", fuji->get_object_version);
 
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion_DF25);
 	if (rc) return rc;
 	fuji->remote_image_view_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("PTP_DPC_FUJI_RemoteGetObjectVersion_DF25: 0x%X\n", fuji->remote_image_view_version);
+	ptp_verbose_log(r, "PTP_DPC_FUJI_RemoteGetObjectVersion_DF25: 0x%X\n", fuji->remote_image_view_version);
 
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_ImageGetVersion_DF21);
 	if (rc) return rc;
 	fuji->image_get_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("PTP_DPC_FUJI_ImageGetVersion_DF21: 0x%X\n", fuji->image_get_version);
+	ptp_verbose_log(r, "PTP_DPC_FUJI_ImageGetVersion_DF21: 0x%X\n", fuji->image_get_version);
 
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteVersion_DF24);
 	if (rc) return rc;
 	fuji->remote_version = ptp_parse_prop_value(r);
-	ptp_verbose_log("PTP_DPC_FUJI_RemoteVersion_DF24: 0x%X\n", fuji->remote_version);
+	ptp_verbose_log(r, "PTP_DPC_FUJI_RemoteVersion_DF24: 0x%X\n", fuji->remote_version);
 
 	rc = fuji_config_init_mode(r);
 	if (rc) {
-		ptp_verbose_log("fuji_config_init_mode: %d\n", rc);
+		ptp_verbose_log(r, "fuji_config_init_mode: %d\n", rc);
 		app_print(r, "Failed to setup the camera's mode");
 		return rc;
 	}
@@ -485,7 +485,7 @@ static int ptpip_fuji_connect_handshake_(struct PtpRuntime *r, const char *devic
 	ptp_write_unicode_string(p->device_name, device_name);
 
 	if (ptpip_cmd_write(r, r->data, (int)p->length) != (int)p->length) {
-		ptp_verbose_log("First TCP packet failed");
+		ptp_verbose_log(r, "First TCP packet failed");
 		return PTP_IO_ERR;
 	}
 
@@ -496,12 +496,12 @@ static int ptpip_fuji_connect_handshake_(struct PtpRuntime *r, const char *devic
 	if (x < 0) return PTP_IO_ERR;
 
 	if (p->type == PTPIP_INIT_FAIL) {
-		ptp_verbose_log("PTPIP_INIT_FAIL\n");
+		ptp_verbose_log(r, "PTPIP_INIT_FAIL\n");
 		return PTP_RUNTIME_ERR;
 	}
 
 	ptp_fuji_parse_init_struct(r, resp);
-	ptp_verbose_log("Connected to %s\n", resp->cam_name);
+	ptp_verbose_log(r, "Connected to %s\n", resp->cam_name);
 
 	if (ptp_get_return_code(r) != 0) {
 		return PTP_IO_ERR;
@@ -524,9 +524,8 @@ struct MyAddInfo {
 };
 
 static uint8_t *my_add(void *arg, uint8_t *buffer, unsigned int new_len, unsigned int old_len) {
-	ptp_verbose_log("Downloading more exif data %d -> %d\n", new_len, old_len);
-
 	struct MyAddInfo *i = (struct MyAddInfo *)arg;
+	ptp_verbose_log(i->r, "Downloading more exif data %d -> %d\n", new_len, old_len);
 	i->buffer = realloc(i->buffer, new_len);
 	if (i->buffer == NULL) abort();
 
@@ -565,7 +564,7 @@ static int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *
 
 	struct ExifParser c = {0};
 	rc = exif_start_raw(&c, temp.buffer, ptp_get_payload_length(r), my_add, &temp);
-	ptp_verbose_log("exif_start_raw: %d\n", rc);
+	ptp_verbose_log(r, "exif_start_raw: %d\n", rc);
 
 	if (c.thumb_of == 0 || c.thumb_size == 0) {
 		rc = PTP_RUNTIME_ERR;
@@ -574,7 +573,7 @@ static int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *
 
 	*offset = c.thumb_of;
 	*length = c.thumb_size;
-	ptp_verbose_log("Exif thumb offset: %u size: %u\n", c.thumb_of, c.thumb_size);
+	ptp_verbose_log(r, "Exif thumb offset: %u size: %u\n", c.thumb_of, c.thumb_size);
 
 	// Some timing issues have to be worked around to make this work.
 	// Given transfer speed/camera speed 5 event calls is generally enough for the camera
@@ -615,7 +614,7 @@ int fuji_get_thumb(struct PtpRuntime *r, int handle, unsigned int *offset, unsig
 
 		int rc = ptp_get_thumbnail(r, (int)handle);
 		if (rc == PTP_CHECK_CODE) {
-			ptp_verbose_log("Thumbnail get failed: %x\n", ptp_get_return_code(r));
+			ptp_verbose_log(r, "Thumbnail get failed: %x\n", ptp_get_return_code(r));
 			return 0;
 		} else if (rc) {
 			return rc;
@@ -692,7 +691,7 @@ int fuji_config_image_gallery(struct PtpRuntime *r) {
 	fujipriv_t *fuji = fuji_get(r);
 	if (r->connection_type == PTP_USB || fuji->transport == FUJI_FEATURE_WIRELESS_TETHER) return 0;
 	if (fuji->remote_image_view_version != -1) {
-		ptp_verbose_log("remote_image_view_version: %X", fuji->remote_image_view_version);
+		ptp_verbose_log(r, "remote_image_view_version: %X", fuji->remote_image_view_version);
 		int rc = fuji_get_events(r);
 		if (rc) return rc;
 
@@ -749,7 +748,7 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 	fujipriv_t *fuji = fuji_get(r);
 	int rc = 0;
 
-	ptp_verbose_log("Downloading object %d\n", handle);
+	ptp_verbose_log(r, "Downloading object %d\n", handle);
 
 	if (fuji->transport == FUJI_FEATURE_WIRELESS_COMM) {
 		rc = fuji_get_events(r);
@@ -789,7 +788,7 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 		if (rc == PTP_CHECK_CODE) {
 			goto end;
 		} else if (rc) {
-			ptp_verbose_log("Download fail %d", rc);
+			ptp_verbose_log(r, "Download fail %d", rc);
 			ptp_mutex_unlock(r);
 			return rc;
 		}
@@ -813,7 +812,7 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 
 		if (read >= oi.compressed_size) {
 			long now = get_ms();
-			ptp_verbose_log("Took %ld seconds\n", (now - then) / 1000 / 1000);
+			ptp_verbose_log(r, "Took %ld seconds\n", (now - then) / 1000 / 1000);
 			rc = 0;
 			goto end;
 		}
