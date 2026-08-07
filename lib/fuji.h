@@ -34,7 +34,6 @@ struct DiscoverInfo {
 /// Fujifilm priv struct for PtpRuntime->priv variable
 struct PtpUserPriv {
 	struct PakModule *mod;
-	//struct FujiModulePriv *priv;
 	char ip_address[64];
 	enum FujiTransport transport;
 

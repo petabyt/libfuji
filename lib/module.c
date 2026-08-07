@@ -212,11 +212,11 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
 
-			pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-				.name = "autosave-thumbnails",
-				.title = "Enable thumbnails (buggy)",
-				.type = PAK_BOOLEAN,
-				.u.boolv.v = 0,
+			pak_rt_set_widget(mod, &(struct PakWidget) {
+					.name = "autosave-thumbnails",
+					.title = "Enable thumbnails (buggy)",
+					.type = PAK_BOOLEAN,
+					.u.boolv.v = 0,
 			});
 		} break;
 	}
@@ -229,7 +229,7 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 }
 
 static int on_try_connect_bluetooth(struct PakModule *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
-	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
+	pak_rt_set_widget(mod, &(struct PakWidget) {
 			.name = "switch-wifi",
 			.title = "Connect over WiFi",
 			.type = PAK_BUTTON,
