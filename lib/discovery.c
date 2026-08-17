@@ -328,6 +328,7 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 	size_t len = send(fd, notify, strlen(notify), 0);
 	if (len != strlen(notify)) {
 		ptp_error_log(s->r, "Failed to send datagram response\n");
+		close(fd);
 		return -1;
 	}
 
