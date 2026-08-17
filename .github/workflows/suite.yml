@@ -35,5 +35,7 @@ jobs:
         sudo cmake --install build
     - name: Compile cli
       run: cmake -G Ninja -B build -DLIBFUJI_INCLUDE_CLI=ON && cmake --build build
+    - name: Run regression tests
+      run: ctest --test-dir build --output-on-failure
     - name: Run unit test
       run: build/libfuji-cli --test-wifi

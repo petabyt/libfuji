@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 project(libfuji)
+include(CTest)
 option(LIBFUJI_SHARED "Build using shared libraries" OFF)
 option(LIBFUJI_INCLUDE_CLI "Include cli program for CI/testing" OFF)
 option(LIBFUJI_MODULE "Compile as libpak module" OFF)
@@ -62,4 +63,21 @@ if(LIBFUJI_INCLUDE_CLI)
         lib/jank.c
     )
     target_link_libraries(libfuji-cli PUBLIC fuji)
+endif()
+
+if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_executable(autosave-regression-test
+        tests/autosave_regression_test.c
+    )
+    target_compile_options(autosave-regression-test PRIVATE
+        -Wall -Wextra -Wpedantic -Werror -Wno-error=pragmas
+    )
+    target_link_options(autosave-regression-test PRIVATE
+        -Wl,--wrap=ptp_get_object_info
+        -Wl,--wrap=ptp_get_partial_object
+        -Wl,--wrap=ptp_mutex_lock
+        -Wl,--wrap=ptp_mutex_unlock
+    )
+    target_link_libraries(autosave-regression-test PRIVATE fuji)
+    add_test(NAME autosave-regression-test COMMAND autosave-regression-test)
 endif()
