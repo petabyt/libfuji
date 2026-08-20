@@ -57,6 +57,7 @@ struct PtpUserPriv {
 	char storage_device_name[64];
 	int open_capture_trans_id;
 	int allow_autosave_thumbnails;
+	int sort_by_oldest_first;
 };
 
 typedef struct PtpUserPriv fujipriv_t;

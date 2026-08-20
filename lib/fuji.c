@@ -73,6 +73,16 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	}
 }
 
+/// Camera will shut down or freeze if connecting to some modern phones
+/// https://www.fujifilm-x.com/en-us/news/countermeasure-for-fujifilm-camera-remote-connection-failure/
+int has_wifi_issue_with_newer_hardware(const char *model_name) {
+	const char *models[] = {"X-T1", "X-T10", "X-E2S", "X-E2", "X-M1", "X-A2", "X-A1", "X100T", "X70", "X30", "XQ2", "XQ1"};
+	for (int i = 0; i < (sizeof(models) / sizeof(char *)); i++) {
+		if (!strcmp(models[i], model_name)) return 1;
+	}
+	return 0;
+}
+
 int fuji_get_device_info(struct PtpRuntime *r) {
 	struct PtpCommand cmd;
 	cmd.code = PTP_OC_FUJI_GetDeviceInfo;
@@ -88,24 +98,12 @@ static int fuji_tether_download(struct PtpRuntime *r) {
 
 	for (int i = 0; i < (int)a->length; i++) {
 		// oi.filename will always be DSCF0001.JPG
+		// TODO: Rewrite filename to be indexed
 		struct PtpObjectInfo oi;
 		rc = ptp_get_object_info(r, a->data[i], &oi);
 		if (rc) return rc;
 
-		app_downloading_file(r, &oi);
-
-		// TODO: rewrite
-#if 0
-		char buffer[256];
-		app_get_tether_file_path(r, buffer);
-		FILE *f = fopen(buffer, "wb");
-		if (f == NULL) return PTP_RUNTIME_ERR;
-		app_print(r, "Downloading %s", buffer);
-		ptp_download_object(r, (int)a->data[i], f, 0x100000);
-		fclose(f);
-
-		app_downloaded_file(r, &oi, buffer);
-#endif
+		app_ptp_download_file(r, &oi, (int)a->data[i], 0x100000, i);
 
 		if (fuji_get(r)->transport == FUJI_FEATURE_WIRELESS_TETHER) {
 			ptp_delete_object(r, (int)a->data[i]);
@@ -354,6 +352,7 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	}
 
 	// Fuji seems to always start OpenSession with transaction ID 1 instead of 0
+	// Unlike what the PTP standard specifies
 	r->session++;
 	r->transaction = 1;
 	rc = ptp_send(r, &(struct PtpCommand){
@@ -832,41 +831,24 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 	ptp_mutex_unlock(r);
 	return rc;
 }
-
 int fuji_download_file(struct PtpRuntime *r, int handle, int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset, unsigned int total_size), void *arg) {
 	return fuji_download_file_ex(r, handle, NULL, handle_add, arg);
 }
 
 // Functionality of FUJI_MULTIPLE_TRANSFER
 int fuji_download_classic(struct PtpRuntime *r) {
+	int i = 0;
 	while (1) {
-		// This determines whether the connection is terminated or not
 		struct PtpObjectInfo oi;
 		int rc = ptp_get_object_info(r, 1, &oi);
+		if (rc == PTP_CHECK_CODE) return 0;
 		if (rc) return rc;
 
-		app_downloading_file(r, &oi);
-
-		char path[256];
-		app_get_file_path(r, path, oi.filename);
-		FILE *f = fopen(path, "wb");
-		if (f == NULL) return PTP_RUNTIME_ERR;
-
 		// Not sure if 0x100000 is required or not, but we'll do what Fuji is doing.
-		rc = ptp_download_object(r, 1, f, 0x100000);
-		fclose(f);
-		if (rc) {
-			app_print(r, "Failed to save %s: %s", oi.filename, ptp_perror(rc));
-			return rc;
-		}
-
-		app_downloaded_file(r, &oi, path);
+		app_ptp_download_file(r, &oi, 1, 0x100000, i++);
 
 		// Fuji's filesystem will swap out object ID 1 with the next image. If there
-		// are no more images, the camera shuts down the connection and turns off.
-
-		// In other words, the camera is in superposition - it's on and off at the same time.
-		// We don't know until we observe it:
+		// are no more images, the camera either turns off (?) or returns 0x2009 for GetObjectInfo
 		rc = fuji_get_events(r);
 		if (rc) return 0;
 	}

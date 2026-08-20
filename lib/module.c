@@ -8,6 +8,30 @@
 static int file_to_oh(struct PakFileHandle *file) { return file->index_in_view + 1; }
 //static int oh_to_file(struct PakFileHandle *file) { return file->index_in_view + 1; }
 
+static const char *get_mime_type(uint16_t object_format) {
+	switch (object_format) {
+		case PTP_OF_JPEG: return "image/jpeg";
+		case PTP_OF_MOV: return "video/quicktime";
+		case PTP_OF_PNG: return "image/png";
+		default: return "application/unknown";
+	}
+}
+
+static struct PakFileMetadata oi_to_metadata(const struct PtpObjectInfo *oi) {
+	int orientation = 0;
+	if (!strcmp(oi->keywords, "Orientation: 8")) {
+		orientation = 270;
+	}
+	return (struct PakFileMetadata){
+		.filename = oi->filename,
+		.file_size = (int)oi->compressed_size,
+		.mime_type = get_mime_type(oi->obj_format),
+		.image_height = (int)oi->img_height,
+		.image_width = (int)oi->img_width,
+		.orientation = orientation,
+	};
+}
+
 static int handle_ptperr(struct PakModule *mod, int rc, const char *action) {
 	switch (rc) {
 		case PTP_IO_ERR: {
@@ -76,6 +100,44 @@ void app_print(struct PtpRuntime *r, char *fmt, ...) {
 
 void app_send_cam_name(struct PtpRuntime *r, const char *name) {
 	pak_rt_set_session_property(get_mod(r), PAK_PROP_NAME, name);
+}
+
+int app_ptp_download_file(struct PtpRuntime *r, struct PtpObjectInfo *oi, int object_id, unsigned int max_chunk_size, int index) {
+	struct PakModule *mod = get_mod(r);
+	unsigned int read = 0;
+	struct PakFileHandle handle = {
+		.index_in_view = index,
+		.storage_name = "live",
+	};
+	struct PakFileMetadata md = oi_to_metadata(oi);
+	pak_rt_add_file_metadata(mod, &handle, &md);
+	while (1) {
+		ptp_mutex_lock(r);
+		int rc = ptp_get_partial_object(r, object_id, read, max_chunk_size);
+		if (rc) {
+			ptp_mutex_unlock(r);
+			return rc;
+		}
+
+		size_t partial_len = ptp_get_payload_length(r);
+
+		if (partial_len == 0) {
+			ptp_mutex_unlock(r);
+			break;
+		}
+
+		pak_rt_add_file_contents(mod, &handle, ptp_get_payload(r), partial_len, read, oi->compressed_size);
+
+		ptp_mutex_unlock(r);
+
+		read += partial_len;
+
+		if (partial_len != max_chunk_size) {
+			break;
+		}
+	}
+	pak_rt_add_file_contents(mod, &handle, NULL, 0, read, oi->compressed_size);
+	return 0;
 }
 
 static int on_free(struct PakModule *mod) {
@@ -179,12 +241,6 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 	int rc = fuji_setup(r, client_name);
 	if (rc) goto cleanup;
 
-	if (r->priv->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
-		pak_rt_set_storage_info(mod, r->priv->storage_device_name, r->priv->num_objects, PAK_OLDEST_FIRST);
-	} else {
-		pak_rt_set_storage_info(mod, r->priv->storage_device_name, r->priv->num_objects, PAK_NEWEST_FIRST);
-	}
-
 	switch (r->priv->camera_state) {
 		case FUJI_FULL_ACCESS:
 		case FUJI_MODE_REMOTE_IMG_VIEW:
@@ -192,26 +248,27 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 		case FUJI_MODE_REMOTE_IMG_VIEW_XAPP: {
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
-			//pak_rt_set_screen_supported(mod, PAK_SCREEN_GEOTAGGING, 1);
 			//pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVEVIEW, 1);
+			pak_rt_set_storage_info(mod, r->priv->storage_device_name, &(struct PakStorageInfo){
+				.n_files_total = r->priv->num_objects,
+				.sorted_by = r->priv->sort_by_oldest_first ? PAK_OLDEST_FIRST : PAK_NEWEST_FIRST,
+			});
 		} break;
 		case FUJI_MULTIPLE_TRANSFER: {
-			// TODO:
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVE_FEED, 1);
-			// TODO: Do downloading after connected
-			rc = fuji_download_classic(r);
-			if (rc) {
-				app_print(r, "Error downloading images");
-				return PAK_ERR_DISCONNECTED;
-			}
-			app_print(r, "Check your file manager app/gallery.");
-			ptp_report_error(r, "Disconnected", 0);
-			return PAK_ERR_DISCONNECTED;
+			pak_rt_set_storage_info(mod, r->priv->storage_device_name, &(struct PakStorageInfo){
+				.is_live = 1,
+				.n_files_total = 1,
+			});
+			break;
 		} break;
 		case FUJI_PC_AUTO_SAVE: {
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
-
+			pak_rt_set_storage_info(mod, r->priv->storage_device_name, &(struct PakStorageInfo){
+				.n_files_total = r->priv->num_objects,
+				.sorted_by = r->priv->sort_by_oldest_first ? PAK_OLDEST_FIRST : PAK_NEWEST_FIRST,
+			});
 			pak_rt_set_widget(mod, &(struct PakWidget) {
 					.name = "autosave-thumbnails",
 					.title = "Enable thumbnails (buggy)",
@@ -248,10 +305,17 @@ static int on_idle_tick(struct PakModule *mod, unsigned int us_since_last_tick) 
 		if (r->connection_type == PTP_USB) {
 			int rc = ptpusb_get_status(r);
 			if (rc) return handle_ptperr(mod, rc, "ptpusb_get_status");
+		} else if (r->priv->camera_state == FUJI_MULTIPLE_TRANSFER) {
+			int rc = fuji_download_classic(r);
+			if (rc) {
+				app_print(r, "Error downloading images");
+			}
+			ptp_report_error(r, "Disconnected", 0);
+			pak_rt_fatal_error(mod, "Disconnected");
+		} else {
+			int rc = fuji_get_events(r);
+			if (rc) return handle_ptperr(mod, rc, "fuji_get_events");
 		}
-
-		int rc = fuji_get_events(r);
-		if (rc) return handle_ptperr(mod, rc, "fuji_get_events");
 	}
 	if (mod->priv->dev != NULL) {
 		pak_bt_device_update(mod->bt, mod->priv->dev);
@@ -347,15 +411,6 @@ static int on_request_thumbnail(struct PakModule *mod, int job, struct PakFileHa
 
 	ptp_mutex_unlock(r);
 	return 0;
-}
-
-static const char *get_mime_type(uint16_t object_format) {
-	switch (object_format) {
-		case PTP_OF_JPEG: return "image/jpeg";
-		case PTP_OF_MOV: return "video/quicktime";
-		case PTP_OF_PNG: return "image/png";
-		default: return "application/unknown";
-	}
 }
 
 int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpObjectInfo *oi) {

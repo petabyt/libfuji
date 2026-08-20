@@ -114,8 +114,7 @@ enum ClientStates {
 	FUJI_MULTIPLE_TRANSFER_REQ = 8,
 	FUJI_MODE_IMG_VIEW_IN_CAM = 9,
 	FUJI_GPS_ASSIST_V2 = 10,
-	// Set to quiet down the liveview/remote functionality (still running I think) and start the image gallery
-	// This is only for remote cameras. Better name would be IMG_VIEW_EXTENDED (?)
+	// Image gallery in remote mode
 	FUJI_MODE_REMOTE_IMG_VIEW = 11,
 	// Set GPS on cam, haven't tested
 	FUJI_MODE_SET_GPS = 17,

@@ -50,14 +50,3 @@ void tester_fail(struct PtpRuntime *r, char *fmt, ...) {
 	va_end(args);
 	putchar('\n');
 }
-
-__attribute__((weak))
-void app_downloaded_file(struct PtpRuntime *r, const struct PtpObjectInfo *oi, const char *path) {
-	printf("File has been downloaded to '%s'\n", path);
-}
-__attribute__((weak))
-void app_get_file_path(struct PtpRuntime *r, char buffer[256], const char *filename) {abort();}
-__attribute__((weak))
-void app_downloading_file(struct PtpRuntime *r, const struct PtpObjectInfo *oi) {}
-__attribute__((weak))
-void app_get_tether_file_path(struct PtpRuntime *r, char buffer[256]) {abort();}

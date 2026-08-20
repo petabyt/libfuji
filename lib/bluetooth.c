@@ -360,7 +360,8 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 	} else {
 		memcpy(mfgdata.token.data, saved->aux_data, TOKEN_LEN);
 
-		// TODO: If newer bluetooth (?) if !dev->is_bonded we must abort and tell user to repair
+		// TODO: If newer bluetooth (?) if !dev->is_bonded we must abort and tell user to switch to this device
+		// in 'SELECT PAIRING DESTINATION'
 	}
 
 	int rc = pak_bt_device_connect(ctx, dev);
