@@ -770,19 +770,22 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 		// Seems to take a while in some cases.
 		r->wait_for_response = 3;
 		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 1);
+		if (rc) return rc;
 	} else if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
-		ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 2);
+		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 2);
+		if (rc) return rc;
 	}
 
 	ptp_mutex_lock(r);
 
 	struct PtpObjectInfo oi;
 	rc = ptp_get_object_info(r, handle, &oi);
-	if (rc) {
-		return rc;
-	}
+	if (rc) goto end;
 
-	if (info != NULL) info(arg, &oi);
+	if (info != NULL) {
+		rc = info(arg, &oi);
+		if (rc) goto end;
+	}
 
 	long then = get_ms();
 
@@ -802,8 +805,7 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 			goto end;
 		} else if (rc) {
 			ptp_verbose_log(r, "Download fail %d", rc);
-			ptp_mutex_unlock(r);
-			return rc;
+			goto end;
 		}
 
 		size_t payload_size = ptp_get_payload_length(r);
@@ -832,18 +834,18 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 	}
 
 	end:;
+	int operation_rc = rc;
+	int cleanup_rc = 0;
 	if (fuji->transport == FUJI_FEATURE_WIRELESS_COMM) {
-		rc = fuji_get_events(r);
-		if (rc) {
-			ptp_mutex_unlock(r);
-			return rc;
+		cleanup_rc = fuji_get_events(r);
+		if (cleanup_rc == 0) {
+			cleanup_rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 0);
 		}
-		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 0);
 	} else if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
-		ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 2);
+		cleanup_rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 2);
 	}
 	ptp_mutex_unlock(r);
-	return rc;
+	return operation_rc != 0 ? operation_rc : cleanup_rc;
 }
 int fuji_download_file(struct PtpRuntime *r, int handle, int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset, unsigned int total_size), void *arg) {
 	return fuji_download_file_ex(r, handle, NULL, handle_add, arg);

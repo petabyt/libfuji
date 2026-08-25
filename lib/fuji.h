@@ -126,6 +126,8 @@ int ptp_fuji_parse_init_struct(struct PtpRuntime *r, struct PtpFujiInitResp *res
 /// @brief Respects cancel signals.
 /// @note If transport is FUJI_FEATURE_WIRELESS_COMM, compression property will be enabled after download
 int fuji_download_file(struct PtpRuntime *r, int handle, int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset, unsigned int total_size), void *arg);
+/// Download an object in chunks. Returning nonzero from info or handle_add
+/// stops the transfer before requesting more object data.
 int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg, struct PtpObjectInfo *oi), int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset, unsigned int total_size), void *arg);
 
 /// @brief Gets list of object handles regardless of transport

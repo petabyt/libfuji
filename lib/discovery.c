@@ -20,6 +20,7 @@
 #include <ptp.h>
 #include "app.h"
 #include "fuji.h"
+#include "discovery.h"
 
 int ptp_set_extra_socket_settings(struct PtpRuntime *r, int fd) {
 	if (r->set_extra_socket_settings != NULL) return r->set_extra_socket_settings(r, fd);
@@ -148,6 +149,48 @@ static int connect_to_notify_server(struct DiscoveryState *s, char *ip, int port
 	return 0;
 }
 
+int fuji_discovery_parse_datagram(
+	struct PtpRuntime *runtime,
+	char *greeting,
+	struct DiscoverInfo *info
+) {
+	if (runtime == NULL || greeting == NULL || info == NULL) return -1;
+
+	char *saveptr;
+	char *delim = " :\r\n";
+	char *cur = strtok_r(greeting, delim, &saveptr);
+	while (cur != NULL) {
+		if (!strcmp(cur, "DISCOVER")) {
+			cur = strtok_r(NULL, delim, &saveptr);
+			if (cur == NULL) return -1;
+			ptp_verbose_log(runtime, "Client name: %s\n", cur);
+			if (strcmp(cur, "*") != 0) {
+				snprintf(info->client_name, sizeof(info->client_name), "%s", cur);
+			}
+		} else if (!strcmp(cur, "DSCADDR")) {
+			cur = strtok_r(NULL, delim, &saveptr);
+			if (cur == NULL) return -1;
+			ptp_verbose_log(runtime, "Client IP: %s\n", cur);
+			snprintf(info->camera_ip, sizeof(info->camera_ip), "%s", cur);
+		}
+		cur = strtok_r(NULL, delim, &saveptr);
+	}
+
+	return 0;
+}
+
+int fuji_discovery_read_ack(struct PtpRuntime *runtime, int socket_fd) {
+	char ack[512];
+	ssize_t len = recv(socket_fd, ack, sizeof(ack) - 1, 0);
+	if (len <= 0) {
+		ptp_error_log(runtime, "Failed to read datagram response\n");
+		return -1;
+	}
+	ack[len] = '\0';
+	ptp_verbose_log(runtime, "%s", ack);
+	return 0;
+}
+
 static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *info, int port) {
 	int server_fd, client_fd;
 	struct sockaddr_in server_addr, client_addr;
@@ -263,23 +306,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 
 // TODO: Respond to any connection
 static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct DiscoverInfo *info) {
-	char *saveptr;
-	char *delim = " :\r\n";
-	char *cur = strtok_r(greeting, delim, &saveptr);
-	while (cur != NULL) {
-		if (!strcmp(cur, "DISCOVER")) {
-			cur = strtok_r(NULL, delim, &saveptr);
-			if (cur == NULL) return -1;
-			ptp_verbose_log(s->r, "Client name: %s\n", cur);
-			strncpy(info->client_name, cur, sizeof(info->client_name));
-		} else if (!strcmp(cur, "DSCADDR")) {
-			cur = strtok_r(NULL, delim, &saveptr);
-			if (cur == NULL) return -1;
-			ptp_verbose_log(s->r, "Client IP: %s\n", cur);
-			strncpy(info->camera_ip, cur, sizeof(info->camera_ip));
-		}
-		cur = strtok_r(NULL, delim, &saveptr);
-	}
+	if (fuji_discovery_parse_datagram(s->r, greeting, info) != 0) return -1;
 
 	fuji_discovery_update_progress(s->r, FUJI_UM_CONNECTING_TO_NOTIFY_SERVER);
 
@@ -303,17 +330,14 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 	size_t len = send(fd, notify, strlen(notify), 0);
 	if (len != strlen(notify)) {
 		ptp_error_log(s->r, "Failed to send datagram response\n");
+		close(fd);
 		return -1;
 	}
 
-	char ack[512];
-	len = recv(fd, ack, sizeof(ack), 0);
-	if (len <= 0) {
-		ptp_error_log(s->r, "Failed to read datagram response\n");
+	if (fuji_discovery_read_ack(s->r, fd) != 0) {
+		close(fd);
 		return -1;
 	}
-	response[len] = '\0';
-	ptp_verbose_log(s->r, "%s", response);
 
 	close(fd);
 
@@ -650,7 +674,9 @@ static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const
 }
 
 int fuji_discover_thread(struct PtpRuntime *r, struct DiscoverInfo *info, const char *client_name) {
+	if (r == NULL || info == NULL || client_name == NULL || client_name[0] == '\0') return -1;
 	memset(info, 0, sizeof(struct DiscoverInfo));
+	snprintf(info->client_name, sizeof(info->client_name), "%s", client_name);
 
 	char local_ip[64];
 	if (get_local_ip(r, local_ip)) {
