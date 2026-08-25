@@ -79,13 +79,12 @@ void ptp_error_log(struct PtpRuntime *r, char *fmt, ...) {
 
 __attribute__ ((noreturn))
 void ptp_panic(char *fmt, ...) {
-	printf("PTP abort: ");
+	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
-	vprintf(fmt, args);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
-	fflush(stdout);
-	putchar('\n');
+	pak_error("ptp_panic: %s", buffer);
 	abort();
 }
 
@@ -248,7 +247,7 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 		case FUJI_MODE_REMOTE_IMG_VIEW_XAPP: {
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
-			//pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVEVIEW, 1);
+			pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVEVIEW, 1);
 			pak_rt_set_storage_info(mod, r->priv->storage_device_name, &(struct PakStorageInfo){
 				.n_files_total = r->priv->num_objects,
 				.sorted_by = r->priv->sort_by_oldest_first ? PAK_OLDEST_FIRST : PAK_NEWEST_FIRST,
@@ -469,6 +468,18 @@ static int on_try_connect_usb(struct PakModule *mod, libusb_device *dev, struct 
 	return -1;
 }
 
+static int on_request_liveview_frame(struct PakModule *mod, int job, struct PakFileHandle *handle) {
+	struct PtpRuntime *r = mod->priv->r;
+	if (r == NULL) return 0;
+	ptp_mutex_lock(r);
+	unsigned int size = 0;
+	if (ptp_fuji_read_liveview_frame(r, &size) == 0 && size != 0) {
+		pak_rt_add_file_contents(mod, handle, r->data, size, 0, size);
+	}
+	ptp_mutex_unlock(r);
+	return 0;
+}
+
 int get_module(struct PakModule *mod) {
 	mod->init = init;
 	mod->free = on_free;
@@ -478,6 +489,7 @@ int get_module(struct PakModule *mod) {
 	mod->on_request_file_thumbnail = on_request_thumbnail;
 	mod->on_request_file_metadata = on_request_file_metadata;
 	mod->on_request_file_contents = on_request_file_contents;
+	mod->on_request_liveview_frame = on_request_liveview_frame;
 	mod->on_idle_tick = on_idle_tick;
 	mod->on_disconnect = on_disconnect;
 	mod->on_switch_screen = on_switch_screen;

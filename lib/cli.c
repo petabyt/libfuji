@@ -11,14 +11,13 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-int fuji_test_discovery(struct PtpRuntime *r);
-
 void nothing(int x) {}
 
 pid_t child_pid = -1;
 
 __attribute__((weak))
 void ptp_verbose_log(struct PtpRuntime *r, char *fmt, ...) {
+	printf("PTP: ");
 	va_list args;
 	va_start(args, fmt);
 	vprintf(fmt, args);
@@ -27,6 +26,7 @@ void ptp_verbose_log(struct PtpRuntime *r, char *fmt, ...) {
 
 __attribute__((weak))
 void ptp_error_log(struct PtpRuntime *r, char *fmt, ...) {
+	printf("ERR: ");
 	va_list args;
 	va_start(args, fmt);
 	vprintf(fmt, args);
@@ -49,6 +49,10 @@ int fuji_discovery_check_cancel(struct PtpRuntime *r) {return 0;}
 void app_report_download_speed(struct PtpRuntime *r, long time, size_t size) {}
 int app_check_thread_cancel(struct PtpRuntime *r) {return 0;}
 int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpObjectInfo *oi) {return 0;}
+int app_ptp_download_file(struct PtpRuntime *r, struct PtpObjectInfo *oi, int object_id, unsigned int max_chunk_size, int index) {
+	// TODO: 
+	return 0;
+}
 
 int fudge_usb_connect(struct PtpRuntime *r, int num) {
 	static int attempts = 0;
@@ -188,6 +192,38 @@ int fudge_test_all_cameras(void) {
 	return 0;
 }
 
+int fuji_test_discovery(struct PtpRuntime *r) {
+	struct DiscoverInfo info = {0};
+
+	printf("Listening...\n");
+	int rc = fuji_discover_thread(r, &info, "libfuji");
+	if (rc == FUJI_D_REGISTERED) {
+		plat_dbg("Registered %s %s", info.camera_name, info.camera_model);
+	} else if (rc == FUJI_D_GO_PTP) {
+		usleep(100000); // TODO: Kind of have to wait before connecting
+
+		printf("connecting to %s:%d\n", info.camera_ip, info.camera_port);
+		fuji_reset_ptp(r);
+		r->connection_type = PTP_IP_USB;
+		fuji_get(r)->transport = info.transport;
+		strcpy(fuji_get(r)->ip_address, info.camera_ip);
+		if (ptpip_connect(r, info.camera_ip, info.camera_port, 0)) {
+			printf("Error connecting to %s:%d\n", info.camera_ip, info.camera_port);
+			return 0;
+		}
+
+		rc = fuji_setup(r, "fudge");
+		if (rc) return rc;
+
+		printf("Connected, ready to do stuff\n");
+
+		ptpip_device_close(r);
+	} else {
+		printf("Response code: %d\n", rc);
+	}
+
+	return -1;
+}
 
 static int help(void) {
 	printf("--test-wifi\n");

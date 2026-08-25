@@ -15,6 +15,7 @@ void plat_dbg(char *fmt, ...) {
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
+	putchar('\n');
 }
 
 __attribute__((weak))
@@ -24,6 +25,7 @@ void app_print(struct PtpRuntime *r, char *fmt, ...) {
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
+	putchar('\n');
 }
 
 __attribute__((weak))

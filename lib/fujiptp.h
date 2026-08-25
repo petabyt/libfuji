@@ -90,6 +90,7 @@ enum FujiDevicePropertyCode {
     // NOTE: 0xdf26 and 0xdf27 appear to be unused
     // x-s10 sets to 1, x-t5 sets to 3
     PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28 = 0xdf28,
+	// Most likely RemoteExVersion
     PTP_DPC_FUJI_Unknown_DF2A = 0xdf2a,
     PTP_DPC_FUJI_GeoTagVersion = 0xdf31,
     PTP_DPC_FUJI_Unknown_DF44 = 0xdf44,

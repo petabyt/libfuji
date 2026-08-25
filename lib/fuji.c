@@ -483,8 +483,8 @@ static int ptpip_fuji_connect_handshake_(struct PtpRuntime *r, const char *devic
 
 	ptp_write_unicode_string(p->device_name, device_name);
 
-	if (ptpip_cmd_write(r, r->data, (int)p->length) != (int)p->length) {
-		ptp_verbose_log(r, "First TCP packet failed");
+	if (ptpip_cmd_write(r, r->data, p->length) != (int)p->length) {
+		ptp_verbose_log(r, "First TCP packet failed\n");
 		return PTP_IO_ERR;
 	}
 
@@ -649,15 +649,29 @@ int fuji_config_liveview(struct PtpRuntime *r) {
 		if (rc) return rc;
 		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState_DF01, FUJI_MODE_REMOTE_LIVE_VIEW_XAPP);
 		if (rc) return rc;
-
 		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_Unknown_DF2A);
 		if (rc) return rc;
 		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_Unknown_DF2A, ptp_parse_prop_value(r));
 		if (rc) return rc;
 	}
 
-	// TODO: This must only be done once on pre-xapp
 	if (fuji->remote_version != -1) {
+		// Only do this on subsequent switches
+		if (fuji->opened_liveview_sockets) {
+			rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CameraState_DF00, FUJI_REMOTE_ACCESS);
+			if (rc) return rc;
+			rc = fuji_get_events(r);
+			if (rc) return rc;
+			rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_ClientState_DF01, FUJI_REMOTE_MODE);
+			if (rc) return rc;
+			rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteVersion_DF24);
+			if (rc) return rc;
+			rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemoteVersion_DF24, FUJI_CAM_CONNECT_REMOTE_VER);
+			if (rc) return rc;
+			rc = fuji_get_events(r);
+			if (rc) return rc;
+		}
+
 		// Begin camera remote - (per spec, OpenCapture is much more broad than 'take picture')
 		// This tells the camera to open the remote mode sockets (video/event)
 		fuji->open_capture_trans_id = r->transaction;
@@ -873,4 +887,36 @@ int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a) {
 		(*a) = list;
 	}
 	return 0;
+}
+
+int ptp_fuji_read_liveview_frame(struct PtpRuntime *r, unsigned int *size) {
+	char buffer[18];
+	int rc = ptpip_video_read(r, buffer, sizeof(buffer));
+	ptp_verbose_log(r, "read %d", rc);
+	if (rc == 18) {
+		// Header:
+		// d5 1d 00 00
+		// 00 00 00 00
+		// 00 00 00 00
+		// 00 00 00 00
+		// fe 7f
+		uint32_t len = 0;
+		ptp_read_u32(buffer, &len);
+		ptp_buffer_resize(r, len);
+		len -= 18; // includes header
+		(*size) = len;
+		unsigned int of = 0;
+		while (len != 0) {
+			rc = ptpip_video_read(r, r->data + of, len);
+			if (rc < 0) break;
+			len -= rc; of += rc;
+		}
+		rc = 0;
+	} else if (rc == 0) {
+		return 0;
+	} else {
+		ptp_error_log(r, "Didn't read enough bytes for liveview");
+		// error
+	}
+	return rc;
 }

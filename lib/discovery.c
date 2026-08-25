@@ -21,6 +21,11 @@
 #include "app.h"
 #include "fuji.h"
 
+int ptp_set_extra_socket_settings(struct PtpRuntime *r, int fd) {
+	if (r->set_extra_socket_settings != NULL) return r->set_extra_socket_settings(r, fd);
+	return 0;
+}
+
 enum DiscoverUpdateMessages {
 	FUJI_UM_GOT_FIRST_MESSAGE,
 	FUJI_UM_CONNECTING_TO_NOTIFY_SERVER,
@@ -36,7 +41,6 @@ struct DiscoveryState {
 	int tether_fd;
 	int pcss_fd;
 };
-
 
 // Main tether handshake port
 #define FUJI_TETHER 51560
@@ -72,7 +76,7 @@ static int get_local_ip(struct PtpRuntime *r, char buffer[64]) {
 	serv.sin_addr.s_addr = inet_addr("1.1.1.1");
 	serv.sin_port = htons(1234);
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
-	r->set_extra_socket_settings(r, sock);
+	ptp_set_extra_socket_settings(r, sock);
 	int rc = connect(sock, (const struct sockaddr*) &serv, sizeof(serv));
 	if (rc < 0) return rc;
 
@@ -94,24 +98,24 @@ static int connect_to_notify_server(struct DiscoveryState *s, char *ip, int port
 
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_fd < 0) {
-		ptp_verbose_log(s->r, "Failed to create TCP socket");
+		ptp_error_log(s->r, "Failed to create TCP socket\n");
 		return -1;
 	}
 
-	s->r->set_extra_socket_settings(s->r, server_fd);
+	ptp_set_extra_socket_settings(s->r, server_fd);
 
 	struct sockaddr_in sa;
 	memset(&sa, 0, sizeof(sa));
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons(port);
 	if (inet_pton(AF_INET, ip, &(sa.sin_addr)) <= 0) {
-		ptp_verbose_log(s->r, "inet_pton");
+		ptp_verbose_log(s->r, "inet_pton\n");
 		return -1;
 	}
 
 	if (connect(server_fd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 		if (errno != EINPROGRESS) {
-			ptp_verbose_log(s->r, "Connect fail");
+			ptp_error_log(s->r, "Connect fail\n");
 			return -1;
 		}
 	}
@@ -127,16 +131,16 @@ static int connect_to_notify_server(struct DiscoveryState *s, char *ip, int port
 		int so_error = 0;
 		socklen_t len = sizeof(so_error);
 		if (getsockopt(server_fd, SOL_SOCKET, SO_ERROR, (void *)&so_error, &len) < 0) {
-			ptp_verbose_log(s->r, "Sockopt fail");
+			ptp_error_log(s->r, "Sockopt fail\n");
 			return -1;
 		}
 
 		if (so_error == 0) {
-			ptp_verbose_log(s->r, "notify server: Connection established");
+			ptp_verbose_log(s->r, "notify server: Connection established\n");
 			return server_fd;
 		}
 	} else {
-		ptp_verbose_log(s->r, "select failed to connect");
+		ptp_error_log(s->r, "select failed to connect\n");
 	}
 
 	close(server_fd);
@@ -151,11 +155,11 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_fd < 0) {
-		ptp_verbose_log(s->r, "Failed to create TCP socket");
+		ptp_error_log(s->r, "Failed to create TCP socket\n");
 		return -1;
 	}
 
-	s->r->set_extra_socket_settings(s->r, server_fd);
+	ptp_set_extra_socket_settings(s->r, server_fd);
 
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(port);
@@ -163,50 +167,48 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 
 	int yes = 1;
 	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (const void *)&yes, sizeof(int)) < 0) {
-		ptp_verbose_log(s->r, "Failed to set sockopt");
+		ptp_error_log(s->r, "Failed to set sockopt");
 		return -1;
 	}
 
 	if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-		ptp_verbose_log(s->r, "upnp: Binding failed");
+		ptp_error_log(s->r, "upnp: Binding failed\n");
 		return -1;
 	}
 
 	// Listen for incoming connections
+	ptp_verbose_log(s->r, "invite server is listening...\n");
 	if (listen(server_fd, 5) < 0) {
-		ptp_verbose_log(s->r, "upnp: Listening failed");
+		ptp_error_log(s->r, "upnp: Listening failed\n");
 		return -1;
 	}
 
 	struct timeval timeout;
-	fd_set read_fds;
-
-	FD_ZERO(&read_fds);
-	FD_SET(server_fd, &read_fds);
-
 	timeout.tv_sec = 30;
 	timeout.tv_usec = 0;
 
-	ptp_verbose_log(s->r, "invite server is listening...");
+	fd_set read_fds;
+	FD_ZERO(&read_fds);
+	FD_SET(server_fd, &read_fds);
 
-	int rc = select(server_fd + 1, &read_fds, NULL, NULL, &timeout);
+	ssize_t rc = select(server_fd + 1, &read_fds, NULL, NULL, &timeout);
 	if (rc < 0) {
-		ptp_verbose_log(s->r, "select() failed");
+		ptp_error_log(s->r, "select() failed\n");
 		close(server_fd);
 		return -1;
 	} else if (rc == 0) {
-		ptp_verbose_log(s->r, "select() timeout");
+		ptp_error_log(s->r, "select() timeout\n");
 		close(server_fd);
 		return -1;
 	}
 
 	client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
 	if (client_fd < 0) {
-		ptp_verbose_log(s->r, "invite server: Accepting connection failed: %d", errno);
+		ptp_error_log(s->r, "invite server: cccepting connection failed: %d", errno);
 		return -1;
 	}
 
-	ptp_verbose_log(s->r, "invite server: Connection accepted from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+	ptp_verbose_log(s->r, "invite server: connection accepted from %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
 	fuji_discovery_update_progress(s->r, FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER);
 
@@ -214,7 +216,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 	char buffer[1024];
 	rc = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 	if (rc < 0) {
-		perror("recv fail");
+		perror("recv fail\n");
 		return -1;
 	}
 	buffer[rc] = '\0';
@@ -249,7 +251,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 
 	rc = send(client_fd, resp, strlen(resp), 0);
 	if (rc < 0) {
-		ptp_verbose_log(s->r, "Failed to send response");
+		ptp_error_log(s->r, "Failed to send response\n");
 		return -1;
 	}
 
@@ -327,7 +329,7 @@ static int accept_register(struct DiscoveryState *s, struct DiscoverInfo *info, 
 	rc = start_invite_server(s, info, FUJI_AUTOSAVE_REGISTER);
 	if (rc) return rc;
 
-	ptp_verbose_log(s->r, "Finished registering");
+	ptp_verbose_log(s->r, "Finished registering\n");
 
 	fuji_discovery_update_progress(s->r, FUJI_UM_ALL_DONE);
 
@@ -343,7 +345,7 @@ static int accept_connect(struct DiscoveryState *s, struct DiscoverInfo *info, c
 	rc = start_invite_server(s, info, FUJI_AUTOSAVE_CONNECT);
 	if (rc) return rc;
 
-	ptp_verbose_log(s->r, "Finished connecting");
+	ptp_verbose_log(s->r, "Finished connecting\n");
 
 	info->camera_port = FUJI_CMD_IP_PORT;
 
@@ -357,20 +359,20 @@ static int open_dgram_socket(struct DiscoveryState *s, int port) {
 
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (fd < 0) {
-		ptp_verbose_log(s->r, "socket");
+		ptp_error_log(s->r, "socket\n");
 		return -1;
 	}
 
-	s->r->set_extra_socket_settings(s->r, fd);
+	ptp_set_extra_socket_settings(s->r, fd);
 
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	addr.sin_port = htons(port);
-	ptp_verbose_log(s->r, "Binding to %d", port);
+	ptp_verbose_log(s->r, "Binding to %d\n", port);
 	int rc = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
 	if (rc < 0) {
-		ptp_verbose_log(s->r, "bind: %d", errno);
+		ptp_error_log(s->r, "bind: %d", errno);
 		close(fd);
 		return -FUJI_D_OPEN_DENIED;
 	}
@@ -384,11 +386,11 @@ int fuji_open_tether_server(struct DiscoveryState *s, const char *local_ip) {
 
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_fd < 0) {
-		ptp_verbose_log(s->r, "Failed to create TCP socket");
+		ptp_error_log(s->r, "Failed to create TCP socket\n");
 		return -1;
 	}
 
-	s->r->set_extra_socket_settings(s->r, server_fd);
+	ptp_set_extra_socket_settings(s->r, server_fd);
 
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(FUJI_TETHER);
@@ -396,22 +398,22 @@ int fuji_open_tether_server(struct DiscoveryState *s, const char *local_ip) {
 
 	int yes = 1;
 	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (const void *)&yes, sizeof(int)) < 0) {
-		ptp_verbose_log(s->r, "Failed to set sockopt %d", errno);
+		ptp_error_log(s->r, "Failed to set sockopt %d\n", errno);
 		return -1;
 	}
 //	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(int)) < 0) {
-//		ptp_verbose_log(r, "Failed to set sockopt %d", errno);
+//		ptp_verbose_log(r, "Failed to set sockopt %d\n", errno);
 //		return -1;
 //	}
 
 	if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-		ptp_verbose_log(s->r, "upnp: Binding failed %d", errno);
+		ptp_error_log(s->r, "upnp: Binding failed %d\n", errno);
 		return -1;
 	}
 
 	// TODO: delete and add select()
 	if (listen(server_fd, 5) < 0) {
-		ptp_verbose_log(s->r, "upnp: Listening failed");
+		ptp_error_log(s->r, "upnp: Listening failed\n");
 		return -1;
 	}
 
@@ -423,19 +425,19 @@ static int fuji_tether_accept(struct DiscoverInfo *info, struct DiscoveryState *
 	socklen_t client_addr_len = sizeof(client_addr);
 	int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
 	if (client_fd < 0) {
-		ptp_verbose_log(s->r, "invite server: Accepting connection failed: %d", errno);
+		ptp_error_log(s->r, "invite server: Accepting connection failed: %d\n", errno);
 		return -1;
 	}
 
 	fuji_discovery_update_progress(s->r, FUJI_UM_GOT_FIRST_MESSAGE);
 
-	ptp_verbose_log(s->r, "invite server: Connection accepted from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+	ptp_verbose_log(s->r, "invite server: Connection accepted from %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
 	// We don't really care about this info
 	char buffer[1024];
 	int rc = (int)recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 	if (rc < 0) {
-		perror("recv fail");
+		perror("recv fail\n");
 		return -1;
 	}
 	buffer[rc] = '\0';
@@ -465,7 +467,7 @@ static int fuji_tether_accept(struct DiscoverInfo *info, struct DiscoveryState *
 	const char resp[] = "HTTP/1.1 200 OK\r\n";
 	rc = (int)send(client_fd, resp, sizeof(resp), 0);
 	if (rc < 0) {
-		ptp_verbose_log(s->r, "Failed to send response");
+		ptp_error_log(s->r, "Failed to send response\n");
 		return -1;
 	}
 
@@ -476,7 +478,7 @@ static int fuji_tether_accept(struct DiscoverInfo *info, struct DiscoveryState *
 
 static int open_pcss(struct DiscoveryState *s) {
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
-	s->r->set_extra_socket_settings(s->r, sock);
+	ptp_set_extra_socket_settings(s->r, sock);
 
 	int b = 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const void *)&b, sizeof(b)) < 0) {
@@ -529,7 +531,7 @@ static int try_connect_all_sockets(struct DiscoveryState *s, const char *local_i
 	if (s->reg_fd == 0) {
 		s->reg_fd = open_dgram_socket(s, FUJI_AUTOSAVE_REGISTER);
 		if (s->reg_fd <= 0) {
-			ptp_verbose_log(s->r, "Error connect register: %d", s->reg_fd);
+			ptp_error_log(s->r, "Error connect register: %d\n", s->reg_fd);
 			return -1;
 		}
 	}
@@ -537,7 +539,7 @@ static int try_connect_all_sockets(struct DiscoveryState *s, const char *local_i
 	if (s->con_fd == 0) {
 		s->con_fd = open_dgram_socket(s, FUJI_AUTOSAVE_CONNECT);
 		if (s->con_fd <= 0) {
-			ptp_verbose_log(s->r, "Error connect svr: %d", s->con_fd);
+			ptp_error_log(s->r, "Error connect svr: %d\n", s->con_fd);
 			return -1;
 		}
 	}
@@ -545,7 +547,7 @@ static int try_connect_all_sockets(struct DiscoveryState *s, const char *local_i
 	if (s->tether_fd == 0) {
 		s->tether_fd = fuji_open_tether_server(s, local_ip);
 		if (s->tether_fd < 0) {
-			perror("socket");
+			perror("socket\n");
 			return -1;
 		}
 	}
@@ -553,7 +555,7 @@ static int try_connect_all_sockets(struct DiscoveryState *s, const char *local_i
 	if (s->pcss_fd == 0) {
 		s->pcss_fd = open_pcss(s);
 		if (s->pcss_fd < 0) {
-			ptp_verbose_log(s->r, "Failed to open pcss port");
+			ptp_error_log(s->r, "Failed to open pcss port\n");
 			return -1;
 		}
 	}
@@ -564,7 +566,7 @@ static int try_connect_all_sockets(struct DiscoveryState *s, const char *local_i
 static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const char *local_ip) {
 	if (s->pcss_fd != 0) {
 		if (send_pcss_datagram(s->pcss_fd, local_ip)) {
-			ptp_verbose_log(s->r, "Failed to send datagram: %d", errno);
+			ptp_error_log(s->r, "Failed to send datagram: %d", errno);
 			return -1;
 		}
 	}
@@ -594,7 +596,7 @@ static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const
 	// TODO: this is triggered when a socket disconnect happens, not only when it's connected.
 	int n = select(max + 1, &fdset, NULL, NULL, &tv);
 	if (n < 0) {
-		ptp_verbose_log(s->r, "select: %d", n);
+		ptp_error_log(s->r, "select: %d\n", n);
 		return -1;
 	}
 
@@ -604,7 +606,7 @@ static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const
 			info->transport = FUJI_FEATURE_AUTOSAVE;
 			unsigned int len = recvfrom(s->reg_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
 			if (len <= 0) {
-				ptp_verbose_log(s->r, "recvfrom: %d", len);
+				ptp_error_log(s->r, "recvfrom: %d\n", len);
 				return -1;
 			}
 			greeting[len] = '\0';
@@ -620,7 +622,7 @@ static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const
 			info->transport = FUJI_FEATURE_AUTOSAVE;
 			unsigned int len = recvfrom(s->con_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
 			if (len <= 0) {
-				ptp_verbose_log(s->r, "recvfrom: %d", len);
+				ptp_error_log(s->r, "recvfrom: %d\n", len);
 				return -1;
 			}
 			greeting[len] = '\0';
@@ -655,7 +657,7 @@ int fuji_discover_thread(struct PtpRuntime *r, struct DiscoverInfo *info, const 
 		return -1;
 	}
 
-	ptp_verbose_log(r, "You are on %s", local_ip);
+	ptp_verbose_log(r, "You are on %s\n", local_ip);
 
 	struct DiscoveryState s = {0};
 	s.r = r;
@@ -668,7 +670,7 @@ int fuji_discover_thread(struct PtpRuntime *r, struct DiscoverInfo *info, const 
 	}
 
 	if (rc == -1) {
-		app_print(r, "Error connecting to camera.");
+		ptp_error_log(r, "Error connecting to camera.\n");
 	}
 
 	close_all_sockets(&s);

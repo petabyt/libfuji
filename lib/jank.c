@@ -19,7 +19,7 @@
 
 // Trying to set camera properties like Fuji tetherapp does.
 int fudge_test(struct PtpRuntime *r) {
-	if (ptp_device_init(r)) {
+	if (ptp_device_connect(r)) {
 		plat_dbg("Device connection error");
 		return 0;
 	}
@@ -244,38 +244,3 @@ static int dump_prop(struct PtpRuntime *r) {
 	return 0;
 }
 
-int fuji_test_discovery(struct PtpRuntime *r) {
-	struct DiscoverInfo info = {0};
-
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-
-	int rc = fuji_discover_thread(r, &info, "Fudge (desktop)");
-	if (rc == FUJI_D_REGISTERED) {
-		plat_dbg("Registered %s %s", info.camera_name, info.camera_model);
-	} else if (rc == FUJI_D_GO_PTP) {
-		usleep(100000); // TODO: Kind of have to wait before connecting
-
-		printf("connecting to %s:%d\n", info.camera_ip, info.camera_port);
-		if (ptpip_connect(r, info.camera_ip, info.camera_port, 0)) {
-			printf("Error connecting to %s:%d\n", info.camera_ip, info.camera_port);
-			return 0;
-		}
-
-		fuji_reset_ptp(r);
-		r->connection_type = PTP_IP_USB;
-		fuji_get(r)->transport = info.transport;
-		strcpy(fuji_get(r)->ip_address, info.camera_ip);
-
-		//rc = fujitether_setup(r);
-		rc = fuji_setup(r, "fudge");
-		if (rc) return rc;
-
-		try_download(r);
-
-		ptpip_device_close(r);
-	} else {
-		plat_dbg("Response code: %d\n", rc);
-	}
-
-	return -1;
-}

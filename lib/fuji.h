@@ -105,8 +105,10 @@ int fuji_get_events(struct PtpRuntime *r);
 /// @brief Covers classic 'SELECT_MULTIPLE' feature found in 2013-2017 cams.
 int fuji_download_classic(struct PtpRuntime *r);
 
-/// @note Another socket on top of the 2 that camlib connects to
+/// @note Another socket on top of the 2 that libpict connects to
 int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port);
+
+int ptp_fuji_read_liveview_frame(struct PtpRuntime *r, unsigned int *size);
 
 /// Main entry function for all USB connections
 /// @param num Index of device to connect to, -1 to connect to first available device
