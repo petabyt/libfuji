@@ -154,10 +154,27 @@ int fuji_get_events(struct PtpRuntime *r) {
 			break;
 		case PTP_DPC_FUJI_CameraState_DF00:
 			fuji->camera_state = (int)ev->events[i].value;
+			if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {
+				app_update_storage_info(r);
+				rc = app_queue_file_for_download(r, 1);
+				if (rc) return rc;
+			}
 			break;
 		case PTP_DPC_FUJI_FreeSDRAMImages:
-			if (fuji->transport == FUJI_FEATURE_WIRELESS_TETHER)
-				fuji_tether_download(r);
+			if (fuji->transport == FUJI_FEATURE_WIRELESS_TETHER) {
+				struct PtpArray *a;
+				rc = ptp_get_object_handles(r, -1, 0x0, 0x0, &a);
+				if (rc) return rc;
+
+				for (int y = 0; y < (int)a->length; y++) {
+					// oi.filename will always be DSCF0001.JPG
+					// TODO: Rewrite filename to be indexed
+					rc = app_queue_file_for_download(r, (int)a->data[i]);
+					if (rc) return rc;
+				}
+
+				free(a);
+			}
 			break;
 		}
 	}
@@ -445,8 +462,9 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	}
 
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_StorageID);
-	if (rc == 0) {
+	if (rc == 0 && ptp_parse_prop_value(r) > 0) {
 		sprintf(fuji->storage_device_name, "Card %d", ptp_parse_prop_value(r));
+		app_update_storage_info(r);
 	} else if (rc == PTP_CHECK_CODE) {
 		strcpy(fuji->storage_device_name, "Card");
 	} else if (rc) {
@@ -847,25 +865,6 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 }
 int fuji_download_file(struct PtpRuntime *r, int handle, int (handle_add)(void *arg, void *buf, unsigned int len, unsigned int offset, unsigned int total_size), void *arg) {
 	return fuji_download_file_ex(r, handle, NULL, handle_add, arg);
-}
-
-// Functionality of FUJI_MULTIPLE_TRANSFER
-int fuji_download_classic(struct PtpRuntime *r) {
-	int i = 0;
-	while (1) {
-		struct PtpObjectInfo oi;
-		int rc = ptp_get_object_info(r, 1, &oi);
-		if (rc == PTP_CHECK_CODE) return 0;
-		if (rc) return rc;
-
-		// Not sure if 0x100000 is required or not, but we'll do what Fuji is doing.
-		app_ptp_download_file(r, &oi, 1, 0x100000, i++);
-
-		// Fuji's filesystem will swap out object ID 1 with the next image. If there
-		// are no more images, the camera either turns off (?) or returns 0x2009 for GetObjectInfo
-		rc = fuji_get_events(r);
-		if (rc) return 0;
-	}
 }
 
 int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a) {

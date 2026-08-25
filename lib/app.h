@@ -8,6 +8,7 @@
 
 /// @brief Send current camera name to UI
 void app_send_cam_name(struct PtpRuntime *r, const char *name);
+void app_update_storage_info(struct PtpRuntime *r);
 
 /// @brief OS level debug log
 void plat_dbg(char *fmt, ...);
@@ -27,5 +28,7 @@ int app_check_thread_cancel(struct PtpRuntime *r);
 int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpObjectInfo *oi);
 
 int app_ptp_download_file(struct PtpRuntime *r, struct PtpObjectInfo *oi, int object_id, unsigned int max_chunk_size, int index);
+
+int app_queue_file_for_download(struct PtpRuntime *r, int object_id);
 
 #endif

@@ -58,6 +58,8 @@ struct PtpUserPriv {
 	int open_capture_trans_id;
 	int allow_autosave_thumbnails;
 	int sort_by_oldest_first;
+	struct PtpObjectInfo current_downloading_oi;
+	int n_items_downloaded;
 };
 
 typedef struct PtpUserPriv fujipriv_t;
