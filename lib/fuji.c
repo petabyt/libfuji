@@ -464,12 +464,12 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_StorageID);
 	if (rc == 0 && ptp_parse_prop_value(r) > 0) {
 		sprintf(fuji->storage_device_name, "Card %d", ptp_parse_prop_value(r));
-		app_update_storage_info(r);
-	} else if (rc == PTP_CHECK_CODE) {
+	} else if (rc == PTP_CHECK_CODE || rc == 0) {
 		strcpy(fuji->storage_device_name, "Card");
 	} else if (rc) {
 		return rc;
 	}
+	app_update_storage_info(r);
 
 	if (fuji->remote_version != -1 && fuji->camera_state == FUJI_REMOTE_ACCESS && fuji->transport != FUJI_FEATURE_XAPP_WIRELESS_COMM) {
 		// Start and end liveview mode - not sure why this is needed, but IIRC camera stops responding if this isn't done during setup
@@ -796,9 +796,8 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 
 	struct PtpObjectInfo oi;
 	rc = ptp_get_object_info(r, handle, &oi);
-	if (rc) {
-		return rc;
-	}
+	if (rc) return rc;
+	plat_update_object_info(r, handle, &oi);
 
 	if (info != NULL) info(arg, &oi);
 

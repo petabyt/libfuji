@@ -377,9 +377,9 @@ static int download_add(void *arg, void *data, unsigned int size, unsigned int o
 
 static int on_request_file_contents(struct PakModule *mod, int job, struct PakFileHandle *file) {
 	struct PtpRuntime *r = mod->priv->r;
-	int rc;
 	if (r == NULL) return 0;
-	if (!strcmp(file->storage_name, LIVE_STORAGE_DEVICE_NAME)) {
+	int rc;
+	if (file->storage_name != NULL && !strcmp(file->storage_name, LIVE_STORAGE_DEVICE_NAME)) {
 		// TODO: This should also work for live tether downloads, doesn't since handle 1 is hardcoded
 		mod->priv->current_job = job;
 		mod->priv->update_progress_bar_job = job;
@@ -402,19 +402,18 @@ static int on_request_file_contents(struct PakModule *mod, int job, struct PakFi
 }
 
 static int on_request_thumbnail(struct PakModule *mod, int job, struct PakFileHandle *file) {
-	unsigned int offset, length;
+	unsigned int offset = 0, length = 0;
 	struct PtpRuntime *r = mod->priv->r;
 	if (r == NULL) return 0;
 
 	ptp_mutex_lock(r);
 
 	int rc = fuji_get_thumb(r, file->index_in_view + 1, &offset, &length);
-	if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR) {
-		pak_rt_add_file_metadata(mod, file, NULL);
+	if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR || length == 0) {
+		pak_rt_add_file_thumbnail(mod, file, NULL, 0);
 		ptp_mutex_unlock(r);
 		return 0;
 	} else if (rc) return handle_ptperr(mod, rc, "fuji_get_thumb");
-
 	pak_rt_add_file_thumbnail(mod, file, ptp_get_payload(r) + offset, length);
 
 	ptp_mutex_unlock(r);
