@@ -285,6 +285,9 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 		pak_debug_log(mod, "password: %s", filter.password);
 		filter.has_password = 1;
 		filter.is_hidden = 1;
+		//This should work but not 100% sure yet
+		//filter.has_bssid = 1;
+		//strcpy(filter.bssid, dev->mac_address);
 	}
 
 	pak_debug_log(mod, "ssid: %s", filter.ssid_pattern);

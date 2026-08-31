@@ -274,8 +274,7 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 				.n_files_total = r->priv->num_objects,
 				.sorted_by = r->priv->sort_by_oldest_first ? PAK_OLDEST_FIRST : PAK_NEWEST_FIRST,
 			});
-			pak_rt_set_widget(mod, &(struct PakWidget) {
-					.name = "autosave-thumbnails",
+			pak_rt_set_widget(mod, "autosave-thumbnails", &(struct PakWidget) {
 					.title = "Enable thumbnails (buggy)",
 					.type = PAK_BOOLEAN,
 					.u.boolv.v = 0,
@@ -291,8 +290,7 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 }
 
 static int on_try_connect_bluetooth(struct PakModule *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
-	pak_rt_set_widget(mod, &(struct PakWidget) {
-			.name = "switch-wifi",
+	pak_rt_set_widget(mod, "switch-wifi", &(struct PakWidget) {
 			.title = "Connect over WiFi",
 			.type = PAK_BUTTON,
 	});
@@ -481,10 +479,10 @@ static int on_command(struct PakModule *mod, int job, int argc, const char * con
 	return PAK_ERR_UNIMPLEMENTED;
 }
 
-static int on_prop_changed(struct PakModule *mod, int job, struct PakWidget *prop) {
-	if (!strcmp(prop->name, "switch-wifi")) {
+static int on_prop_changed(struct PakModule *mod, int job, const char *name, struct PakWidget *prop) {
+	if (!strcmp(name, "switch-wifi")) {
 		return fuji_bluetooth_connect_to_wifi(mod, mod->bt, mod->priv->dev);
-	} else if (!strcmp(prop->name, "autosave-thumbnails")) {
+	} else if (!strcmp(name, "autosave-thumbnails")) {
 		mod->priv->r->priv->allow_autosave_thumbnails = prop->u.boolv.v;
 	}
 	return 0;

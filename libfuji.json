@@ -1,5 +1,6 @@
 {
   "name": "libfuji",
+  "isDraft": true,
   "description": "Supports Fujifilm X-series cameras",
   "website": "https://github.com/petabyt/libfuji",
   "author": "Daniel Cook",
@@ -10,14 +11,23 @@
     {
       "deviceType": "professional-camera",
       "company": "Fujifilm",
+      "summary": "All Fujifilm digital cameras",
       "wifiFilter": {
         "ssidPattern": "FUJIFILM-.*"
       },
-      "bluetoothFilter": [{
-        "serviceUuids": ["117c4142-edd4-4c77-8696-dd18eebb770a"]
+      "bluetoothFilters": [{
+        "serviceUuids": ["117c4142-edd4-4c77-8696-dd18eebb770a"],
+        "mfgData_unused": "0xD8,0x04,0x02,0xA0,0x48,0x21,0x80",
+        "mfgDataMask_unused": "0xff"
       }, {
         "serviceUuids": ["a9d2b304-e8d6-4902-8336-352b772d7597"]
       }],
+      "setupOptions": [
+        {"name": "bluetooth", "title": "Bluetooth", "transport": 1},
+        {"name": "wifi", "title": "WiFi (Legacy)", "transport": 3},
+        {"name": "local-network", "title": "PC AutoSave & Wireless Tether Shoot", "transport": 6},
+        {"name": "usb", "title": "USB (WIP)", "transport": 2}
+      ],
       "products": [
         "X-E5",
         "X-M5",
