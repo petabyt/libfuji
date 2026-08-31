@@ -40,6 +40,8 @@ endif()
 
 if(MAKE_EXECUTABLE)
     add_executable(fuji ${FUJI_CORE})
+elseif(LIBFUJI_SHARED)
+    add_library(fuji SHARED ${FUJI_CORE})
 else()
     add_library(fuji STATIC ${FUJI_CORE})
 endif()
