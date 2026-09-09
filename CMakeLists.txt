@@ -13,7 +13,6 @@ set(FUJI_CORE
     lib/data.c
     lib/discovery.c
     lib/fuji_usb.c
-    lib/plat.c
     lib/exif.c
 )
 

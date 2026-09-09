@@ -24,7 +24,6 @@ void ptp_verbose_log(struct PtpRuntime *r, char *fmt, ...) {
 	va_end(args);
 }
 
-__attribute__((weak))
 void ptp_error_log(struct PtpRuntime *r, char *fmt, ...) {
 	printf("ERR: ");
 	va_list args;
@@ -33,7 +32,6 @@ void ptp_error_log(struct PtpRuntime *r, char *fmt, ...) {
 	va_end(args);
 }
 
-__attribute__ ((noreturn))
 void ptp_panic(char *fmt, ...) {
 	printf("PTP abort: ");
 	va_list args;
@@ -45,6 +43,42 @@ void ptp_panic(char *fmt, ...) {
 	abort();
 }
 
+void plat_dbg(char *fmt, ...) {
+	printf("DBG: ");
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+	putchar('\n');
+}
+
+void app_print(struct PtpRuntime *r, char *fmt, ...) {
+	printf("APP: ");
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+	putchar('\n');
+}
+
+void tester_log(struct PtpRuntime *r, char *fmt, ...) {
+	printf("LOG: ");
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+	putchar('\n');
+}
+
+void tester_fail(struct PtpRuntime *r, char *fmt, ...) {
+	printf("FAIL: ");
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+	putchar('\n');
+}
+
 int fuji_discovery_check_cancel(struct PtpRuntime *r) {return 0;}
 void app_report_download_speed(struct PtpRuntime *r, long time, size_t size) {}
 int app_check_thread_cancel(struct PtpRuntime *r) {return 0;}
@@ -52,6 +86,11 @@ int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpOb
 int app_ptp_download_file(struct PtpRuntime *r, struct PtpObjectInfo *oi, int object_id, unsigned int max_chunk_size, int index) {
 	// TODO: 
 	return 0;
+}
+void app_update_storage_info(struct PtpRuntime *r) {}
+int app_queue_file_for_download(struct PtpRuntime *r, int object_id) { return -1; }
+void app_send_cam_name(struct PtpRuntime *r, const char *name) {
+	printf("Got camera name '%s'\n", name);
 }
 
 int fudge_usb_connect(struct PtpRuntime *r, int num) {

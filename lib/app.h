@@ -1,5 +1,5 @@
 /// @file
-/// Layer for Fudge frontend
+/// Layer for UI frontend
 
 #ifndef APP_H
 #define APP_H
@@ -25,10 +25,12 @@ void app_report_download_speed(struct PtpRuntime *r, long time, size_t size);
 /// @brief Check if the current downloader thread has been marked as canceled
 int app_check_thread_cancel(struct PtpRuntime *r);
 
+/// @brief Update frontend with object info
 int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpObjectInfo *oi);
 
 int app_ptp_download_file(struct PtpRuntime *r, struct PtpObjectInfo *oi, int object_id, unsigned int max_chunk_size, int index);
 
+/// @brief Client should (trigger from a queue) start downloading a file and save it to disk
 int app_queue_file_for_download(struct PtpRuntime *r, int object_id);
 
 #endif
