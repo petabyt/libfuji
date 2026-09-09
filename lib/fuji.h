@@ -51,7 +51,7 @@ struct PtpUserPriv {
 	int image_get_version;
 	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteVersion_DF24
 	int remote_version;
-	// has liveview sockets been opened already
+	// have liveview sockets been opened already
 	int opened_liveview_sockets;
 	int num_objects;
 	char storage_device_name[64];
@@ -60,6 +60,9 @@ struct PtpUserPriv {
 	int sort_by_oldest_first;
 	struct PtpObjectInfo current_downloading_oi;
 	int n_items_downloaded;
+
+	uint8_t *liveview_buffer;
+	unsigned int liveview_buffer_length;
 };
 
 typedef struct PtpUserPriv fujipriv_t;

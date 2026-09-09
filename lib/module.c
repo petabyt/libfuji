@@ -235,9 +235,8 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 				goto cleanup;
 			}
 		} else if (rc == FUJI_D_REGISTERED) {
-			// todo
-			pak_debug_log(mod, "Device registered");
-			return 0;
+			pak_debug_log(mod, "This device has been registered to the camera");
+			return PAK_ERR_NO_CONNECTION;
 		}
 	} else {
 		goto cleanup;
@@ -257,9 +256,9 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 	switch (r->priv->camera_state) {
 		case FUJI_MODE_REMOTE_IMG_VIEW_XAPP:
 		case FUJI_REMOTE_ACCESS:
+		case FUJI_MODE_REMOTE_IMG_VIEW:
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVEVIEW, 1);
-		case FUJI_FULL_ACCESS:
-		case FUJI_MODE_REMOTE_IMG_VIEW: {
+		case FUJI_FULL_ACCESS: {
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
 		} break;
@@ -498,11 +497,12 @@ static int on_request_liveview_frame(struct PakModule *mod, int job, struct PakF
 	if (r == NULL) return 0;
 	ptp_mutex_lock(r);
 	unsigned int size = 0;
-	if (ptp_fuji_read_liveview_frame(r, &size) == 0 && size != 0) {
+	int rc = ptp_fuji_read_liveview_frame(r, &size);
+	if (rc == 0 && size != 0) {
 		pak_rt_add_file_contents(mod, handle, r->data, size, 0, size);
 	}
 	ptp_mutex_unlock(r);
-	return 0;
+	return rc;
 }
 
 int get_module(struct PakModule *mod) {

@@ -890,7 +890,6 @@ int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a) {
 int ptp_fuji_read_liveview_frame(struct PtpRuntime *r, unsigned int *size) {
 	char buffer[18];
 	int rc = ptpip_video_read(r, buffer, sizeof(buffer));
-	ptp_verbose_log(r, "read %d", rc);
 	if (rc == 18) {
 		// Header:
 		// d5 1d 00 00
@@ -912,9 +911,10 @@ int ptp_fuji_read_liveview_frame(struct PtpRuntime *r, unsigned int *size) {
 		rc = 0;
 	} else if (rc == 0) {
 		return 0;
+	} else if (rc < 0) {
+		return rc;
 	} else {
 		ptp_error_log(r, "Didn't read enough bytes for liveview");
-		// error
 	}
 	return rc;
 }

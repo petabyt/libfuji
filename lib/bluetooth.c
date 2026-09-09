@@ -55,6 +55,21 @@
 	// 0x4012
 	#define CHR_IDEN_UUID "85b9163e-62d1-49ff-a6f5-054b4630d4a1"
 
+#define SVC_LENS "15ca59fe-620c-464d-a987-223fab660cde"
+	#define CHR_LENS_NAME "68887a7a-10a7-4a4a-aadd-6f9db1abaa0e"
+	#define CHR_LENS_FW_VER "621a98d8-6314-4c3e-a683-eea1d6166606"
+
+// "Equipment Status"
+
+#define SVC_STATUS "af854c2e-b214-458e-97e2-912c4ecf2cb8"
+	#define CHR_UNK1 "e3fbbfcf-f326-4b0f-82cf-b00ae1b107a2"
+	#define CHR_UNK2 "051dd980-df9d-4472-a2e1-35811dd24ee1"
+	#define CHR_UNK3 "c922ac69-9480-4348-8f4b-9ee29bc30d1d"
+	#define CHR_UNK4 "7f3400fe-17e7-4b80-8a0e-81b0343c1b49"
+	#define CHR_UNK5 "ac0c799a-fa6c-4df5-bbc5-bb95cce7e6ea"
+	#define CHR_UNK6 "68052e8a-fb91-404f-8847-0eb4be24308c"
+	#define CHR_UNK7 "2e27ed9f-5506-41cd-ba48-dac06669ad95"
+
 // Subscriptions
 #define SVC_CONF_UUID "4c0020fe-f3b6-40de-acc9-77d129067b14"
 	#define CHR_CONF_UNKNOWN1 "1587b102-0b6d-4b63-9226-66fcc6d17387"

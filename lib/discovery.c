@@ -204,7 +204,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 
 	client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
 	if (client_fd < 0) {
-		ptp_error_log(s->r, "invite server: cccepting connection failed: %d", errno);
+		ptp_error_log(s->r, "invite server: accepting connection failed: %d", errno);
 		return -1;
 	}
 
@@ -261,8 +261,8 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 	return 0;
 }
 
-// TODO: Respond to any connection
 static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct DiscoverInfo *info) {
+	int rc = 0;
 	char *saveptr;
 	char *delim = " :\r\n";
 	char *cur = strtok_r(greeting, delim, &saveptr);
@@ -270,8 +270,10 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 		if (!strcmp(cur, "DISCOVER")) {
 			cur = strtok_r(NULL, delim, &saveptr);
 			if (cur == NULL) return -1;
-			ptp_verbose_log(s->r, "Client name: %s\n", cur);
-			strncpy(info->client_name, cur, sizeof(info->client_name));
+			if (strcmp(cur, "*") != 0) {
+				ptp_verbose_log(s->r, "Client name: %s\n", cur);
+				strncpy(info->client_name, cur, sizeof(info->client_name));
+			}
 		} else if (!strcmp(cur, "DSCADDR")) {
 			cur = strtok_r(NULL, delim, &saveptr);
 			if (cur == NULL) return -1;
@@ -297,27 +299,32 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 	char notify[512];
 	snprintf(
 		notify, sizeof(notify), response,
-		info->camera_ip, FUJI_AUTOSAVE_NOTIFY, info->client_name // use whatever name the camera is looking for :)
+		info->camera_ip, FUJI_AUTOSAVE_NOTIFY, info->client_name
 	);
+
+	ptp_verbose_log(s->r, "%s\n", notify);
 
 	size_t len = send(fd, notify, strlen(notify), 0);
 	if (len != strlen(notify)) {
 		ptp_error_log(s->r, "Failed to send datagram response\n");
-		return -1;
+		rc = -1; goto cleanup;
 	}
 
 	char ack[512];
 	len = recv(fd, ack, sizeof(ack), 0);
 	if (len <= 0) {
 		ptp_error_log(s->r, "Failed to read datagram response\n");
-		return -1;
+		rc = -1; goto cleanup;
 	}
-	response[len] = '\0';
-	ptp_verbose_log(s->r, "%s", response);
+	ack[len] = '\0';
 
-	close(fd);
+	if (strstr(ack, "HTTP/1.1 200 OK") == NULL) {
+		ptp_error_log(s->r, "Camera rejected client response\n");
+		rc = -1;
+	}
 
-	return 0;
+	cleanup: close(fd);
+	return rc;
 }
 
 static int accept_register(struct DiscoveryState *s, struct DiscoverInfo *info, char *greeting) {
@@ -651,6 +658,7 @@ static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const
 
 int fuji_discover_thread(struct PtpRuntime *r, struct DiscoverInfo *info, const char *client_name) {
 	memset(info, 0, sizeof(struct DiscoverInfo));
+	strlcpy(info->client_name, client_name, sizeof(info->client_name));
 
 	char local_ip[64];
 	if (get_local_ip(r, local_ip)) {
