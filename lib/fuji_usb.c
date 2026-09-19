@@ -189,7 +189,7 @@ int fujiusb_download_backup(struct PtpRuntime *r, FILE *f) {
 
 	rc = ptp_get_object(r, 0);
 	if (rc) goto end;
-	plat_dbg("Downloaded a %d byte backup file.", ptp_get_payload_length(r));
+	ptp_verbose_log(r, "Downloaded a %d byte backup file.", ptp_get_payload_length(r));
 
 	fwrite(ptp_get_payload(r), 1, ptp_get_payload_length(r), f);
 
@@ -205,7 +205,7 @@ int fujiusb_restore_backup(struct PtpRuntime *r, FILE *input) {
 	long file_size = ftell(input);
 	fseek(input, 0, SEEK_SET);
 	if (file_size > 100000) {
-		plat_dbg("Backup file seems to be too big, is the path correct?");
+		ptp_error_log(r, "Backup file seems to be too big, is the path correct?");
 		return -1;
 	}
 

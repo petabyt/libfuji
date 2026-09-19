@@ -360,6 +360,42 @@ static int send_client_name(struct PakModule *mod, struct PakGattService *pair_s
 	return 0;
 }
 
+static int update_geo_data(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev) {
+	struct PakGattService *service;
+	if ((service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_GEOTAG_UUID)) == NULL) {
+		return PAK_ERR_UNSUPPORTED;
+	}
+	struct PakGattCharacteristic *chr;
+	if ((chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, CHR_GEOTAG_UUID)) == NULL) {
+		pak_bt_unref_gatt_service(ctx, service);
+		return PAK_ERR_UNSUPPORTED;
+	}
+
+	struct PakTimestamp ts;
+	pak_get_timestamp(&ts);
+
+	geotag_t geotag = {
+		.latitude = (int32_t)(123 * 10000000),
+		.longitude = (int32_t)(123 * 10000000),
+		.altitude = (int32_t)50000,
+		.pad = {0},
+		.gps_time = {
+			.year = (uint16_t)ts.year,
+			.month = (uint8_t)ts.month,
+			.day = (uint8_t)ts.day,
+			.hour = (uint8_t)ts.hour,
+			.minute = (uint8_t)ts.minute,
+			.second = (uint8_t)ts.second
+		}
+	};
+
+	pak_bt_write_characteristic(ctx, chr, (uint8_t *)&geotag, sizeof(geotag), 1);
+
+	pak_bt_unref_gatt_characteristic(ctx, chr);
+	pak_bt_unref_gatt_service(ctx, service);
+	return 0;
+}
+
 int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev, struct PakSavedConnection *saved) {
 	pak_bt_set_device_callback(ctx, dev, device_callback, mod);
 
@@ -392,7 +428,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 	if (pair_service == NULL) {
 		pak_rt_set_progress_bar(mod, mod->priv->current_job, 15);
 		if (saved == NULL) {
-			pak_debug_log(mod, "Create bond");
+			pak_debug_log(mod, "Creating bond...");
 			rc = pak_bt_device_create_bond(ctx, dev);
 			if (rc) {
 				pak_debug_log(mod, "pak_bt_device_pair");
@@ -527,38 +563,6 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 		.aux_data = (uint8_t *)mfgdata.token.data,
 		.aux_data_length = sizeof(mfgdata.token.data),
 	});
-
-	{
-		struct PakGattService *service;
-		if ((service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_GEOTAG_UUID)) == NULL) {
-			return PAK_ERR_UNSUPPORTED;
-		}
-		struct PakGattCharacteristic *chr;
-		if ((chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, CHR_GEOTAG_UUID)) == NULL) {
-			pak_bt_unref_gatt_service(ctx, service);
-			return PAK_ERR_UNSUPPORTED;
-		}
-
-		geotag_t geotag = {
-			.latitude = (int32_t)(123 * 10000000),
-			.longitude = (int32_t)(123 * 10000000),
-			.altitude = (int32_t)50000,
-			.pad = {0},
-			.gps_time = {
-				.year = (uint16_t)2026,
-				.month = (uint8_t)6,
-				.day = (uint8_t)5,
-				.hour = (uint8_t)12,
-				.minute = (uint8_t)43,
-				.second = (uint8_t)12
-			}
-		};
-
-		pak_bt_write_characteristic(ctx, chr, (uint8_t *)&geotag, sizeof(geotag), 1);
-
-		pak_bt_unref_gatt_characteristic(ctx, chr);
-		pak_bt_unref_gatt_service(ctx, service);
-	}
 
 	pak_rt_set_progress_bar(mod, mod->priv->current_job, 100);
 

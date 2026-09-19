@@ -9,7 +9,6 @@ option(LIBFUJI_MODULE "Compile as libpak module" OFF)
 
 set(FUJI_CORE
     lib/fuji.c
-    lib/tester.c
     lib/data.c
     lib/discovery.c
     lib/fuji_usb.c
@@ -61,6 +60,7 @@ if(LIBFUJI_INCLUDE_CLI)
     add_executable(libfuji-cli
         lib/cli.c
         lib/jank.c
+        lib/tester.c
     )
     target_link_libraries(libfuji-cli PUBLIC fuji)
 endif()
