@@ -421,6 +421,12 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	fuji->remote_image_view_version = ptp_parse_prop_value(r);
 	ptp_verbose_log(r, "PTP_DPC_FUJI_RemoteGetObjectVersion_DF25: 0x%X\n", fuji->remote_image_view_version);
 
+	if (fuji->remote_image_view_version >= 5) {
+		// Newer cameras such as X-T5 sort photos by oldest first, differing from all older cameras.
+		// Not sure if this is the best way to determine this behavior, but it's not harmful.
+		fuji->sort_by_oldest_first = 1;
+	}
+
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_ImageGetVersion_DF21);
 	if (rc) return rc;
 	fuji->image_get_version = ptp_parse_prop_value(r);
