@@ -17,21 +17,6 @@ static const char *get_mime_type(uint16_t object_format) {
 	}
 }
 
-//static struct PakFileMetadata oi_to_metadata(const struct PtpObjectInfo *oi) {
-//	int orientation = 0;
-//	if (!strcmp(oi->keywords, "Orientation: 8")) {
-//		orientation = 270;
-//	}
-//	return (struct PakFileMetadata){
-//		.filename = oi->filename,
-//		.file_size = (int)oi->compressed_size,
-//		.mime_type = get_mime_type(oi->obj_format),
-//		.image_height = (int)oi->img_height,
-//		.image_width = (int)oi->img_width,
-//		.orientation = orientation,
-//	};
-//}
-
 static int handle_ptperr(struct PakModule *mod, int rc, const char *action) {
 	switch (rc) {
 		case PTP_IO_ERR: {
@@ -209,12 +194,12 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 	// TODO: Retry ptpip_connect
 	if (!strcmp(setup_option, OPTION_WIFI)) {
 		r->priv->transport = FUJI_FEATURE_WIRELESS_COMM;
-		strcpy(r->priv->ip_address, "192.168.0.1");
+		strcpy(r->priv->ip_address, FUJI_PTP_IP);
 		int rc = ptpip_connect(r, r->priv->ip_address, FUJI_CMD_IP_PORT, 1);
 		if (rc) goto cleanup;
 	} else if (!strcmp(setup_option, OPTION_WIFI_FROM_BT_XAPP)) {
 		r->priv->transport = FUJI_FEATURE_XAPP_WIRELESS_COMM;
-		strcpy(r->priv->ip_address, "192.168.0.1");
+		strcpy(r->priv->ip_address, FUJI_PTP_IP);
 		int rc = ptpip_connect(r, r->priv->ip_address, FUJI_CMD_IP_PORT, 1);
 		if (rc) goto cleanup;
 	} else if (!strcmp(setup_option, OPTION_LOCAL_NETWORK)) {
@@ -264,7 +249,7 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 			pak_rt_set_widget(mod, WIDGET_RESIZE_IMAGES, &(struct PakWidget) {
 					.title = "Resize images before downloading",
 					.type = PAK_BOOLEAN,
-					.u.boolv.v = 1,
+					.u.boolv.v = r->priv->compress_images_for_smartphone,
 			});
 		} break;
 		case FUJI_MULTIPLE_TRANSFER: {
@@ -484,12 +469,13 @@ static int on_command(struct PakModule *mod, int job, int argc, const char * con
 }
 
 static int on_prop_changed(struct PakModule *mod, int job, const char *name, struct PakWidget *prop) {
+	struct PtpRuntime *r = mod->priv->r;
 	if (!strcmp(name, WIDGET_SWITCH_WIFI)) {
 		return fuji_bluetooth_connect_to_wifi(mod, mod->bt, mod->priv->dev);
 	} else if (!strcmp(name, WIDGET_AUTOSAVE_THUMBS)) {
-		mod->priv->r->priv->allow_autosave_thumbnails = prop->u.boolv.v;
+		r->priv->allow_autosave_thumbnails = prop->u.boolv.v;
 	} else if (!strcmp(name, WIDGET_RESIZE_IMAGES)) {
-		// .. fuji_
+		r->priv->compress_images_for_smartphone = prop->u.boolv.v;
 	}
 	return 0;
 }

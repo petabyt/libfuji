@@ -801,7 +801,7 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 		r->wait_for_response = 3;
 		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 1);
 	} else if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
-		ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 2);
+		ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, fuji->compress_images_for_smartphone ? 1 : 2);
 	}
 
 	ptp_mutex_lock(r);

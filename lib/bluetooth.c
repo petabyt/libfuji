@@ -284,7 +284,7 @@ static int device_callback(struct PakBt *ctx, enum PakBtEvent ev, struct PakBtDe
 			pak_bt_unref_gatt_characteristic(ctx, time_chr);
 			pak_bt_unref_gatt_service(ctx, service);
 		} else {
-			pak_verbose_log(mod, "%s changed", chr->uuid);
+//			pak_verbose_log(mod, "%s changed", chr->uuid);
 		}
 	}
 	return 0;
@@ -300,11 +300,11 @@ static int get_characteristic_as_string(struct PakBt *ctx, struct PakBtDevice *d
 		pak_bt_unref_gatt_service(ctx, service);
 		return PAK_ERR_UNSUPPORTED;
 	}
-	pak_bt_read_characteristic(ctx, chr, 1);
-	buf[pak_bt_read_characteristic_cached_value(ctx, chr, (uint8_t *)buf, max)] = '\0';
+	int rc = pak_bt_read_characteristic(ctx, chr, PAK_BT_BLOCK);
+	if (!rc) buf[pak_bt_read_characteristic_cached_value(ctx, chr, (uint8_t *) buf, max)] = '\0';
 	pak_bt_unref_gatt_characteristic(ctx, chr);
 	pak_bt_unref_gatt_service(ctx, service);
-	return 0;
+	return rc;
 }
 
 int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev) {
@@ -429,9 +429,25 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 		return rc;
 	}
 
+	// progress is now 30 (from callbacks)
+
+	// Read device name through generic service
+	char name_buf[64] = {0};
+	get_characteristic_as_string(ctx, dev, GENERIC_ACCESS_SERVICE, DEVICE_NAME, name_buf, sizeof(name_buf));
+	pak_rt_set_session_property(mod, PAK_PROP_NAME, name_buf);
+
+	pak_rt_set_progress_bar(mod, mod->priv->current_job, 32);
+
+	// Read firmware version
+	char buf[64] = {0};
+	get_characteristic_as_string(ctx, dev, "0000180a-0000-1000-8000-00805f9b34fb", "00002A26-0000-1000-8000-00805f9b34fb", buf, sizeof(buf));
+	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, buf);
+
+	pak_rt_set_progress_bar(mod, mod->priv->current_job, 34);
+
 	struct PakGattService *pair_service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_PAIR_UUID);
 	if (pair_service == NULL) {
-		pak_rt_set_progress_bar(mod, mod->priv->current_job, 15);
+		pak_rt_set_progress_bar(mod, mod->priv->current_job, 35);
 		if (saved == NULL) {
 			pak_debug_log(mod, "Creating bond...");
 			rc = pak_bt_device_create_bond(ctx, dev);
@@ -440,7 +456,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 				return PAK_ERR_NO_CONNECTION;
 			}
 		}
-		pak_rt_set_progress_bar(mod, mod->priv->current_job, 25);
+		pak_rt_set_progress_bar(mod, mod->priv->current_job, 45);
 
 		pair_service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_SECURE_PAIR_UUID);
 		if (pair_service == NULL) {
@@ -469,12 +485,12 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 			return PAK_ERR_NO_CONNECTION;
 		}
 
-		pak_rt_set_progress_bar(mod, mod->priv->current_job, 30);
+		pak_rt_set_progress_bar(mod, mod->priv->current_job, 50);
 
 		rc = send_client_name(mod, pair_service);
 		if (rc) return rc;
 
-		pak_rt_set_progress_bar(mod, mod->priv->current_job, 35);
+		pak_rt_set_progress_bar(mod, mod->priv->current_job, 55);
 
 		int percent = 40;
 
@@ -499,7 +515,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 		};
 		for (unsigned int i = 0; i < (sizeof(subscriptions) / sizeof(subscriptions[0])); i++) {
 			subscribe(ctx, dev, subscriptions[i].service_uuid, subscriptions[i].char_uuid, subscriptions[i].flag);
-			pak_rt_set_progress_bar(mod, mod->priv->current_job, percent += 5);
+			pak_rt_set_progress_bar(mod, mod->priv->current_job, percent += 3);
 		}
 	} else {
 		struct PakGattCharacteristic *pair_chr = pak_bt_get_gatt_characteristic_uuid(ctx, pair_service, CHR_PAIR_UUID);
@@ -534,16 +550,6 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 		pak_rt_set_progress_bar(mod, mod->priv->current_job, 80);
 		subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND3_UUID, 1);
 	}
-
-	// Read device name through generic service
-	char name_buf[64] = {0};
-	get_characteristic_as_string(ctx, dev, GENERIC_ACCESS_SERVICE, DEVICE_NAME, name_buf, sizeof(name_buf));
-	pak_rt_set_session_property(mod, PAK_PROP_NAME, name_buf);
-
-	// Read firmware version
-	char buf[64] = {0};
-	get_characteristic_as_string(ctx, dev, "0000180a-0000-1000-8000-00805f9b34fb", "00002A26-0000-1000-8000-00805f9b34fb", buf, sizeof(buf));
-	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, buf);
 
 	pak_rt_save_session_signature(mod, &(struct PakSavedConnection){
 		.name = name_buf,
