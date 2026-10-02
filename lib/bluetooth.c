@@ -27,6 +27,7 @@
 	#define NOT10_CHR_UUID "deef7187-3f43-4364-9e22-11a8c8a15951"
 	#define GEOTAG_SYNC_INTERVAL_UUID "c95d91ae-b247-4d6d-8661-7dd5d6a0f85b"
 
+// Appears to be a generic file reading service - both for backups and equipment status json
 #define SVC_BACKUPS "af854c2e-b214-458e-97e2-912c4ecf2cb8"
 	// 0000   62 61 63 6b 75 70 2e 64 61 74 00 00 00 00 00 00
 	// 0010   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
@@ -42,11 +43,13 @@
 	// 05 00 ff ff
 	#define CHR_BACKUPS_UNKNOWN3 "2e27ed9f-5506-41cd-ba48-dac06669ad95"
 
-#define SVC_UNKNOWN2 "117c4142-edd4-4c77-8696-dd18eebb770a"
+#define XAPP_SVC_UUID "117c4142-edd4-4c77-8696-dd18eebb770a"
 	#define CHR_UNKNOWN2_UNKNOWN1 "49a12959-dfaa-4eb2-89ce-62548ad948f3"
 
 #define SVC_UNKNOWN3 "e872b11f-d526-4ae1-9bb4-89a99d48fa59"
 	#define CHR_UNKNOWN3_UNKNOWN1 "c52edbce-1fe2-4ecc-9483-907e6592be9e"
+	// When receive notification from CHR_NOT1_UUID, app writes timestamp to this chr
+	#define CHR_UNKNOWN_TIME "b9bfd37f-ccad-4d36-a1ee-018e792b3edf"
 
 // 0x4001
 #define SVC_PAIR_UUID "91f1de68-dff6-466e-8b65-ff13b0f16fb8"
@@ -60,7 +63,6 @@
 	#define CHR_LENS_FW_VER "621a98d8-6314-4c3e-a683-eea1d6166606"
 
 // "Equipment Status"
-
 #define SVC_STATUS "af854c2e-b214-458e-97e2-912c4ecf2cb8"
 	#define CHR_UNK1 "e3fbbfcf-f326-4b0f-82cf-b00ae1b107a2"
 	#define CHR_UNK2 "051dd980-df9d-4472-a2e1-35811dd24ee1"
@@ -91,6 +93,7 @@
 	#define CHR_SHUTTER_UUID2 "600655e6-3637-42f1-8fb2-44efc5c63b13"
 
 #define SVC_GEOTAG_UUID "3b46ec2b-48ba-41fd-b1b8-ed860b60d22b"
+	// Write location struct when GEOTAG_UPDATE notification is received
 	#define CHR_GEOTAG_UUID "0f36ec14-29e5-411a-a1b6-64ee8383f090"
 
 #define GENERIC_ACCESS_SERVICE "00001800-0000-1000-8000-00805f9b34fb"
@@ -134,7 +137,6 @@ typedef struct _nvs_t {
 	uint8_t type;				/** Address type. */
 	token_t token;			 /** Pairing token. */
 } nvs_t;
-
 
 /**
 * Time synchronisation.
@@ -217,6 +219,45 @@ int fuji_bt_handle_command(struct PakModule *mod, struct PakBtDevice *dev, int a
 	return PAK_ERR_UNIMPLEMENTED;
 }
 
+static struct _fujifilm_time_t get_time_struct(void) {
+	struct PakTimestamp ts;
+	pak_get_timestamp(&ts);
+	return (struct _fujifilm_time_t){
+		.year = (uint16_t)ts.year,
+		.month = (uint8_t)ts.month,
+		.day = (uint8_t)ts.day,
+		.hour = (uint8_t)ts.hour,
+		.minute = (uint8_t)ts.minute,
+		.second = (uint8_t)ts.second
+	};
+}
+
+static int update_geo_data(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev) {
+	struct PakGattService *service;
+	if ((service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_GEOTAG_UUID)) == NULL) {
+		return PAK_ERR_UNSUPPORTED;
+	}
+	struct PakGattCharacteristic *chr;
+	if ((chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, CHR_GEOTAG_UUID)) == NULL) {
+		pak_bt_unref_gatt_service(ctx, service);
+		return PAK_ERR_UNSUPPORTED;
+	}
+
+	geotag_t geotag = {
+		.latitude = (int32_t)(123 * 10000000),
+		.longitude = (int32_t)(123 * 10000000),
+		.altitude = (int32_t)50000,
+		.pad = {0},
+		.gps_time = get_time_struct(),
+	};
+
+	pak_bt_write_characteristic(ctx, chr, (uint8_t *)&geotag, sizeof(geotag), 1);
+
+	pak_bt_unref_gatt_characteristic(ctx, chr);
+	pak_bt_unref_gatt_service(ctx, service);
+	return 0;
+}
+
 static int device_callback(struct PakBt *ctx, enum PakBtEvent ev, struct PakBtDevice *dev, struct PakGattCharacteristic *chr, void *arg) {
 	struct PakModule *mod = arg;
 	if (ev == PAK_BT_EVENT_SERVICES_DISCOVERED) {
@@ -227,6 +268,24 @@ static int device_callback(struct PakBt *ctx, enum PakBtEvent ev, struct PakBtDe
 		pak_rt_set_progress_bar(mod, mod->priv->current_job, 20);
 	} else if (ev == PAK_BT_EVENT_DISCONNECTED) {
 		pak_debug_log(mod, "Disconnected");
+	} else if (ev == PAK_BT_EVENT_GATT_CHAR_CHANGED) {
+		if (!strcmp(chr->uuid, CHR_NOT1_UUID)) {
+			struct PakGattService *service;
+			if ((service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_UNKNOWN3)) == NULL) {
+				return PAK_ERR_UNSUPPORTED;
+			}
+			struct PakGattCharacteristic *time_chr;
+			if ((time_chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, CHR_UNKNOWN_TIME)) == NULL) {
+				pak_bt_unref_gatt_service(ctx, service);
+				return PAK_ERR_UNSUPPORTED;
+			}
+			fujifilm_time_t time_struct = get_time_struct();
+			pak_bt_write_characteristic(ctx, time_chr, (const uint8_t *)&time_struct, sizeof(time_struct), PAK_BT_BLOCK);
+			pak_bt_unref_gatt_characteristic(ctx, time_chr);
+			pak_bt_unref_gatt_service(ctx, service);
+		} else {
+			pak_verbose_log(mod, "%s changed", chr->uuid);
+		}
 	}
 	return 0;
 }
@@ -248,39 +307,21 @@ static int get_characteristic_as_string(struct PakBt *ctx, struct PakBtDevice *d
 	return 0;
 }
 
-static int setup_misc_properties(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev) {
-	{
-		struct PakGattService *service;
-		if ((service = pak_bt_get_gatt_service_uuid(ctx, dev, "0000180a-0000-1000-8000-00805f9b34fb")) == NULL) {
-			return PAK_ERR_UNSUPPORTED;
-		}
-		struct PakGattCharacteristic *chr;
-		if ((chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, "00002A26-0000-1000-8000-00805f9b34fb")) == NULL) {
-			pak_bt_unref_gatt_service(ctx, service);
-			return PAK_ERR_UNSUPPORTED;
-		}
-		pak_bt_read_characteristic(ctx, chr, 1);
-		char buf[64];
-		buf[pak_bt_read_characteristic_cached_value(ctx, chr, (uint8_t *)buf, sizeof(buf))] = '\0';
-		pak_rt_set_session_property(mod, PAK_PROP_FW_VER, buf);
-		pak_bt_unref_gatt_characteristic(ctx, chr);
-		pak_bt_unref_gatt_service(ctx, service);
-	}
-
-	return 0;
-}
-
 int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev) {
 	struct PakWiFiApFilter filter = {0};
 	filter.has_ssid = 1;
 
-	int rc = get_characteristic_as_string(ctx, dev, NOTX_SVC_UUID, CHR_UNKNOWN1_SSID, filter.ssid_pattern, sizeof(filter.ssid_pattern));
-	if (rc) {
-		pak_debug_log(mod, "get_characteristic_as_string");
-		return rc;
-	}
+	// TODO: Determine whether to use xapp or cr ptp protocol by checking for xapp-only service uuid
+	const char *wifi_setup_option = OPTION_WIFI_FROM_BT_XAPP;
+	//struct PakGattService *xapp_service = pak_bt_get_gatt_service_uuid(ctx, dev, XAPP_SVC_UUID);
+	//if (xapp_service == NULL) wifi_setup_option = OPTION_WIFI; else pak_bt_unref_gatt_service(ctx, xapp_service);
 
-	{
+	pak_debug_log(mod, "wifi setup option: %s", wifi_setup_option);
+
+	int rc = get_characteristic_as_string(ctx, dev, NOTX_SVC_UUID, CHR_UNKNOWN1_SSID, filter.ssid_pattern, sizeof(filter.ssid_pattern));
+	if (rc) { pak_debug_log(mod, "get_characteristic_as_string"); return rc; }
+
+	{ // Trigger camera's WiFi routine
 		struct PakGattService *service;
 		struct PakGattCharacteristic *chr;
 		if ((service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_SHUTTER_UUID)) == NULL) {
@@ -297,15 +338,16 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 
 	rc = get_characteristic_as_string(ctx, dev, NOTX_SVC_UUID, CHR_UNKNOWN1_PASSWORD, filter.password, sizeof(filter.password));
 	if (rc == 0) {
-		pak_debug_log(mod, "password: %s", filter.password);
+		pak_debug_log(mod, "Password: %s", filter.password);
 		filter.has_password = 1;
 		filter.is_hidden = 1;
-		//This should work but not 100% sure yet
+
+		// TODO: Passing bt BSSID as WiFi bssid appears to possibly, not 100% sure yet
 		//filter.has_bssid = 1;
 		//strcpy(filter.bssid, dev->mac_address);
 	}
 
-	pak_debug_log(mod, "ssid: %s", filter.ssid_pattern);
+	pak_debug_log(mod, "SSID: %s", filter.ssid_pattern);
 
 	{
 		struct PakGattService *service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_CONF_UUID);
@@ -330,7 +372,7 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 			pak_debug_log(mod, "Camera is busy, not connecting");
 		} else {
 			// buf[0] should be 1 on success or 0xff on timeout
-			pak_rt_add_wifi_connection(mod, &filter, "wifi-from-bt");
+			pak_rt_add_wifi_connection(mod, &filter, wifi_setup_option);
 		}
 
 		pak_bt_unref_gatt_service(ctx, service);
@@ -350,7 +392,7 @@ static int send_client_name(struct PakModule *mod, struct PakGattService *pair_s
 	}
 
 	const char *client_name = pak_rt_get_client_name();
-	int rc = pak_bt_write_characteristic(mod->bt, iden_chr, (const uint8_t *)client_name, strlen(client_name), 1);
+	int rc = pak_bt_write_characteristic(mod->bt, iden_chr, (const uint8_t *)client_name, strlen(client_name), PAK_BT_BLOCK);
 	if (rc) {
 		pak_debug_log(mod, "pak_bt_write_characteristic");
 		return rc;
@@ -360,48 +402,11 @@ static int send_client_name(struct PakModule *mod, struct PakGattService *pair_s
 	return 0;
 }
 
-static int update_geo_data(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev) {
-	struct PakGattService *service;
-	if ((service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_GEOTAG_UUID)) == NULL) {
-		return PAK_ERR_UNSUPPORTED;
-	}
-	struct PakGattCharacteristic *chr;
-	if ((chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, CHR_GEOTAG_UUID)) == NULL) {
-		pak_bt_unref_gatt_service(ctx, service);
-		return PAK_ERR_UNSUPPORTED;
-	}
-
-	struct PakTimestamp ts;
-	pak_get_timestamp(&ts);
-
-	geotag_t geotag = {
-		.latitude = (int32_t)(123 * 10000000),
-		.longitude = (int32_t)(123 * 10000000),
-		.altitude = (int32_t)50000,
-		.pad = {0},
-		.gps_time = {
-			.year = (uint16_t)ts.year,
-			.month = (uint8_t)ts.month,
-			.day = (uint8_t)ts.day,
-			.hour = (uint8_t)ts.hour,
-			.minute = (uint8_t)ts.minute,
-			.second = (uint8_t)ts.second
-		}
-	};
-
-	pak_bt_write_characteristic(ctx, chr, (uint8_t *)&geotag, sizeof(geotag), 1);
-
-	pak_bt_unref_gatt_characteristic(ctx, chr);
-	pak_bt_unref_gatt_service(ctx, service);
-	return 0;
-}
-
 int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev, struct PakSavedConnection *saved) {
 	pak_bt_set_device_callback(ctx, dev, device_callback, mod);
 
 	pak_rt_set_progress_bar(mod, mod->priv->current_job, 5);
 
-	char name_buf[32];
 	adv_basic_t mfgdata;
 	if (saved == NULL) {
 		unsigned int sz = pak_bt_get_manufacturer_data(ctx, dev, 0, (uint8_t *)&mfgdata, sizeof(mfgdata));
@@ -472,35 +477,30 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 		pak_rt_set_progress_bar(mod, mod->priv->current_job, 35);
 
 		int percent = 40;
-		#define INCREMENT(x) pak_rt_set_progress_bar(mod, mod->priv->current_job, percent += x)
 
-		/* indication 1   */ subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND1_UUID, 0);
-		INCREMENT(5);
-		/* indication 2   */ subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND2_UUID, 0);
-		INCREMENT(5);
-		/* notification 1 */ subscribe(ctx, dev, SVC_CONF_UUID, CHR_NOT1_UUID, 1);
-		INCREMENT(5);
-		/* notification 2 */ subscribe(ctx, dev, SVC_CONF_UUID, GEOTAG_UPDATE, 1);
-		INCREMENT(5);
-		/* notification 3 */ subscribe(ctx, dev, NOT3_SVC_UUID, NOT3_CHR_UUID, 1);
-		INCREMENT(5);
-		/* notification 4 */ subscribe(ctx, dev, NOTX_SVC_UUID, CHR_UNKNOWN1_SSID, 1);
-		INCREMENT(5);
-		/* notification 5 */ subscribe(ctx, dev, NOTX_SVC_UUID, NOT5_CHR_UUID, 1);
-		INCREMENT(5);
-
-		/* notification 6  */ subscribe(ctx, dev, SVC_CONF_UUID, NOT6_CHR_UUID, 1);
-		INCREMENT(5);
-		/* notification 7  */ subscribe(ctx, dev, NOTX_SVC_UUID, NOT7_CHR_UUID, 1);
-		INCREMENT(5);
-		/* notification 8  */ subscribe(ctx, dev, NOTX_SVC_UUID, NOT8_CHR_UUID, 1);
-		INCREMENT(5);
-		/* notification 9  */ subscribe(ctx, dev, NOTX_SVC_UUID, NOT9_CHR_UUID, 1);
-		INCREMENT(5);
-		/* notification 10 */ subscribe(ctx, dev, NOTX_SVC_UUID, NOT10_CHR_UUID, 1);
-		INCREMENT(5);
-		/* notification 11 */ subscribe(ctx, dev, NOTX_SVC_UUID, GEOTAG_SYNC_INTERVAL_UUID, 1);
-
+		const static struct Notifs {
+			const char *service_uuid;
+			const char *char_uuid;
+			int flag;
+		}subscriptions[] = {
+			{ SVC_CONF_UUID, CHR_IND1_UUID, 0 },
+			{ SVC_CONF_UUID, CHR_IND2_UUID, 0 },
+			{ SVC_CONF_UUID, CHR_NOT1_UUID, 1 },
+			{ SVC_CONF_UUID, GEOTAG_UPDATE, 1 },
+			{ NOT3_SVC_UUID, NOT3_CHR_UUID, 1 },
+			{ NOTX_SVC_UUID, CHR_UNKNOWN1_SSID, 1 },
+			{ NOTX_SVC_UUID, NOT5_CHR_UUID, 1 },
+			{ SVC_CONF_UUID, NOT6_CHR_UUID, 1 },
+			{ NOTX_SVC_UUID, NOT7_CHR_UUID, 1 },
+			{ NOTX_SVC_UUID, NOT8_CHR_UUID, 1 },
+			{ NOTX_SVC_UUID, NOT9_CHR_UUID, 1 },
+			{ NOTX_SVC_UUID, NOT10_CHR_UUID, 1 },
+			{ NOTX_SVC_UUID, GEOTAG_SYNC_INTERVAL_UUID, 1 }
+		};
+		for (unsigned int i = 0; i < (sizeof(subscriptions) / sizeof(subscriptions[0])); i++) {
+			subscribe(ctx, dev, subscriptions[i].service_uuid, subscriptions[i].char_uuid, subscriptions[i].flag);
+			pak_rt_set_progress_bar(mod, mod->priv->current_job, percent += 5);
+		}
 	} else {
 		struct PakGattCharacteristic *pair_chr = pak_bt_get_gatt_characteristic_uuid(ctx, pair_service, CHR_PAIR_UUID);
 		if (pair_chr == NULL) {
@@ -524,7 +524,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 
 		pak_rt_set_progress_bar(mod, mod->priv->current_job, 50);
 
-		subscribe(ctx, dev, "4e941240-d01d-46b9-a5ea-67636806830b", "bf6dc9cf-3606-4ec9-a4c8-d77576e93ea4", 1);
+		subscribe(ctx, dev, NOTX_SVC_UUID, CHR_UNKNOWN1_SSID, 1);
 		subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND1_UUID, 1);
 		subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND2_UUID, 1);
 		pak_rt_set_progress_bar(mod, mod->priv->current_job, 60);
@@ -535,27 +535,15 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 		subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND3_UUID, 1);
 	}
 
-	{ // Send device name
-		struct PakGattService *service;
-		if ((service = pak_bt_get_gatt_service_uuid(ctx, dev, GENERIC_ACCESS_SERVICE)) == NULL) {
-			return PAK_ERR_UNSUPPORTED;
-		}
-		struct PakGattCharacteristic *chr;
-		if ((chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, DEVICE_NAME)) == NULL) {
-			pak_bt_unref_gatt_service(ctx, service);
-			return PAK_ERR_UNSUPPORTED;
-		}
-		pak_bt_read_characteristic(ctx, chr, 1);
-		name_buf[pak_bt_read_characteristic_cached_value(ctx, chr, (uint8_t *)name_buf, sizeof(name_buf))] = '\0';
-		pak_bt_unref_gatt_characteristic(ctx, chr);
-		pak_bt_unref_gatt_service(ctx, service);
+	// Read device name through generic service
+	char name_buf[64] = {0};
+	get_characteristic_as_string(ctx, dev, GENERIC_ACCESS_SERVICE, DEVICE_NAME, name_buf, sizeof(name_buf));
+	pak_rt_set_session_property(mod, PAK_PROP_NAME, name_buf);
 
-		pak_rt_set_session_property(mod, PAK_PROP_NAME, name_buf);
-
-		if (setup_misc_properties(mod, ctx, dev)) {
-			pak_debug_log(mod, "setup_misc_properties");
-		}
-	}
+	// Read firmware version
+	char buf[64] = {0};
+	get_characteristic_as_string(ctx, dev, "0000180a-0000-1000-8000-00805f9b34fb", "00002A26-0000-1000-8000-00805f9b34fb", buf, sizeof(buf));
+	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, buf);
 
 	pak_rt_save_session_signature(mod, &(struct PakSavedConnection){
 		.name = name_buf,

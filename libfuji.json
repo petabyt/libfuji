@@ -40,6 +40,9 @@
           "mfgDataMask": "0xff,0xff"
         }
       ],
+      "usbFilter": {
+        "vid": "0x04CB"
+      },
       "usedGattServiceUuids": [
         "91f1de68-dff6-466e-8b65-ff13b0f16fb8",
         "4c0020fe-f3b6-40de-acc9-77d129067b14",

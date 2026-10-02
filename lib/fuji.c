@@ -437,6 +437,12 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	fuji->remote_version = ptp_parse_prop_value(r);
 	ptp_verbose_log(r, "PTP_DPC_FUJI_RemoteVersion_DF24: 0x%X\n", fuji->remote_version);
 
+	if (fuji->remote_version < 0x20007 && fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
+		// TODO: Shitty shim to differentiate between xapp and cr ptp differences after a bluetooth handoff.
+		// This is likely done through detecting GATT services, but I don't have enough data to verify exactly how it works.
+		fuji->transport = FUJI_FEATURE_WIRELESS_COMM;
+	}
+
 	rc = fuji_config_init_mode(r);
 	if (rc) {
 		ptp_verbose_log(r, "fuji_config_init_mode: %d\n", rc);
