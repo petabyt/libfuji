@@ -431,20 +431,6 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 
 	// progress is now 30 (from callbacks)
 
-	// Read device name through generic service
-	char name_buf[64] = {0};
-	get_characteristic_as_string(ctx, dev, GENERIC_ACCESS_SERVICE, DEVICE_NAME, name_buf, sizeof(name_buf));
-	pak_rt_set_session_property(mod, PAK_PROP_NAME, name_buf);
-
-	pak_rt_set_progress_bar(mod, mod->priv->current_job, 32);
-
-	// Read firmware version
-	char buf[64] = {0};
-	get_characteristic_as_string(ctx, dev, "0000180a-0000-1000-8000-00805f9b34fb", "00002A26-0000-1000-8000-00805f9b34fb", buf, sizeof(buf));
-	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, buf);
-
-	pak_rt_set_progress_bar(mod, mod->priv->current_job, 34);
-
 	struct PakGattService *pair_service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_PAIR_UUID);
 	if (pair_service == NULL) {
 		pak_rt_set_progress_bar(mod, mod->priv->current_job, 35);
@@ -550,6 +536,20 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 		pak_rt_set_progress_bar(mod, mod->priv->current_job, 80);
 		subscribe(ctx, dev, SVC_CONF_UUID, CHR_IND3_UUID, 1);
 	}
+
+	// Something timing related seems to be breaking the following characteristic reads...
+	// sleep a bit for now as a workaround. on android readCharacteristic just returns false.
+	usleep(1000 * 100);
+
+	// Read device name through generic service
+	char name_buf[64] = {0};
+	get_characteristic_as_string(ctx, dev, GENERIC_ACCESS_SERVICE, DEVICE_NAME, name_buf, sizeof(name_buf));
+	pak_rt_set_session_property(mod, PAK_PROP_NAME, name_buf);
+
+	// Read firmware version
+	char buf[64] = {0};
+	get_characteristic_as_string(ctx, dev, "0000180a-0000-1000-8000-00805f9b34fb", "00002A26-0000-1000-8000-00805f9b34fb", buf, sizeof(buf));
+	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, buf);
 
 	pak_rt_save_session_signature(mod, &(struct PakSavedConnection){
 		.name = name_buf,

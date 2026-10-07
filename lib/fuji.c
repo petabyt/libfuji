@@ -808,7 +808,7 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 
 	struct PtpObjectInfo oi;
 	rc = ptp_get_object_info(r, handle, &oi);
-	if (rc) return rc;
+	if (rc) goto end;
 	plat_update_object_info(r, handle, &oi);
 
 	if (info != NULL) info(arg, &oi);

@@ -407,8 +407,24 @@ static int on_request_thumbnail(struct PakModule *mod, int job, struct PakFileHa
 	return 0;
 }
 
+static struct PakFileMetadata oi_to_metadata(const struct PtpObjectInfo *oi) {
+	int orientation = 0;
+	if (!strcmp(oi->keywords, "Orientation: 8")) {
+		orientation = 270;
+	}
+	return (struct PakFileMetadata){
+		.filename = oi->filename,
+		.file_size = (int)oi->compressed_size,
+		.mime_type = get_mime_type(oi->obj_format),
+		.image_height = (int)oi->img_height,
+		.image_width = (int)oi->img_width,
+		.orientation = orientation,
+		.created_date = oi->date_created,
+	};
+}
+
 int app_queue_file_for_download(struct PtpRuntime *r, int object_id) {
-	// TODO: Only works if previous download is completed
+	// TODO: NOT an actual queue, only works if previous download is completed
 	struct PakModule *mod = get_mod(r);
 	int rc = ptp_get_object_info(r, object_id, &r->priv->current_downloading_oi);
 	if (rc == PTP_CHECK_CODE) {
@@ -416,13 +432,8 @@ int app_queue_file_for_download(struct PtpRuntime *r, int object_id) {
 		return 0;
 	} else if (rc) return rc;
 	struct PtpObjectInfo *oi = &r->priv->current_downloading_oi;
-	pak_rt_add_file_metadata(mod, &(struct PakFileHandle){.index_in_view = r->priv->n_items_downloaded++, .storage_name = LIVE_STORAGE_DEVICE_NAME}, &(struct PakFileMetadata){
-		.filename = oi->filename,
-		.file_size = (int)oi->compressed_size,
-		.mime_type = get_mime_type(oi->obj_format),
-		.image_height = (int)oi->img_height,
-		.image_width = (int)oi->img_width,
-	});
+	struct PakFileMetadata md = oi_to_metadata(oi);
+	pak_rt_add_file_metadata(mod, &(struct PakFileHandle){.index_in_view = r->priv->n_items_downloaded++, .storage_name = LIVE_STORAGE_DEVICE_NAME}, &md);
 	return 0;
 }
 
@@ -433,19 +444,8 @@ int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpOb
 	file.index_in_view = handle - 1;
 	file.storage_name = r->priv->storage_device_name;
 
-	int orientation = 0;
-	if (!strcmp(oi->keywords, "Orientation: 8")) {
-		orientation = 270;
-	}
-
-	return pak_rt_add_file_metadata(mod, &file, &(struct PakFileMetadata){
-		.filename = oi->filename,
-		.file_size = (int)oi->compressed_size,
-		.mime_type = get_mime_type(oi->obj_format),
-		.image_height = (int)oi->img_height,
-		.image_width = (int)oi->img_width,
-		.orientation = orientation,
-	});
+	struct PakFileMetadata md = oi_to_metadata(oi);
+	return pak_rt_add_file_metadata(mod, &file, &md);
 }
 
 static int on_request_file_metadata(struct PakModule *mod, int job, struct PakFileHandle *file) {
