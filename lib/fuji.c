@@ -421,9 +421,9 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	fuji->remote_image_view_version = ptp_parse_prop_value(r);
 	ptp_verbose_log(r, "PTP_DPC_FUJI_RemoteGetObjectVersion_DF25: 0x%X\n", fuji->remote_image_view_version);
 
+	// Newer cameras such as X-T5 sort photos by oldest first, differing from all older cameras.
+	// Not sure if this is the best way to determine this behavior, but it's not harmful.
 	if (fuji->remote_image_view_version >= 5) {
-		// Newer cameras such as X-T5 sort photos by oldest first, differing from all older cameras.
-		// Not sure if this is the best way to determine this behavior, but it's not harmful.
 		fuji->sort_by_oldest_first = 1;
 	}
 
@@ -437,9 +437,9 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	fuji->remote_version = ptp_parse_prop_value(r);
 	ptp_verbose_log(r, "PTP_DPC_FUJI_RemoteVersion_DF24: 0x%X\n", fuji->remote_version);
 
+	// TODO: Shitty shim to differentiate between xapp and cr ptp differences after a bluetooth handoff.
+	// This is likely done through detecting GATT services, but I don't have enough data to verify exactly how it works.
 	if (fuji->remote_version < 0x20007 && fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
-		// TODO: Shitty shim to differentiate between xapp and cr ptp differences after a bluetooth handoff.
-		// This is likely done through detecting GATT services, but I don't have enough data to verify exactly how it works.
 		fuji->transport = FUJI_FEATURE_WIRELESS_COMM;
 	}
 
@@ -520,9 +520,9 @@ static int ptpip_fuji_connect_handshake_(struct PtpRuntime *r, const char *devic
 
 	// Read the packet size, then receive the rest
 	int x = ptpip_cmd_read(r, r->data, 4);
-	if (x < 0) return PTP_IO_ERR;
+	if (x <= 0) return PTP_IO_ERR;
 	x = ptpip_cmd_read(r, r->data + 4, (int)p->length - 4);
-	if (x < 0) return PTP_IO_ERR;
+	if (x <= 0) return PTP_IO_ERR;
 
 	if (p->type == PTPIP_INIT_FAIL) {
 		ptp_verbose_log(r, "PTPIP_INIT_FAIL\n");
