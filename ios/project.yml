@@ -1,0 +1,34 @@
+# Alternative to the committed CamBridge.xcodeproj: `xcodegen generate` in ios/.
+# Keep in sync with CamBridge.xcodeproj/project.pbxproj.
+name: CamBridge
+options:
+  deploymentTarget:
+    iOS: "27.0"
+  developmentLanguage: zh-Hans
+  createIntermediateGroups: true
+configFiles:
+  Debug: Config/Signing.xcconfig
+  Release: Config/Signing.xcconfig
+packages:
+  FujiKit:
+    path: FujiKit
+targets:
+  CamBridge:
+    type: application
+    platform: iOS
+    sources:
+      - path: CamBridge
+    dependencies:
+      - package: FujiKit
+    settings:
+      base:
+        INFOPLIST_FILE: Config/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        TARGETED_DEVICE_FAMILY: "1"
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SUPPORTS_MACCATALYST: NO

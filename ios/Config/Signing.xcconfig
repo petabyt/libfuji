@@ -1,0 +1,12 @@
+// 签名与标识：按你的 Apple 开发者账号修改后再构建。
+// Signing: edit for your Apple developer account before building.
+
+// 你的团队 ID（Xcode > Settings > Accounts 中可见），留空则需在 Xcode 中选择
+DEVELOPMENT_TEAM =
+
+// 必须是你的账号下唯一的 Bundle ID
+PRODUCT_BUNDLE_IDENTIFIER = com.example.cambridge
+
+// 账号可以启用 Hotspot Configuration 能力时使用 CamBridge.entitlements；
+// 不能启用时改为 Config/CamBridge-NoHotspot.entitlements（App 会改走手动加入 Wi-Fi）。
+CODE_SIGN_ENTITLEMENTS = Config/CamBridge.entitlements

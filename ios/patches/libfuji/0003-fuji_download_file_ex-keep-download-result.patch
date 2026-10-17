@@ -1,0 +1,32 @@
+Subject: fuji_download_file_ex: do not let cleanup overwrite the download result
+
+In WIRELESS_COMM mode the cleanup after `end:` assigned the results of
+fuji_get_events() and the D227 reset to `rc`. A cancelled download
+(PTP_CANCELED) or a camera-side error (PTP_CHECK_CODE) was therefore
+reported as success whenever the cleanup transactions succeeded, and the
+caller would treat a partial file as complete. The cleanup still runs; its
+error is only reported if the download itself succeeded.
+
+--- a/libfuji/fuji.c
++++ b/libfuji/fuji.c
+@@ -880,13 +880,15 @@
+ 	}
+ 
+ 	end:;
++	// Restore camera state. A failure here must not hide the download's own
++	// result (PTP_CANCELED, PTP_CHECK_CODE, ...): only report it when the
++	// download itself succeeded.
+ 	if (fuji->transport == FUJI_FEATURE_WIRELESS_COMM) {
+-		rc = fuji_get_events(r);
+-		if (rc) {
+-			ptp_mutex_unlock(r);
+-			return rc;
++		int cleanup_rc = fuji_get_events(r);
++		if (cleanup_rc == 0) {
++			cleanup_rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 0);
+ 		}
+-		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 0);
++		if (rc == 0) rc = cleanup_rc;
+ 	} else if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
+ 		ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 2);
+ 	}

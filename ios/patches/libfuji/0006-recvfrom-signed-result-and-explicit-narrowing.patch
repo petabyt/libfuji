@@ -1,0 +1,71 @@
+Subject: discovery.c: keep recvfrom() result signed; explicit bounded narrowings
+
+Reported by Xcode (-Wshorten-64-to-32) when building the iOS app.
+- discovery.c (PC AutoSave discovery): recvfrom() returned into an
+  `unsigned int`, so an error (-1) became 0xFFFFFFFF, `len <= 0` did not
+  catch it and `greeting[len] = '\0'` wrote far outside the buffer. Now
+  ssize_t. (The iOS app does not call the PC AutoSave discovery code.)
+- fuji.c fuji_download_file_ex: payload_size is a GetPartialObject payload
+  of at most FUJI_MAX_PARTIAL_OBJECT bytes; explicit cast for handle_add().
+- fuji_usb.c fujiusb_restore_backup: ftell() failure (-1) passed the
+  "too big" check and was then used as a size; now rejected. The value is
+  at most 100000, so the cast for ptp_send_object() is lossless. (Not used
+  by the iOS app: USB goes through ImageCaptureCore, restore is not offered.)
+
+--- a/libfuji/discovery.c
++++ b/libfuji/discovery.c
+@@ -611,9 +611,9 @@
+ 		if (FD_ISSET(s->reg_fd, &fdset)) {
+ 			ptp_verbose_log(s->r, "AutoSave register\n");
+ 			info->transport = FUJI_FEATURE_AUTOSAVE;
+-			unsigned int len = recvfrom(s->reg_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
++			ssize_t len = recvfrom(s->reg_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
+ 			if (len <= 0) {
+-				ptp_error_log(s->r, "recvfrom: %d\n", len);
++				ptp_error_log(s->r, "recvfrom: %zd\n", len);
+ 				return -1;
+ 			}
+ 			greeting[len] = '\0';
+@@ -627,9 +627,9 @@
+ 		if (FD_ISSET(s->con_fd, &fdset)) {
+ 			ptp_verbose_log(s->r, "AutoSave connect\n");
+ 			info->transport = FUJI_FEATURE_AUTOSAVE;
+-			unsigned int len = recvfrom(s->con_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
++			ssize_t len = recvfrom(s->con_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
+ 			if (len <= 0) {
+-				ptp_error_log(s->r, "recvfrom: %d\n", len);
++				ptp_error_log(s->r, "recvfrom: %zd\n", len);
+ 				return -1;
+ 			}
+ 			greeting[len] = '\0';
+--- a/libfuji/fuji.c
++++ b/libfuji/fuji.c
+@@ -867,7 +867,7 @@
+ 			goto end;
+ 		}
+ 
+-		rc = handle_add(arg, ptp_get_payload(r), payload_size, read, oi.compressed_size);
++		rc = handle_add(arg, ptp_get_payload(r), (unsigned int)payload_size, read, oi.compressed_size);
+ 		if (rc) {
+ 			rc = PTP_CANCELED;
+ 			goto end;
+--- a/libfuji/fuji_usb.c
++++ b/libfuji/fuji_usb.c
+@@ -204,7 +204,7 @@
+ 	fseek(input, 0, SEEK_END);
+ 	long file_size = ftell(input);
+ 	fseek(input, 0, SEEK_SET);
+-	if (file_size > 100000) {
++	if (file_size < 0 || file_size > 100000) {
+ 		ptp_error_log(r, "Backup file seems to be too big, is the path correct?");
+ 		return -1;
+ 	}
+@@ -238,7 +238,7 @@
+ 		ptp_error_log(r, "Error reading backup file");
+ 	}
+ 
+-	rc = ptp_send_object(r, buffer, file_size);
++	rc = ptp_send_object(r, buffer, (unsigned int)file_size);
+ 	return rc;
+ }
+ 

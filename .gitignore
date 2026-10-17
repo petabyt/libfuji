@@ -19,3 +19,13 @@ compile_commands.json
 build
 
 src/backend.c
+
+# iOS app build outputs
+ios/.build-c/
+ios/.build-vcam/
+ios/FujiKit/.build/
+ios/FujiKit/.swiftpm/
+ios/build/
+*.xcuserstate
+xcuserdata/
+DerivedData/

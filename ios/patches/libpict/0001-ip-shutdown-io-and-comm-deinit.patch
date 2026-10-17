@@ -1,0 +1,66 @@
+Subject: ip.c: add ptpip_shutdown_io(), define ptpip_comm_deinit(), close fd on connect timeout
+
+- ptpip_shutdown_io(): lets another thread unblock a read()/send() that is
+  stuck on the command/event/video socket (e.g. while fuji_setup() waits up
+  to 255 * SO_RCVTIMEO for the user to press OK on the camera). It only calls
+  shutdown(); the worker thread still closes the descriptors, so there is no
+  fd-reuse race. The iOS shim serialises it with ptpip_device_close().
+- ptpip_comm_deinit() was declared in cl_backend.h but never defined; it now
+  closes the sockets and frees r->comm_priv.
+- create_socket() leaked the socket when the non-blocking connect timed out.
+
+--- a/libpict/ip.c
++++ b/libpict/ip.c
+@@ -121,6 +121,7 @@
+ 		rc = select(sockfd + 1, NULL, &fdset, NULL, &tv);
+ 		if (rc != 1) {
+ 			ptp_verbose_log(r, "select() returned 0 fds: %d\n", errno);
++			close(sockfd);
+ 			return -1;
+ 		}
+ 	}
+@@ -219,6 +220,32 @@
+ 	return 0;
+ }
+ 
++int ptpip_shutdown_io(struct PtpRuntime *r) {
++	// Unblocks a thread stuck in read()/send() on these sockets without closing
++	// the descriptors (closing could race with fd reuse). The owning thread still
++	// calls ptpip_device_close() afterwards. The caller must serialise this with
++	// ptpip_device_close() and with socket creation.
++	struct PtpCommPriv *b = r->comm_priv;
++	if (b == NULL) return 0;
++#ifdef WIN32
++	if (b->fd) shutdown(b->fd, SD_BOTH);
++	if (b->evfd) shutdown(b->evfd, SD_BOTH);
++	if (b->vidfd) shutdown(b->vidfd, SD_BOTH);
++#else
++	if (b->fd) shutdown(b->fd, SHUT_RDWR);
++	if (b->evfd) shutdown(b->evfd, SHUT_RDWR);
++	if (b->vidfd) shutdown(b->vidfd, SHUT_RDWR);
++#endif
++	return 0;
++}
++
++void ptpip_comm_deinit(struct PtpRuntime *r) {
++	if (r->comm_priv == NULL) return;
++	ptpip_device_close(r);
++	free(r->comm_priv);
++	r->comm_priv = NULL;
++}
++
+ int ptpip_cmd_write(struct PtpRuntime *r, void *data, unsigned int size) {
+ 	if (r->io_kill_switch) {
+ 		ptp_verbose_log(r, "WARN: kill switch on\n");
+--- a/libpict/cl_backend.h
++++ b/libpict/cl_backend.h
+@@ -74,6 +74,9 @@
+ int ptpip_video_read(struct PtpRuntime *r, void *data, unsigned int size);
+ /// @brief Disconnect from a PTP/IP device
+ int ptpip_device_close(struct PtpRuntime *r);
++/// @brief shutdown() all PTP/IP sockets so a blocked read/write on another thread returns.
++/// Does not close the descriptors; call ptpip_device_close() afterwards.
++int ptpip_shutdown_io(struct PtpRuntime *r);
+ 
+ /// @brief Backend must implement this to free the device_handle_ptr field in each device entry
+ void ptpusb_free_device_list_entry(void *);
