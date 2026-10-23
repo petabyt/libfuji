@@ -1,0 +1,26 @@
+Subject: ptp_get_partial_exif: release the PTP mutex on early error returns
+
+Two early returns left the mutex locked. Note: this PC AutoSave thumbnail
+path is still known-broken upstream (the returned offset/length refer to a
+temporary buffer, not r->data, and that buffer is leaked). The iOS app does
+not call it; PC AutoSave is disabled in the app.
+
+--- a/libfuji/fuji.c
++++ b/libfuji/fuji.c
+@@ -589,11 +589,15 @@
+ 	ptp_mutex_lock(r);
+ 
+ 	int rc = fuji_get_events(r);
+-	if (rc) return rc;
++	if (rc) {
++		ptp_mutex_unlock(r);
++		return rc;
++	}
+ 
+ 	int max_size = 0x4000;
+ 	rc = ptp_get_partial_object(r, handle, 0, max_size);
+ 	if (rc == PTP_CHECK_CODE) {
++		ptp_mutex_unlock(r);
+ 		return PTP_RUNTIME_ERR;
+ 	}
+ 	if (rc) {

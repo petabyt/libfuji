@@ -1,0 +1,17 @@
+Subject: fuji_reset_ptp: free the previous priv struct instead of leaking it
+
+The condition was inverted (`if (r->priv == NULL) free(r->priv)`), so a
+reset leaked the old struct PtpUserPriv. Harmless for the first reset (priv
+is NULL after ptp_init) but every later reset leaked.
+
+--- a/libfuji/fuji.c
++++ b/libfuji/fuji.c
+@@ -17,7 +17,7 @@
+ 
+ int fuji_reset_ptp(struct PtpRuntime *r) {
+ 	ptp_reset(r);
+-	if (r->priv == NULL) free(r->priv);
++	if (r->priv != NULL) free(r->priv);
+ 	r->priv = calloc(1, sizeof(struct PtpUserPriv));
+ 	r->connection_type = PTP_IP_USB;
+ 	r->response_wait_default = 3; // Fuji cams are slow!
