@@ -191,7 +191,6 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 	const char *setup_option = pak_rt_get_setup_option(mod);
 	if (setup_option == NULL) return PAK_ERR_UNSUPPORTED;
 	pak_debug_log(mod, "Setup option: %s", setup_option);
-	// TODO: Retry ptpip_connect
 	if (!strcmp(setup_option, OPTION_WIFI)) {
 		r->priv->transport = FUJI_FEATURE_WIRELESS_COMM;
 		strcpy(r->priv->ip_address, FUJI_PTP_IP);

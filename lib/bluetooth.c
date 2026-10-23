@@ -317,7 +317,11 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 	pak_debug_log(mod, "wifi setup option: %s", wifi_setup_option);
 
 	int rc = get_characteristic_as_string(ctx, dev, NOTX_SVC_UUID, CHR_UNKNOWN1_SSID, filter.ssid_pattern, sizeof(filter.ssid_pattern));
-	if (rc) { pak_debug_log(mod, "get_characteristic_as_string"); return rc; }
+	if (rc) {
+		pak_rt_add_user_instruction(mod, "Something went wrong. please try again.");
+		pak_debug_log(mod, "get_characteristic_as_string");
+		return rc;
+	}
 
 	{ // Trigger camera's WiFi routine
 		struct PakGattService *service;
@@ -339,11 +343,11 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 		pak_debug_log(mod, "Password: %s", filter.password);
 		filter.has_password = 1;
 		filter.is_hidden = 1;
-
-		// TODO: Passing bt BSSID as WiFi bssid appears to possibly, not 100% sure yet
-		//filter.has_bssid = 1;
-		//strcpy(filter.bssid, dev->mac_address);
 	}
+
+	// TODO: Passing bt BSSID as WiFi bssid appears to be valid, not 100% sure yet
+//	filter.has_bssid = 1;
+//	strcpy(filter.bssid, dev->mac_address);
 
 	pak_debug_log(mod, "SSID: %s", filter.ssid_pattern);
 
@@ -363,7 +367,9 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 
 		uint8_t buf[2] = {0xff, 0xff};
 		rc = pak_bt_watch_characteristic(ctx, chr, 500); // Normally updates a few seconds after
-		pak_global_log("pak_bt_watch_characteristic: %d", rc);
+		if (rc) {
+			pak_rt_add_user_instruction(mod, "Something went wrong. please try again.");
+		}
 		pak_bt_read_characteristic_cached_value(ctx, chr, buf, sizeof(buf));
 
 		if (buf[0] == 0) {
@@ -382,7 +388,6 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 }
 
 static int send_client_name(struct PakModule *mod, struct PakGattService *pair_service) {
-	char iden_str[0xff];
 	struct PakGattCharacteristic *iden_chr = pak_bt_get_gatt_characteristic_uuid(mod->bt, pair_service, CHR_IDEN_UUID);
 	if (iden_chr == NULL) {
 		pak_debug_log(mod, "pak_bt_get_gatt_characteristic_uuid");

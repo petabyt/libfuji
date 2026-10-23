@@ -3,6 +3,7 @@
   "isDraft": true,
   "description": "Supports Fujifilm X-series cameras",
   "website": "https://github.com/petabyt/libfuji",
+  "license": "MIT",
   "author": "Daniel Cook",
   "version": 1,
   "moduleType": "so",
