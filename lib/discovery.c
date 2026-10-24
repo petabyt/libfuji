@@ -76,14 +76,21 @@ static int get_local_ip(struct PtpRuntime *r, char buffer[64]) {
 	serv.sin_addr.s_addr = inet_addr("1.1.1.1");
 	serv.sin_port = htons(1234);
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock < 0) return -1;
 	ptp_set_extra_socket_settings(r, sock);
 	int rc = connect(sock, (const struct sockaddr*) &serv, sizeof(serv));
-	if (rc < 0) return rc;
+	if (rc < 0) {
+		close(sock);
+		return rc;
+	}
 
 	struct sockaddr_in name;
 	socklen_t namelen = sizeof(name);
 	rc = getsockname(sock, (struct sockaddr*) &name, &namelen);
-	if (rc < 0) return rc;
+	if (rc < 0) {
+		close(sock);
+		return rc;
+	}
 
 	inet_ntop(AF_INET, &name.sin_addr, buffer, 64);
 
@@ -110,12 +117,14 @@ static int connect_to_notify_server(struct DiscoveryState *s, char *ip, int port
 	sa.sin_port = htons(port);
 	if (inet_pton(AF_INET, ip, &(sa.sin_addr)) <= 0) {
 		ptp_verbose_log(s->r, "inet_pton\n");
+		close(server_fd);
 		return -1;
 	}
 
 	if (connect(server_fd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 		if (errno != EINPROGRESS) {
 			ptp_error_log(s->r, "Connect fail\n");
+			close(server_fd);
 			return -1;
 		}
 	}
@@ -132,6 +141,7 @@ static int connect_to_notify_server(struct DiscoveryState *s, char *ip, int port
 		socklen_t len = sizeof(so_error);
 		if (getsockopt(server_fd, SOL_SOCKET, SO_ERROR, (void *)&so_error, &len) < 0) {
 			ptp_error_log(s->r, "Sockopt fail\n");
+			close(server_fd);
 			return -1;
 		}
 
@@ -145,7 +155,8 @@ static int connect_to_notify_server(struct DiscoveryState *s, char *ip, int port
 
 	close(server_fd);
 
-	return 0;
+	// 0 is a valid fd; report failure as -1
+	return -1;
 }
 
 static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *info, int port) {
@@ -168,11 +179,13 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 	int yes = 1;
 	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (const void *)&yes, sizeof(int)) < 0) {
 		ptp_error_log(s->r, "Failed to set sockopt");
+		close(server_fd);
 		return -1;
 	}
 
 	if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
 		ptp_error_log(s->r, "upnp: Binding failed\n");
+		close(server_fd);
 		return -1;
 	}
 
@@ -180,6 +193,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 	ptp_verbose_log(s->r, "invite server is listening...\n");
 	if (listen(server_fd, 5) < 0) {
 		ptp_error_log(s->r, "upnp: Listening failed\n");
+		close(server_fd);
 		return -1;
 	}
 
@@ -205,6 +219,7 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 	client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
 	if (client_fd < 0) {
 		ptp_error_log(s->r, "invite server: accepting connection failed: %d", errno);
+		close(server_fd);
 		return -1;
 	}
 
@@ -217,6 +232,8 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 	rc = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 	if (rc < 0) {
 		perror("recv fail\n");
+		close(client_fd);
+		close(server_fd);
 		return -1;
 	}
 	buffer[rc] = '\0';
@@ -227,11 +244,19 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 	while (cur != NULL) {
 		if (!strcmp(cur, "DSCNAME")) {
 			cur = strtok_r(NULL, delim, &saveptr);
-			if (cur == NULL) return -1;
+			if (cur == NULL) {
+				close(client_fd);
+				close(server_fd);
+				return -1;
+			}
 			snprintf(info->camera_name, sizeof(info->camera_name), "%s", cur);
 		} else if (!strcmp(cur, "DSCMODEL")) {
 			cur = strtok_r(NULL, delim, &saveptr);
-			if (cur == NULL) return -1;
+			if (cur == NULL) {
+				close(client_fd);
+				close(server_fd);
+				return -1;
+			}
 			snprintf(info->camera_model, sizeof(info->camera_model), "%s", cur);
 		}
 		cur = strtok_r(NULL, delim, &saveptr);
@@ -246,12 +271,16 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 	} else if (port == FUJI_AUTOSAVE_CONNECT) {
 		resp = "HTTP/1.1 200 OK\r\n";
 	} else {
+		close(client_fd);
+		close(server_fd);
 		return -1;
 	}
 
 	rc = send(client_fd, resp, strlen(resp), 0);
 	if (rc < 0) {
 		ptp_error_log(s->r, "Failed to send response\n");
+		close(client_fd);
+		close(server_fd);
 		return -1;
 	}
 
@@ -272,13 +301,13 @@ static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct 
 			if (cur == NULL) return -1;
 			if (strcmp(cur, "*") != 0) {
 				ptp_verbose_log(s->r, "Client name: %s\n", cur);
-				strncpy(info->client_name, cur, sizeof(info->client_name));
+				snprintf(info->client_name, sizeof(info->client_name), "%s", cur);
 			}
 		} else if (!strcmp(cur, "DSCADDR")) {
 			cur = strtok_r(NULL, delim, &saveptr);
 			if (cur == NULL) return -1;
 			ptp_verbose_log(s->r, "Client IP: %s\n", cur);
-			strncpy(info->camera_ip, cur, sizeof(info->camera_ip));
+			snprintf(info->camera_ip, sizeof(info->camera_ip), "%s", cur);
 		}
 		cur = strtok_r(NULL, delim, &saveptr);
 	}
@@ -406,6 +435,7 @@ int fuji_open_tether_server(struct DiscoveryState *s, const char *local_ip) {
 	int yes = 1;
 	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (const void *)&yes, sizeof(int)) < 0) {
 		ptp_error_log(s->r, "Failed to set sockopt %d\n", errno);
+		close(server_fd);
 		return -1;
 	}
 //	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(int)) < 0) {
@@ -415,12 +445,14 @@ int fuji_open_tether_server(struct DiscoveryState *s, const char *local_ip) {
 
 	if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
 		ptp_error_log(s->r, "upnp: Binding failed %d\n", errno);
+		close(server_fd);
 		return -1;
 	}
 
 	// TODO: delete and add select()
 	if (listen(server_fd, 5) < 0) {
 		ptp_error_log(s->r, "upnp: Listening failed\n");
+		close(server_fd);
 		return -1;
 	}
 
@@ -445,6 +477,7 @@ static int fuji_tether_accept(struct DiscoverInfo *info, struct DiscoveryState *
 	int rc = (int)recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 	if (rc < 0) {
 		perror("recv fail\n");
+		close(client_fd);
 		return -1;
 	}
 	buffer[rc] = '\0';
@@ -455,15 +488,24 @@ static int fuji_tether_accept(struct DiscoverInfo *info, struct DiscoveryState *
 	while (cur != NULL) {
 		if (!strcmp(cur, "DSC")) {
 			cur = strtok_r(NULL, delim, &saveptr);
-			if (cur == NULL) return -1;
+			if (cur == NULL) {
+				close(client_fd);
+				return -1;
+			}
 			snprintf(info->camera_ip, sizeof(info->camera_ip), "%s", cur);
 		} else if (!strcmp(cur, "CAMERANAME")) {
 			cur = strtok_r(NULL, delim, &saveptr);
-			if (cur == NULL) return -1;
+			if (cur == NULL) {
+				close(client_fd);
+				return -1;
+			}
 			snprintf(info->camera_model, sizeof(info->camera_model), "%s", cur);
 		} else if (!strcmp(cur, "DSCPORT")) {
 			cur = strtok_r(NULL, delim, &saveptr);
-			if (cur == NULL) return -1;
+			if (cur == NULL) {
+				close(client_fd);
+				return -1;
+			}
 			char port_buf[16];
 			snprintf(port_buf, sizeof(port_buf), "%s", cur);
 			info->camera_port = (int)strtol(port_buf, NULL, 10);
@@ -473,22 +515,23 @@ static int fuji_tether_accept(struct DiscoverInfo *info, struct DiscoveryState *
 
 	const char resp[] = "HTTP/1.1 200 OK\r\n";
 	rc = (int)send(client_fd, resp, sizeof(resp), 0);
+	close(client_fd);
 	if (rc < 0) {
 		ptp_error_log(s->r, "Failed to send response\n");
 		return -1;
 	}
-
-	close(client_fd);
 
 	return 0;
 }
 
 static int open_pcss(struct DiscoveryState *s) {
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock < 0) return -1;
 	ptp_set_extra_socket_settings(s->r, sock);
 
 	int b = 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const void *)&b, sizeof(b)) < 0) {
+		close(sock);
 		return -1;
 	}
 
