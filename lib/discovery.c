@@ -221,20 +221,25 @@ static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *in
 	}
 	buffer[rc] = '\0';
 
+	// Header values may contain spaces and quotes (DSCMODEL:"X-T30 II"), so
+	// split into lines and take everything after the first colon
 	char *saveptr;
-	char *delim = " :\r\n";
-	char *cur = strtok_r(buffer, delim, &saveptr);
-	while (cur != NULL) {
-		if (!strcmp(cur, "DSCNAME")) {
-			cur = strtok_r(NULL, delim, &saveptr);
-			if (cur == NULL) return -1;
-			snprintf(info->camera_name, sizeof(info->camera_name), "%s", cur);
-		} else if (!strcmp(cur, "DSCMODEL")) {
-			cur = strtok_r(NULL, delim, &saveptr);
-			if (cur == NULL) return -1;
-			snprintf(info->camera_model, sizeof(info->camera_model), "%s", cur);
+	for (char *line = strtok_r(buffer, "\r\n", &saveptr); line != NULL; line = strtok_r(NULL, "\r\n", &saveptr)) {
+		char *value = strchr(line, ':');
+		if (value == NULL) continue;
+		*value++ = '\0';
+		// Tolerate spaces around the key, as the old space-splitting parser did
+		while (*line == ' ') line++;
+		size_t key_len = strlen(line);
+		while (key_len > 0 && line[key_len - 1] == ' ') line[--key_len] = '\0';
+		while (*value == ' ' || *value == '"') value++;
+		size_t len = strlen(value);
+		while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '"')) value[--len] = '\0';
+		if (!strcmp(line, "DSCNAME")) {
+			snprintf(info->camera_name, sizeof(info->camera_name), "%s", value);
+		} else if (!strcmp(line, "DSCMODEL")) {
+			snprintf(info->camera_model, sizeof(info->camera_model), "%s", value);
 		}
-		cur = strtok_r(NULL, delim, &saveptr);
 	}
 
 	char *resp;
