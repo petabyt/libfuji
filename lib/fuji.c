@@ -525,17 +525,13 @@ static int ptpip_fuji_connect_handshake_(struct PtpRuntime *r, const char *devic
 	x = ptpip_cmd_read(r, r->data + 4, (int)p->length - 4);
 	if (x <= 0) return PTP_IO_ERR;
 
-	if (p->type == PTPIP_INIT_FAIL) {
+	if (p->type != PTPIP_INIT_COMMAND_ACK) {
 		ptp_verbose_log(r, "PTPIP_INIT_FAIL\n");
 		return PTP_RUNTIME_ERR;
 	}
 
 	ptp_fuji_parse_init_struct(r, resp);
 	ptp_verbose_log(r, "Connected to %s\n", resp->cam_name);
-
-	if (ptp_get_return_code(r) != 0) {
-		return PTP_IO_ERR;
-	}
 
 	return 0;
 }

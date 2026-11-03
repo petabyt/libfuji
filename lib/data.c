@@ -149,8 +149,11 @@ int fuji_register_device_info(struct PtpRuntime *r, struct FujiPropDescList *lis
 }
 
 int ptp_fuji_parse_init_struct(struct PtpRuntime *r, struct PtpFujiInitResp *resp) {
-	uint8_t *d = ptp_get_payload(r);
+	uint8_t *d = r->data;
 
+	d += ptp_read_u32(d, &resp->length);
+	d += ptp_read_u32(d, &resp->type);
+	d += ptp_read_u32(d, &resp->unk);
 	d += ptp_read_u32(d, &resp->x1);
 	d += ptp_read_u32(d, &resp->x2);
 	d += ptp_read_u32(d, &resp->x3);

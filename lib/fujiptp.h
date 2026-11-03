@@ -435,6 +435,9 @@ _Static_assert(sizeof(struct FujiInitPacket) == 82, "fail");
 
 // Response to struct FujiInitPacket
 struct PtpFujiInitResp {
+	uint32_t length;
+	uint32_t type;
+	uint32_t unk;
 	uint32_t x1;
 	uint32_t x2;
 	uint32_t x3;
