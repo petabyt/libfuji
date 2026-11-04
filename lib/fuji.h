@@ -73,6 +73,10 @@ struct PtpUserPriv {
 	int shutterspeed;
 	/// @brief Cached value of PTP_OC_FUJI_GetDeviceInfo
 	struct FujiPropDescList prop_desc_list;
+//	struct FujiCard {
+//		int inserted;
+//		char name[64];
+//	}cards[2];
 	// have liveview sockets been opened already
 	int opened_liveview_sockets;
 	int num_objects;

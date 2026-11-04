@@ -308,20 +308,18 @@ static int get_characteristic_as_string(struct PakBt *ctx, struct PakBtDevice *d
 }
 
 int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev) {
-	struct PakWiFiApFilter filter = {0};
-	filter.has_ssid = 1;
+	struct PakWiFiApFilter filter = {
+		.ssid_pattern = mod->priv->wifi_ssid,
+		.password = mod->priv->wifi_ssid_is_hidden ? mod->priv->wifi_password : NULL,
+		.is_hidden = mod->priv->wifi_ssid_is_hidden,
+		// TODO: Passing bt BSSID as WiFi bssid appears to be valid, not 100% sure yet
+		//.bssid = dev->mac_address
+	};
 
 	// TODO: Determine xapp/cr mode from bluetooth setup?
 	const char *wifi_setup_option = OPTION_WIFI_FROM_BT_XAPP;
 
-	pak_debug_log(mod, "wifi setup option: %s", wifi_setup_option);
-
-	int rc = get_characteristic_as_string(ctx, dev, NOTX_SVC_UUID, CHR_UNKNOWN1_SSID, filter.ssid_pattern, sizeof(filter.ssid_pattern));
-	if (rc) {
-		pak_rt_add_user_instruction(mod, "Something went wrong. please try again.");
-		pak_debug_log(mod, "get_characteristic_as_string");
-		return rc;
-	}
+	pak_debug_log(mod, "SSID: %s", filter.ssid_pattern);
 
 	{ // Trigger camera's WiFi routine
 		struct PakGattService *service;
@@ -338,19 +336,6 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 		pak_bt_unref_gatt_service(ctx, service);
 	}
 
-	rc = get_characteristic_as_string(ctx, dev, NOTX_SVC_UUID, CHR_UNKNOWN1_PASSWORD, filter.password, sizeof(filter.password));
-	if (rc == 0) {
-		pak_debug_log(mod, "Password: %s", filter.password);
-		filter.has_password = 1;
-		filter.is_hidden = 1;
-	}
-
-	// TODO: Passing bt BSSID as WiFi bssid appears to be valid, not 100% sure yet
-//	filter.has_bssid = 1;
-//	strcpy(filter.bssid, dev->mac_address);
-
-	pak_debug_log(mod, "SSID: %s", filter.ssid_pattern);
-
 	{
 		struct PakGattService *service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_CONF_UUID);
 		if (service == NULL) {
@@ -366,7 +351,7 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 		}
 
 		uint8_t buf[2] = {0xff, 0xff};
-		rc = pak_bt_watch_characteristic(ctx, chr, 500); // Normally updates a few seconds after
+		int rc = pak_bt_watch_characteristic(ctx, chr, 500); // Normally updates a few seconds after
 		if (rc) {
 			pak_rt_add_user_instruction(mod, "Something went wrong. please try again.");
 		}
@@ -413,6 +398,18 @@ int fill_props(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev
 	char buf[64] = {0};
 	if (get_characteristic_as_string(ctx, dev, "0000180a-0000-1000-8000-00805f9b34fb", "00002A26-0000-1000-8000-00805f9b34fb", buf, sizeof(buf)) == 0)
 		pak_rt_set_session_property(mod, PAK_PROP_FW_VER, buf);
+	// Read SSID
+	int rc = get_characteristic_as_string(ctx, dev, NOTX_SVC_UUID, CHR_UNKNOWN1_SSID, mod->priv->wifi_ssid, sizeof(mod->priv->wifi_ssid));
+	if (rc) {
+		pak_debug_log(mod, "get_characteristic_as_string: %s", __LINE__);
+		return rc;
+	}
+	// Read password
+	rc = get_characteristic_as_string(ctx, dev, NOTX_SVC_UUID, CHR_UNKNOWN1_PASSWORD, mod->priv->wifi_password, sizeof(mod->priv->wifi_password));
+	if (rc == 0) {
+		mod->priv->wifi_ssid_is_hidden = 1;
+	}
+
 	return 0;
 }
 

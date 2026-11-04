@@ -14,6 +14,10 @@ struct ModulePriv {
 	unsigned int total_read;
 	unsigned to_read_target;
 	struct PakWiFiAdapter *adapter;
+
+	char wifi_ssid_is_hidden;
+	char wifi_ssid[64];
+	char wifi_password[64];
 };
 
 int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev, struct PakSavedConnection *saved);
