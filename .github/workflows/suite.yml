@@ -14,7 +14,7 @@ jobs:
       with:
         submodules: recursive
     - name: Install deps
-      run: sudo apt update && sudo apt install -y --no-install-recommends gcc g++ git cmake libusb-1.0-0-dev curl libexif-dev ninja-build
+      run: sudo apt update && sudo apt install -y --no-install-recommends gcc g++ git cmake libusb-1.0-0-dev curl libexif-dev ninja-build cocinelle
     - name: Checkout submodules
       run: git submodule update --init --recursive
     - name: Config to use https in case ssh isn't setup
@@ -30,3 +30,5 @@ jobs:
       run: cmake -G Ninja -B build -DLIBFUJI_INCLUDE_CLI=ON && cmake --build build
     - name: Run unit test
       run: build/libfuji-cli --test-wifi
+    - name: Static analysis
+      run: spatch --sp-file libpict/test/mutex.cocci --no-includes lib/*.c

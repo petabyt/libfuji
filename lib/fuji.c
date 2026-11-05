@@ -160,20 +160,20 @@ int fuji_get_events(struct PtpRuntime *r) {
 			if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {
 				app_update_storage_info(r);
 				rc = app_queue_file_for_download(r, 1);
-				if (rc) return rc;
+				if (rc) { ptp_mutex_unlock(r); return rc; }
 			}
 			break;
 		case PTP_DPC_FUJI_FreeSDRAMImages:
 			if (fuji->transport == FUJI_FEATURE_WIRELESS_TETHER) {
 				struct PtpArray *a;
 				rc = ptp_get_object_handles(r, -1, 0x0, 0x0, &a);
-				if (rc) return rc;
+				if (rc) { ptp_mutex_unlock(r); return rc; }
 
 				for (int y = 0; y < (int)a->length; y++) {
 					// oi.filename will always be DSCF0001.JPG
 					// TODO: Rewrite filename to be indexed
 					rc = app_queue_file_for_download(r, (int)a->data[i]);
-					if (rc) return rc;
+					if (rc) { ptp_mutex_unlock(r); return rc; }
 				}
 
 				free(a);
@@ -567,14 +567,14 @@ static int ptp_get_partial_exif(struct PtpRuntime *r, int handle, unsigned int *
 	ptp_mutex_lock(r);
 
 	int rc = fuji_get_events(r);
-	if (rc) return rc;
+	if (rc) { ptp_mutex_unlock(r); return rc; }
 
 	int max_size = 0x4000;
 	rc = ptp_get_partial_object(r, handle, 0, max_size);
 	if (rc == PTP_CHECK_CODE) {
+		ptp_mutex_unlock(r);
 		return PTP_RUNTIME_ERR;
-	}
-	if (rc) {
+	} else if (rc) {
 		ptp_mutex_unlock(r);
 		return rc;
 	}

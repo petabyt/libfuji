@@ -437,7 +437,10 @@ static int on_request_thumbnail(struct PakModule *mod, int job, struct PakFileHa
 		pak_rt_add_file_thumbnail(mod, file, NULL, 0);
 		ptp_mutex_unlock(r);
 		return 0;
-	} else if (rc) return handle_ptperr(mod, rc, "fuji_get_thumb");
+	} else if (rc) {
+		ptp_mutex_unlock(r);
+		return handle_ptperr(mod, rc, "fuji_get_thumb");
+	}
 	pak_rt_add_file_thumbnail(mod, file, ptp_get_payload(r) + offset, length);
 
 	ptp_mutex_unlock(r);
