@@ -3,6 +3,7 @@
 #ifndef FUJIAPP_FUJI_H
 #define FUJIAPP_FUJI_H
 #include <libpict.h>
+#include <stdbool.h>
 #include "fujiptp.h"
 #include "app.h"
 
@@ -77,14 +78,13 @@ struct PtpUserPriv {
 //		int inserted;
 //		char name[64];
 //	}cards[2];
-	// have liveview sockets been opened already
-	int opened_liveview_sockets;
+	bool opened_liveview_sockets;
 	int num_objects;
 	char storage_device_name[64];
 	int open_capture_trans_id;
-	int allow_autosave_thumbnails;
-	int sort_by_oldest_first;
-	int compress_images_for_smartphone;
+	bool allow_autosave_thumbnails;
+	bool sort_by_oldest_first;
+	bool compress_images_for_smartphone;
 	struct PtpObjectInfo current_downloading_oi;
 	int n_items_downloaded;
 
@@ -133,9 +133,6 @@ int fuji_config_image_gallery(struct PtpRuntime *r);
 
 /// @brief Receives events once, and updates info struct with changes
 int fuji_get_events(struct PtpRuntime *r);
-
-/// @brief Covers classic 'SELECT_MULTIPLE' feature found in 2013-2017 cams.
-int fuji_download_classic(struct PtpRuntime *r);
 
 /// @note Another socket on top of the 2 that libpict connects to
 int ptpip_connect_video(struct PtpRuntime *r, const char *addr, int port);

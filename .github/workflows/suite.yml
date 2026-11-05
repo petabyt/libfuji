@@ -14,7 +14,7 @@ jobs:
       with:
         submodules: recursive
     - name: Install deps
-      run: sudo apt update && sudo apt install -y --no-install-recommends gcc g++ git cmake libusb-1.0-0-dev curl libexif-dev ninja-build cocinelle
+      run: sudo apt update && sudo apt install -y --no-install-recommends gcc g++ git cmake libusb-1.0-0-dev curl libexif-dev ninja-build coccinelle
     - name: Checkout submodules
       run: git submodule update --init --recursive
     - name: Config to use https in case ssh isn't setup
