@@ -41,3 +41,32 @@ This option allows for:
 - Use the camera's image processor to process images
 - Process the final image into a JPEG
 - Backup and restore all camera settings
+
+## Smartphone auto transfer (`FUJI_FEATURE_XAPP_WIRELESS_COMM`)
+Images can be marked for transfer on the camera (or the camera can mark every new shot). With Bluetooth left on,
+the camera keeps advertising while switched off, and xapp downloads the queue in the background. Reproduced on an X100V
+from a capture of xapp on iOS, then with a standalone client:
+
+1. Bluetooth: connect with the saved pairing token, then trigger WiFi the same way as `fuji_bluetooth_connect_to_wifi`
+   (write `04 00` to the shutter characteristic, read SSID/password). The X100V brings up an open AP.
+2. TCP to `192.168.0.1:55740`, init packet, `OpenSession`. The device name in the init packet must be the same name that
+   was written to the Bluetooth identity characteristic during pairing, otherwise the camera answers `PTPIP_INIT_FAIL`.
+3. Poll `0xd212` every ~200ms. Each reply is a list of events: `u16 count`, then `count` times `u16 code, u32 value`.
+   When images are queued the camera reports:
+   ```
+   0xdf00 = 0x12   (CameraState, FUJI_LIMITED_IMG_TRANSMISSION)
+   0xd220 = 1      (SelectedImgsMode)
+   0xdf41 = N      (images left in the queue)
+   ```
+4. Once: set `0xdf01` (ClientState) to `0x15` (`FUJI_MODE_AUTO_TRANSFER_XAPP`), get `0xdf29`, set `0xdf29` to 1.
+5. For each image: `GetObjectInfo(1)`, get `0xd235`, then a single `GetPartialObject(1, 0, compressed_size)` for the whole file.
+   The handle is always 1. There is no separate acknowledgement: after a complete download the camera moves to the next
+   queued image, clears the "transfer" mark on the downloaded one and reports `0xdf41` decremented by one in `0xd212`.
+   xapp keeps polling `0xd212` until it sees the new count before requesting the next image.
+
+Notes:
+- Downloading the same images in the normal gallery mode (`FUJI_REMOTE_ACCESS`, 1MB `GetPartialObject` chunks) works,
+  and the gallery then only lists the marked images, but the camera does not clear the transfer marks.
+- One `GetPartialObject` for the whole file is also faster: ~2.8MB/s on the X100V vs ~1.9MB/s with 1MB chunks
+  (~12MB JPEGs, same AP, same distance).
+- Turning the camera on during the transfer shuts down the AP.
