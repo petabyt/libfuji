@@ -92,9 +92,14 @@ enum FujiDevicePropertyCode {
     // NOTE: 0xdf26 and 0xdf27 appear to be unused
     // x-s10 sets to 1, x-t5 sets to 3
     PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28 = 0xdf28,
+    // Auto transfer: xapp reads this (X100V returns 1) and writes 1 back before downloading the queue
+    PTP_DPC_FUJI_Unknown_DF29 = 0xdf29,
 	// Most likely RemoteExVersion
     PTP_DPC_FUJI_Unknown_DF2A = 0xdf2a,
     PTP_DPC_FUJI_GeoTagVersion = 0xdf31,
+    /// @brief Auto transfer: number of images still marked for transfer. Reported in 0xd212 events,
+    /// decrements after every complete download of object 1. See docs/dev.md
+    PTP_DPC_FUJI_AutoTransferRemaining_DF41 = 0xdf41,
     PTP_DPC_FUJI_Unknown_DF44 = 0xdf44,
 };
 
@@ -122,9 +127,12 @@ enum ClientStates {
 	// Set GPS on cam, haven't tested
 	FUJI_MODE_SET_GPS = 17,
 	// All seem to be new or bluetooth only functionality
+	// Also reported in CameraState when images marked for transfer are waiting (auto transfer, see docs/dev.md)
 	FUJI_LIMITED_IMG_TRANSMISSION = 18,
 	FUJI_MODE_TRANSFER_FIRMWARE = 19,
 	FUJI_MODE_REMOTE_IMG_VIEW_XAPP = 20,
+	// Set by xapp to download the auto transfer queue (camera state is FUJI_LIMITED_IMG_TRANSMISSION)
+	FUJI_MODE_AUTO_TRANSFER_XAPP = 21,
 	FUJI_MODE_REMOTE_LIVE_VIEW_XAPP = 22,
 };
 
@@ -151,6 +159,8 @@ enum CameraStates {
 	//FUJI_MODE_REMOTE_IMG_VIEW = 11,
 	// Shared with PTP_DPC_FUJI_ClientState_DF01
 	//FUJI_MODE_REMOTE_IMG_VIEW_XAPP = 20,
+	// Shared with PTP_DPC_FUJI_ClientState_DF01
+	//FUJI_LIMITED_IMG_TRANSMISSION = 18,
 };
 
 /// @brief Possible values for PTP_DPC_FUJI_USBMode
