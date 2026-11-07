@@ -1,1 +1,3 @@
-Nightly WASM release text
+Nightly release of libfuji WASM module
+
+Try it in fudge.fm: https://fudge.fm/app/?moduleUrl=https://github.com/petabyt/libfuji/releases/download/latest/libfuji.json

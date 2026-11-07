@@ -47,9 +47,9 @@ jobs:
       if: github.event_name != 'pull_request'
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "build/libfuji.wasm"
+        artifacts: "build/libfuji.wasm, libfuji.json"
         tag: "latest"
-        name: "Nightly Wasm Build"
+        name: "Nightly WASM Build"
         bodyFile: ".github/workflows/nightly.txt"
         prerelease: false
         allowUpdates: true
