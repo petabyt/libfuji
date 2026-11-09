@@ -1,0 +1,687 @@
+// Implements Fuji discovery service based on a mix of UDP/SSDP/TCP
+// Supports:
+// - PC AutoSave (register and connect)
+// - Wireless Tether
+// Copyright Daniel Cook 2024
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#ifdef WIN32
+	#include <winsock2.h>
+	#include <ws2tcpip.h>
+#else
+	#include <sys/socket.h>
+	#include <sys/select.h>
+	#include <poll.h>
+	#include <arpa/inet.h>
+#endif
+#include <ptp.h>
+#include "app.h"
+#include "fuji.h"
+
+int ptp_set_extra_socket_settings(struct PtpRuntime *r, int fd) {
+	if (r->set_extra_socket_settings != NULL) return r->set_extra_socket_settings(r, fd);
+	return 0;
+}
+
+enum DiscoverUpdateMessages {
+	FUJI_UM_GOT_FIRST_MESSAGE,
+	FUJI_UM_CONNECTING_TO_NOTIFY_SERVER,
+	FUJI_UM_STARTING_INVITE_SERVER,
+	FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER,
+	FUJI_UM_ALL_DONE,
+};
+
+struct DiscoveryState {
+	struct PtpRuntime *r;
+	int reg_fd;
+	int con_fd;
+	int tether_fd;
+	int pcss_fd;
+};
+
+// Main tether handshake port
+#define FUJI_TETHER 51560
+// Tether client must advertise itself on this port
+#define FUJI_PCSS_BROADCAST 51562
+// Register and connect events are sent over two different ports.
+#define FUJI_AUTOSAVE_REGISTER 51542
+#define FUJI_AUTOSAVE_CONNECT 51541
+// A TCP port used for PC AutoSave handshake process
+#define FUJI_AUTOSAVE_NOTIFY 51540
+
+void fuji_discovery_update_progress(struct PtpRuntime *r, enum DiscoverUpdateMessages progress) {
+	switch (progress) {
+	case FUJI_UM_GOT_FIRST_MESSAGE:
+		app_print(r, "Received the camera's intimate broadcast..."); return;
+	case FUJI_UM_CONNECTING_TO_NOTIFY_SERVER:
+		app_print(r, "Exchanging a loving greeting..."); return;
+	case FUJI_UM_STARTING_INVITE_SERVER:
+		app_print(r, "Please start touching your camera..."); return;
+	case FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER:
+		app_print(r, "Waiting for the camera to tell us her secrets..."); return;
+	case FUJI_UM_ALL_DONE:
+		app_print(r, "Starting a relationship with the camera..."); return;
+	default:
+		app_print(r, "...");
+	}
+}
+
+static int get_local_ip(struct PtpRuntime *r, char buffer[64]) {
+	struct sockaddr_in serv;
+	memset(&serv, 0, sizeof(serv));
+	serv.sin_family = AF_INET;
+	serv.sin_addr.s_addr = inet_addr("1.1.1.1");
+	serv.sin_port = htons(1234);
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	ptp_set_extra_socket_settings(r, sock);
+	int rc = connect(sock, (const struct sockaddr*) &serv, sizeof(serv));
+	if (rc < 0) return rc;
+
+	struct sockaddr_in name;
+	socklen_t namelen = sizeof(name);
+	rc = getsockname(sock, (struct sockaddr*) &name, &namelen);
+	if (rc < 0) return rc;
+
+	inet_ntop(AF_INET, &name.sin_addr, buffer, 64);
+
+	close(sock);
+	return 0;
+}
+
+static int connect_to_notify_server(struct DiscoveryState *s, char *ip, int port) {
+	int server_fd;
+
+	ptp_verbose_log(s->r, "Connecting to %s:%d\n", ip, port);
+
+	server_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (server_fd < 0) {
+		ptp_error_log(s->r, "Failed to create TCP socket\n");
+		return -1;
+	}
+
+	ptp_set_extra_socket_settings(s->r, server_fd);
+
+	struct sockaddr_in sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sin_family = AF_INET;
+	sa.sin_port = htons(port);
+	if (inet_pton(AF_INET, ip, &(sa.sin_addr)) <= 0) {
+		ptp_verbose_log(s->r, "inet_pton\n");
+		return -1;
+	}
+
+	if (connect(server_fd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+		if (errno != EINPROGRESS) {
+			ptp_error_log(s->r, "Connect fail\n");
+			return -1;
+		}
+	}
+
+	fd_set fdset;
+	FD_ZERO(&fdset);
+	FD_SET(server_fd, &fdset);
+	struct timeval tv;
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+
+	if (select(server_fd + 1, NULL, &fdset, NULL, &tv) == 1) {
+		int so_error = 0;
+		socklen_t len = sizeof(so_error);
+		if (getsockopt(server_fd, SOL_SOCKET, SO_ERROR, (void *)&so_error, &len) < 0) {
+			ptp_error_log(s->r, "Sockopt fail\n");
+			return -1;
+		}
+
+		if (so_error == 0) {
+			ptp_verbose_log(s->r, "notify server: Connection established\n");
+			return server_fd;
+		}
+	} else {
+		ptp_error_log(s->r, "select failed to connect\n");
+	}
+
+	close(server_fd);
+
+	return 0;
+}
+
+static int start_invite_server(struct DiscoveryState *s, struct DiscoverInfo *info, int port) {
+	int server_fd, client_fd;
+	struct sockaddr_in server_addr, client_addr;
+	socklen_t client_addr_len = sizeof(client_addr);
+
+	server_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (server_fd < 0) {
+		ptp_error_log(s->r, "Failed to create TCP socket\n");
+		return -1;
+	}
+
+	ptp_set_extra_socket_settings(s->r, server_fd);
+
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(port);
+	server_addr.sin_addr.s_addr = INADDR_ANY;
+
+	int yes = 1;
+	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (const void *)&yes, sizeof(int)) < 0) {
+		ptp_error_log(s->r, "Failed to set sockopt");
+		return -1;
+	}
+
+	if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+		ptp_error_log(s->r, "upnp: Binding failed\n");
+		return -1;
+	}
+
+	// Listen for incoming connections
+	ptp_verbose_log(s->r, "invite server is listening...\n");
+	if (listen(server_fd, 5) < 0) {
+		ptp_error_log(s->r, "upnp: Listening failed\n");
+		return -1;
+	}
+
+	struct timeval timeout;
+	timeout.tv_sec = 30;
+	timeout.tv_usec = 0;
+
+	fd_set read_fds;
+	FD_ZERO(&read_fds);
+	FD_SET(server_fd, &read_fds);
+
+	ssize_t rc = select(server_fd + 1, &read_fds, NULL, NULL, &timeout);
+	if (rc < 0) {
+		ptp_error_log(s->r, "select() failed\n");
+		close(server_fd);
+		return -1;
+	} else if (rc == 0) {
+		ptp_error_log(s->r, "select() timeout\n");
+		close(server_fd);
+		return -1;
+	}
+
+	client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
+	if (client_fd < 0) {
+		ptp_error_log(s->r, "invite server: accepting connection failed: %d", errno);
+		return -1;
+	}
+
+	ptp_verbose_log(s->r, "invite server: connection accepted from %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+
+	fuji_discovery_update_progress(s->r, FUJI_UM_CAMERA_CONNECTED_TO_INVITE_SERVER);
+
+	// We don't really care about this info
+	char buffer[1024];
+	rc = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+	if (rc < 0) {
+		perror("recv fail\n");
+		return -1;
+	}
+	buffer[rc] = '\0';
+
+	char *saveptr;
+	char *delim = " :\r\n";
+	char *cur = strtok_r(buffer, delim, &saveptr);
+	while (cur != NULL) {
+		if (!strcmp(cur, "DSCNAME")) {
+			cur = strtok_r(NULL, delim, &saveptr);
+			if (cur == NULL) return -1;
+			snprintf(info->camera_name, sizeof(info->camera_name), "%s", cur);
+		} else if (!strcmp(cur, "DSCMODEL")) {
+			cur = strtok_r(NULL, delim, &saveptr);
+			if (cur == NULL) return -1;
+			snprintf(info->camera_model, sizeof(info->camera_model), "%s", cur);
+		}
+		cur = strtok_r(NULL, delim, &saveptr);
+	}
+
+	char *resp;
+	if (port == FUJI_AUTOSAVE_REGISTER) {
+		resp = 
+			"HTTP/1.1 200 OK\r\n"
+			"FOLDER: guest\r\n"
+			"ServiceName: PCAUTOSAVE/1.0\r\n";
+	} else if (port == FUJI_AUTOSAVE_CONNECT) {
+		resp = "HTTP/1.1 200 OK\r\n";
+	} else {
+		return -1;
+	}
+
+	rc = send(client_fd, resp, strlen(resp), 0);
+	if (rc < 0) {
+		ptp_error_log(s->r, "Failed to send response\n");
+		return -1;
+	}
+
+	close(client_fd);
+	close(server_fd);
+
+	return 0;
+}
+
+static int respond_to_datagram(struct DiscoveryState *s, char *greeting, struct DiscoverInfo *info) {
+	int rc = 0;
+	char *saveptr;
+	char *delim = " :\r\n";
+	char *cur = strtok_r(greeting, delim, &saveptr);
+	while (cur != NULL) {
+		if (!strcmp(cur, "DISCOVER")) {
+			cur = strtok_r(NULL, delim, &saveptr);
+			if (cur == NULL) return -1;
+			if (strcmp(cur, "*") != 0) {
+				ptp_verbose_log(s->r, "Client name: %s\n", cur);
+				strncpy(info->client_name, cur, sizeof(info->client_name));
+			}
+		} else if (!strcmp(cur, "DSCADDR")) {
+			cur = strtok_r(NULL, delim, &saveptr);
+			if (cur == NULL) return -1;
+			ptp_verbose_log(s->r, "Client IP: %s\n", cur);
+			strncpy(info->camera_ip, cur, sizeof(info->camera_ip));
+		}
+		cur = strtok_r(NULL, delim, &saveptr);
+	}
+
+	fuji_discovery_update_progress(s->r, FUJI_UM_CONNECTING_TO_NOTIFY_SERVER);
+
+	int fd = connect_to_notify_server(s, info->camera_ip, FUJI_AUTOSAVE_NOTIFY);
+	if (fd <= 0) {
+		ptp_error_log(s->r, "Failed to connect to notify server: %d\n", fd);
+		return -1;
+	}
+
+	char response[] =
+		"NOTIFY * HTTP/1.1\r\n"
+		"HOST: %s:%d\r\n"
+		"IMPORTER: %s\r\n";
+
+	char notify[512];
+	snprintf(
+		notify, sizeof(notify), response,
+		info->camera_ip, FUJI_AUTOSAVE_NOTIFY, info->client_name
+	);
+
+	ptp_verbose_log(s->r, "%s\n", notify);
+
+	size_t len = send(fd, notify, strlen(notify), 0);
+	if (len != strlen(notify)) {
+		ptp_error_log(s->r, "Failed to send datagram response\n");
+		rc = -1; goto cleanup;
+	}
+
+	char ack[512];
+	len = recv(fd, ack, sizeof(ack), 0);
+	if (len <= 0) {
+		ptp_error_log(s->r, "Failed to read datagram response\n");
+		rc = -1; goto cleanup;
+	}
+	ack[len] = '\0';
+
+	if (strstr(ack, "HTTP/1.1 200 OK") == NULL) {
+		ptp_error_log(s->r, "Camera rejected client response\n");
+		rc = -1;
+	}
+
+	cleanup: close(fd);
+	return rc;
+}
+
+static int accept_register(struct DiscoveryState *s, struct DiscoverInfo *info, char *greeting) {
+	int rc = respond_to_datagram(s, greeting, info);
+	if (rc) return rc;
+
+	fuji_discovery_update_progress(s->r, FUJI_UM_STARTING_INVITE_SERVER);
+
+	rc = start_invite_server(s, info, FUJI_AUTOSAVE_REGISTER);
+	if (rc) return rc;
+
+	ptp_verbose_log(s->r, "Finished registering\n");
+
+	fuji_discovery_update_progress(s->r, FUJI_UM_ALL_DONE);
+
+	return 0;
+}
+
+static int accept_connect(struct DiscoveryState *s, struct DiscoverInfo *info, char *greeting) {
+	int rc = respond_to_datagram(s, greeting, info);
+	if (rc) return rc;
+
+	fuji_discovery_update_progress(s->r, FUJI_UM_STARTING_INVITE_SERVER);
+
+	rc = start_invite_server(s, info, FUJI_AUTOSAVE_CONNECT);
+	if (rc) return rc;
+
+	ptp_verbose_log(s->r, "Finished connecting\n");
+
+	info->camera_port = FUJI_CMD_IP_PORT;
+
+	fuji_discovery_update_progress(s->r, FUJI_UM_ALL_DONE);
+
+	return 0;
+}
+
+static int open_dgram_socket(struct DiscoveryState *s, int port) {
+	struct sockaddr_in addr;
+
+	int fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (fd < 0) {
+		ptp_error_log(s->r, "socket\n");
+		return -1;
+	}
+
+	ptp_set_extra_socket_settings(s->r, fd);
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	addr.sin_port = htons(port);
+	ptp_verbose_log(s->r, "Binding to %d\n", port);
+	int rc = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+	if (rc < 0) {
+		ptp_error_log(s->r, "bind: %d", errno);
+		close(fd);
+		return -FUJI_D_OPEN_DENIED;
+	}
+
+	return fd;
+}
+
+int fuji_open_tether_server(struct DiscoveryState *s, const char *local_ip) {
+	int server_fd;
+	struct sockaddr_in server_addr;
+
+	server_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (server_fd < 0) {
+		ptp_error_log(s->r, "Failed to create TCP socket\n");
+		return -1;
+	}
+
+	ptp_set_extra_socket_settings(s->r, server_fd);
+
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(FUJI_TETHER);
+	server_addr.sin_addr.s_addr = inet_addr(local_ip);
+
+	int yes = 1;
+	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (const void *)&yes, sizeof(int)) < 0) {
+		ptp_error_log(s->r, "Failed to set sockopt %d\n", errno);
+		return -1;
+	}
+//	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(int)) < 0) {
+//		ptp_verbose_log(r, "Failed to set sockopt %d\n", errno);
+//		return -1;
+//	}
+
+	if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+		ptp_error_log(s->r, "upnp: Binding failed %d\n", errno);
+		return -1;
+	}
+
+	// TODO: delete and add select()
+	if (listen(server_fd, 5) < 0) {
+		ptp_error_log(s->r, "upnp: Listening failed\n");
+		return -1;
+	}
+
+	return server_fd;
+}
+
+static int fuji_tether_accept(struct DiscoverInfo *info, struct DiscoveryState *s, int server_fd) {
+	struct sockaddr_in client_addr;
+	socklen_t client_addr_len = sizeof(client_addr);
+	int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
+	if (client_fd < 0) {
+		ptp_error_log(s->r, "invite server: Accepting connection failed: %d\n", errno);
+		return -1;
+	}
+
+	fuji_discovery_update_progress(s->r, FUJI_UM_GOT_FIRST_MESSAGE);
+
+	ptp_verbose_log(s->r, "invite server: Connection accepted from %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+
+	// We don't really care about this info
+	char buffer[1024];
+	int rc = (int)recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+	if (rc < 0) {
+		perror("recv fail\n");
+		return -1;
+	}
+	buffer[rc] = '\0';
+
+	char *saveptr;
+	char *delim = " :\r\n";
+	char *cur = strtok_r(buffer, delim, &saveptr);
+	while (cur != NULL) {
+		if (!strcmp(cur, "DSC")) {
+			cur = strtok_r(NULL, delim, &saveptr);
+			if (cur == NULL) return -1;
+			snprintf(info->camera_ip, sizeof(info->camera_ip), "%s", cur);
+		} else if (!strcmp(cur, "CAMERANAME")) {
+			cur = strtok_r(NULL, delim, &saveptr);
+			if (cur == NULL) return -1;
+			snprintf(info->camera_model, sizeof(info->camera_model), "%s", cur);
+		} else if (!strcmp(cur, "DSCPORT")) {
+			cur = strtok_r(NULL, delim, &saveptr);
+			if (cur == NULL) return -1;
+			char port_buf[16];
+			snprintf(port_buf, sizeof(port_buf), "%s", cur);
+			info->camera_port = (int)strtol(port_buf, NULL, 10);
+		}
+		cur = strtok_r(NULL, delim, &saveptr);
+	}
+
+	const char resp[] = "HTTP/1.1 200 OK\r\n";
+	rc = (int)send(client_fd, resp, sizeof(resp), 0);
+	if (rc < 0) {
+		ptp_error_log(s->r, "Failed to send response\n");
+		return -1;
+	}
+
+	close(client_fd);
+
+	return 0;
+}
+
+static int open_pcss(struct DiscoveryState *s) {
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	ptp_set_extra_socket_settings(s->r, sock);
+
+	int b = 1;
+	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const void *)&b, sizeof(b)) < 0) {
+		return -1;
+	}
+
+	return sock;
+}
+
+static int send_pcss_datagram(int sock, const char *local_ip) {
+	struct sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(FUJI_PCSS_BROADCAST);
+	addr.sin_addr.s_addr = inet_addr("192.168.1.255");
+
+	char broadcast[512];
+	sprintf(
+		broadcast,
+		"DISCOVERY * HTTP/1.1\r\n"
+		"HOST: %s\r\n"
+		"MX: 5\r\n"
+		"SERVICE: PCSS/1.0\r\n",
+		local_ip
+	);
+
+	ssize_t rc = sendto(sock, broadcast, strlen(broadcast), 0, (struct sockaddr *)&addr, sizeof(addr));
+	if (rc == -1) {
+		return -1;
+	}
+
+	return 0;
+}
+
+static void close_all_sockets(struct DiscoveryState *s) {
+	if (s->con_fd > 0) {
+		close(s->con_fd);
+	}
+	if (s->reg_fd > 0) {
+		close(s->reg_fd);
+	}
+	if (s->tether_fd > 0) {
+		close(s->tether_fd);
+	}
+	if (s->pcss_fd > 0) {
+		close(s->pcss_fd);
+	}
+}
+
+static int try_connect_all_sockets(struct DiscoveryState *s, const char *local_ip) {
+	if (s->reg_fd == 0) {
+		s->reg_fd = open_dgram_socket(s, FUJI_AUTOSAVE_REGISTER);
+		if (s->reg_fd <= 0) {
+			ptp_error_log(s->r, "Error connect register: %d\n", s->reg_fd);
+			return -1;
+		}
+	}
+
+	if (s->con_fd == 0) {
+		s->con_fd = open_dgram_socket(s, FUJI_AUTOSAVE_CONNECT);
+		if (s->con_fd <= 0) {
+			ptp_error_log(s->r, "Error connect svr: %d\n", s->con_fd);
+			return -1;
+		}
+	}
+
+	if (s->tether_fd == 0) {
+		s->tether_fd = fuji_open_tether_server(s, local_ip);
+		if (s->tether_fd < 0) {
+			perror("socket\n");
+			return -1;
+		}
+	}
+
+	if (s->pcss_fd == 0) {
+		s->pcss_fd = open_pcss(s);
+		if (s->pcss_fd < 0) {
+			ptp_error_log(s->r, "Failed to open pcss port\n");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+static int state_idle(struct DiscoveryState *s, struct DiscoverInfo *info, const char *local_ip) {
+	if (s->pcss_fd != 0) {
+		if (send_pcss_datagram(s->pcss_fd, local_ip)) {
+			ptp_error_log(s->r, "Failed to send datagram: %d", errno);
+			return -1;
+		}
+	}
+
+	char greeting[1024];
+	struct timeval tv;
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+
+	int max = 0;
+
+	fd_set fdset;
+	FD_ZERO(&fdset);
+	if (s->reg_fd > 0) {
+		FD_SET(s->reg_fd, &fdset);
+		if (s->reg_fd > max) max = s->reg_fd;
+	}
+	if (s->con_fd > 0) {
+		FD_SET(s->con_fd, &fdset);
+		if (s->con_fd > max) max = s->con_fd;
+	}
+	if (s->tether_fd > 0) {
+		FD_SET(s->tether_fd, &fdset);
+		if (s->tether_fd > max) max = s->tether_fd;
+	}
+
+	// TODO: this is triggered when a socket disconnect happens, not only when it's connected.
+	int n = select(max + 1, &fdset, NULL, NULL, &tv);
+	if (n < 0) {
+		ptp_error_log(s->r, "select: %d\n", n);
+		return -1;
+	}
+
+	if (s->reg_fd > 0) {
+		if (FD_ISSET(s->reg_fd, &fdset)) {
+			ptp_verbose_log(s->r, "AutoSave register\n");
+			info->transport = FUJI_FEATURE_AUTOSAVE;
+			ssize_t len = recvfrom(s->reg_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
+			if (len <= 0) {
+				ptp_error_log(s->r, "recvfrom: %zd\n", len);
+				return -1;
+			}
+			greeting[len] = '\0';
+			fuji_discovery_update_progress(s->r, FUJI_UM_GOT_FIRST_MESSAGE);
+			int rc = accept_register(s, info, greeting);
+			if (rc) return -1;
+			return FUJI_D_REGISTERED;
+		}
+	}
+	if (s->con_fd > 0) {
+		if (FD_ISSET(s->con_fd, &fdset)) {
+			ptp_verbose_log(s->r, "AutoSave connect\n");
+			info->transport = FUJI_FEATURE_AUTOSAVE;
+			ssize_t len = recvfrom(s->con_fd, greeting, sizeof(greeting) - 1, 0, NULL, NULL);
+			if (len <= 0) {
+				ptp_error_log(s->r, "recvfrom: %zd\n", len);
+				return -1;
+			}
+			greeting[len] = '\0';
+			fuji_discovery_update_progress(s->r, FUJI_UM_GOT_FIRST_MESSAGE);
+			int rc = accept_connect(s, info, greeting);
+			if (rc) return -1;
+			return FUJI_D_GO_PTP;
+		}
+	}
+	if (s->tether_fd > 0) {
+		if (FD_ISSET(s->tether_fd, &fdset)) {
+			ptp_verbose_log(s->r, "Tether connect\n");
+			info->transport = FUJI_FEATURE_WIRELESS_TETHER;
+			int rc = fuji_tether_accept(info, s, s->tether_fd);
+			if (rc) return -1;
+			return FUJI_D_GO_PTP;
+		}
+	}
+
+	if (fuji_discovery_check_cancel(s->r)) {
+		return FUJI_D_CANCELED;
+	}
+
+	return 0;
+}
+
+int fuji_discover_thread(struct PtpRuntime *r, struct DiscoverInfo *info, const char *client_name) {
+	memset(info, 0, sizeof(struct DiscoverInfo));
+	strlcpy(info->client_name, client_name, sizeof(info->client_name));
+
+	char local_ip[64];
+	if (get_local_ip(r, local_ip)) {
+		return -1;
+	}
+
+	ptp_verbose_log(r, "You are on %s\n", local_ip);
+
+	struct DiscoveryState s = {0};
+	s.r = r;
+
+	int rc = try_connect_all_sockets(&s, local_ip);
+	if (rc == 0) {
+		while (rc == 0) {
+			rc = state_idle(&s, info, local_ip);
+		}
+	}
+
+	if (rc == -1) {
+		ptp_error_log(r, "Error connecting to camera.\n");
+	}
+
+	close_all_sockets(&s);
+
+	return rc;
+}

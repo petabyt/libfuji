@@ -1,0 +1,44 @@
+Subject: ezxml/xml.c: remove unsequenced access, make bounded narrowings explicit
+
+Reported by Xcode (-Wunsequenced, -Wshorten-64-to-32) when building the iOS app.
+- ezxml.c ezxml_parse_str: `n = ++s + strspn(s, ...)` modifies and reads `s`
+  without a sequence point (undefined behaviour; clang happens to evaluate
+  left to right, other compilers may not). Rewritten with the comma operator
+  so `s` is incremented first, which is the original intent.
+- ezxml.c ezxml_set_attr: `c` is an int holding strlen() of an attribute
+  value; explicit cast (recipe attribute values are short).
+- xml.c fp_parse_fp1 IOPCode: strtoul() of exactly 8 hex digits (length is
+  checked just above) always fits in uint32_t; explicit cast.
+No behaviour change for valid input.
+
+--- a/fp/ezxml.c
++++ b/fp/ezxml.c
+@@ -361,7 +361,7 @@
+             else *s = '\0'; // null terminate tag name
+             for (i = 0; root->attr[i] && strcmp(n, root->attr[i][0]); i++);
+ 
+-            while (*(n = ++s + strspn(s, EZXML_WS)) && *n != '>') {
++            while (++s, *(n = s + strspn(s, EZXML_WS)) && *n != '>') {
+                 if (*(s = n + strcspn(n, EZXML_WS))) *s = '\0'; // attr name
+                 else { ezxml_err(root, t, "malformed <!ATTLIST"); break; }
+ 
+@@ -933,7 +933,7 @@
+         xml->attr[l] = (char *)name; // set attribute name
+         xml->attr[l + 2] = NULL; // null terminate attribute list
+         xml->attr[l + 3] = realloc(xml->attr[l + 1],
+-                                   (c = strlen(xml->attr[l + 1])) + 2);
++                                   (c = (int)strlen(xml->attr[l + 1])) + 2);
+         strcpy(xml->attr[l + 3] + c, " "); // set name/value as not malloced
+         if (xml->flags & EZXML_DUP) xml->attr[l + 3][c] = EZXML_NAMEM;
+     }
+--- a/fp/xml.c
++++ b/fp/xml.c
+@@ -89,7 +89,7 @@
+ 	} else if (!strcmp(key, "IOPCode")) {
+ 		if (value == NULL) return -1;
+ 		if (strlen(value) != 8) return -1;
+-		fp->IOPCode = strtoul(value, NULL, 16);
++		fp->IOPCode = (uint32_t)strtoul(value, NULL, 16); // 8 hex digits, checked above
+ 	} else if (!strcmp(key, "StructVer")) {
+         // Should always be 0x10000
+         return validate_lookup(value, &fp->StructVer, fp_struct_ver);

@@ -1,0 +1,63 @@
+Subject: fp_parse_fp1: handle unreadable/malformed XML, free the tree, keep device name
+
+- ezxml_parse_file() returns NULL for an unreadable file and a root with
+  name == NULL for malformed XML; both were dereferenced (crash on any bad
+  user-supplied recipe file).
+- The parsed tree was never freed.
+- The PropertyGroup `device` / `version` attributes are now copied into
+  prop_group_device / prop_group_version (the struct fields existed but were
+  never filled), so the app can show which camera a recipe was made for.
+
+--- a/fp/xml.c
++++ b/fp/xml.c
+@@ -284,10 +284,11 @@
+ 	return 0;
+ }
+ 
+-int fp_parse_fp1(const char *path, struct FujiProfile *fp) {
+-	memset(fp, 0, sizeof(struct FujiProfile));
+-	ezxml_t xml = ezxml_parse_file(path);
+-
++static int fp_parse_fp1_root(ezxml_t xml, struct FujiProfile *fp) {
++	if (xml->name == NULL) {
++		fp_set_error("XML parse error: %s", ezxml_error(xml));
++		return -1;
++	}
+ 	if (strcmp(xml->name, "ConversionProfile") != 0) {
+ 		fp_set_error("Root XML node is not ConversionProfile");
+ 		return -1;
+@@ -310,12 +311,17 @@
+ 	}
+ 
+ 	ezxml_t group = xml->child;
+-	if (group == NULL) return -1;
++	if (group == NULL || group->name == NULL) return -1;
+ 	if (strcmp(group->name, "PropertyGroup") != 0) {
+ 		fp_set_error("Expected node 'PropertyGroup', not '%s'\n", group->name);
+ 		return -1;
+ 	}
+ 
++	const char *device = ezxml_attr(group, "device");
++	if (device != NULL) snprintf(fp->prop_group_device, sizeof(fp->prop_group_device), "%s", device);
++	const char *group_version = ezxml_attr(group, "version");
++	if (group_version != NULL) snprintf(fp->prop_group_version, sizeof(fp->prop_group_version), "%s", group_version);
++
+ 	ezxml_t prop_group = group->child;
+ 	if (prop_group == NULL) return -1;
+ 
+@@ -340,3 +346,15 @@
+ 
+ 	return 0;
+ }
++
++int fp_parse_fp1(const char *path, struct FujiProfile *fp) {
++	memset(fp, 0, sizeof(struct FujiProfile));
++	ezxml_t xml = ezxml_parse_file(path);
++	if (xml == NULL) {
++		fp_set_error("Can't open '%s'", path);
++		return -1;
++	}
++	int rc = fp_parse_fp1_root(xml, fp);
++	ezxml_free(xml);
++	return rc;
++}

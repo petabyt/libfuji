@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>zh-Hans</string>
+	<key>CFBundleDisplayName</key>
+	<string>相机桥</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
+	<!-- Privacy: only the services the app actually uses. -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>用于发现并配对你的富士相机，并通过蓝牙遥控快门、请求相机开启 Wi-Fi、同步时间与位置。</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>用于连接相机 Wi-Fi 热点上的相机（默认 192.168.0.1），浏览、下载照片和实时取景。</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>用于把从相机下载的原始照片和视频添加到“照片”。App 不读取你的照片图库。</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>仅在你开启“向相机提供位置”后使用：相机请求时，把当前位置发送给相机写入照片。</string>
+
+	<!-- BGContinuedProcessingTask identifiers: <bundle id>.transfer.<uuid> (wildcard, iOS 26+). -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER).transfer.*</string>
+	</array>
+
+	<!-- Imported originals in Documents are visible in the Files app. -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+</dict>
+</plist>
