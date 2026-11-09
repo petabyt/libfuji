@@ -17,7 +17,7 @@ fujipriv_t *fuji_get(struct PtpRuntime *r) {
 
 int fuji_reset_ptp(struct PtpRuntime *r) {
 	ptp_reset(r);
-	if (r->priv == NULL) free(r->priv);
+	free(r->priv);
 	r->priv = calloc(1, sizeof(struct PtpUserPriv));
 	r->connection_type = PTP_IP_USB;
 	r->response_wait_default = 3; // Fuji cams are slow!
