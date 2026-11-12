@@ -79,6 +79,8 @@ void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	if (reason == NULL) {
 		if (code == PTP_IO_ERR) {
 			app_print(r, "Disconnected: IO Error");
+		} else if (code == PTP_CLOSED) {
+			app_print(r, "Disconnected: by camera");
 		} else {
 			app_print(r, "Disconnected: Runtime error");
 		}
@@ -457,7 +459,7 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		while (fuji->camera_state == FUJI_WAIT_FOR_ACCESS  || fuji->camera_state == -1) {
 			rc = fuji_get_events(r);
 			if (rc) return rc;
-			PTP_SLEEP(100);
+			usleep(100 * 1000);
 		}
 	} else {
 		app_print(r, "Your camera loves you.");

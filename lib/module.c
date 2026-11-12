@@ -34,6 +34,7 @@ static const char *get_mime_type(uint16_t object_format) {
 
 static int handle_ptperr(struct PakModule *mod, int rc, const char *action) {
 	switch (rc) {
+		case PTP_CLOSED:
 		case PTP_IO_ERR: {
 			if (mod->priv->dev == NULL) {
 				pak_rt_fatal_error(mod, "%s", action);
