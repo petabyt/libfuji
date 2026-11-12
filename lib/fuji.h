@@ -74,23 +74,35 @@ struct PtpUserPriv {
 	int shutterspeed;
 	/// @brief Cached value of PTP_OC_FUJI_GetDeviceInfo
 	struct FujiPropDescList prop_desc_list;
-//	struct FujiCard {
-//		int inserted;
-//		char name[64];
-//	}cards[2];
+	/// @brief current value of PTP_DPC_FUJI_StorageID_D244
+	int card_id;
+	struct FujiCard {
+		int id;
+		char name[64];
+		unsigned int n_available_objects;
+		/// @brief If NULL, assume indexed list 1 thru (n_objects+1)
+		uint32_t *object_handle_list;
+		bool sort_by_oldest_first;
+	}cards[2];
+
 	bool opened_liveview_sockets;
 	int num_objects;
-	char storage_device_name[64];
 	int open_capture_trans_id;
 	bool allow_autosave_thumbnails;
-	bool sort_by_oldest_first;
 	bool compress_images_for_smartphone;
 	struct PtpObjectInfo current_downloading_oi;
+	// For tagging objects in tether mode
 	int n_items_downloaded;
 
 //	uint8_t *liveview_buffer;
 //	unsigned int liveview_buffer_length;
 };
+
+__attribute__((unused))
+static struct FujiCard *fuji_get_card(struct PtpRuntime *r) {
+	if (r->priv->card_id == 0) return &r->priv->cards[0];
+	return r->priv->cards[0].id == r->priv->card_id ? &r->priv->cards[0] : &r->priv->cards[1];
+}
 
 typedef struct PtpUserPriv fujipriv_t;
 fujipriv_t *fuji_get(struct PtpRuntime *r);
@@ -166,6 +178,8 @@ int fuji_send_object_info_ex(struct PtpRuntime *r, int storage_id, int handle, s
 
 /// @brief Function for 0x900d
 int fuji_send_object_ex(struct PtpRuntime *r, const void *data, size_t length);
+
+int fuji_switch_card(struct PtpRuntime *r, int id);
 
 /// @param input_raf_path Path for RAF file
 /// @param profile_xml_path String data for XML profile to be parsed by fp

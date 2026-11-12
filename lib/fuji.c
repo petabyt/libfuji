@@ -30,6 +30,20 @@ struct PtpRuntime *fuji_ptp_new(int options) {
 	return r;
 }
 
+void fuji_ptp_close(struct PtpRuntime *r) {
+	if (r->priv->cards[0].object_handle_list) free(r->priv->cards[0].object_handle_list);
+	if (r->priv->cards[1].object_handle_list) free(r->priv->cards[1].object_handle_list);
+	struct FujiPropDescList *list = &r->priv->prop_desc_list;
+	if (list->items != NULL) {
+		for (unsigned int i = 0; i < list->length; i++) {
+			free(list->items[i]);
+		}
+		free(list->items);
+	}
+	free(r->priv);
+	ptp_close(r);
+}
+
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	if (r->io_kill_switch) return;
 	ptp_mutex_lock(r);
@@ -287,36 +301,36 @@ int fuji_config_device_info_routine(struct PtpRuntime *r) {
 	return 0;
 }
 
-static int fuji_xapp_config_gallery(struct PtpRuntime *r) {
-	int rc;
+static int fuji_xapp_config_card(struct PtpRuntime *r) {
 	fujipriv_t *fuji = fuji_get(r);
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28);
-	if (rc) return rc;
-	int val = ptp_parse_prop_value(r);
-	fuji->remote_image_view_ex_version = ptp_parse_prop_value(r);
-	ptp_verbose_log(r, "RemotePhotoViewExVersion: 0x%X\n", fuji->remote_image_view_ex_version);
-	rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28, val);
-	if (rc) return rc;
 
-	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 0);
+	int rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 0);
 	if (rc) return rc;
 	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 0);
 	if (rc) return rc;
 
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_StorageID_D244);
+	if (rc) return rc;
+	r->priv->card_id = ptp_parse_prop_value(r);
+
 	struct PtpCommand cmd;
-	cmd.code = PTP_OC_FUJI_GetExtensionObjectInfo;
+	cmd.code = PTP_OC_FUJI_GetPreviewObjectInfo;
+	cmd.param_length = 1;
+	cmd.params[0] = 0x10000001;
+	rc = ptp_send(r, &cmd);
+	if (rc == PTP_CHECK_CODE) {
+		// Returns 0x2013 if card is not inserted
+		fuji->num_objects = 0;
+		return 0;
+	} else if (rc) return rc;
+
+	cmd.code = PTP_OC_FUJI_GetPreviewThumb;
 	cmd.param_length = 1;
 	cmd.params[0] = 0x10000001;
 	rc = ptp_send(r, &cmd);
 	if (rc) return rc;
 
-	cmd.code = PTP_OC_FUJI_GetExtensionThumb;
-	cmd.param_length = 1;
-	cmd.params[0] = 0x10000001;
-	rc = ptp_send(r, &cmd);
-	if (rc) return rc;
-
-	cmd.code = PTP_OC_FUJI_GetImageImportFolders;
+	cmd.code = PTP_OC_FUJI_GetFilterProps;
 	cmd.param_length = 0;
 	rc = ptp_send(r, &cmd);
 	if (rc) return rc;
@@ -331,11 +345,48 @@ static int fuji_xapp_config_gallery(struct PtpRuntime *r) {
 	rc = ptp_send(r, &cmd);
 	if (rc) return rc;
 
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_ImageImportObjectCount);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_FilteredObjectCount_D620);
 	if (rc) return rc;
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_ImageImportObjectHandles);
+
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_FilteredObjectHandles_D621);
 	if (rc) return rc;
+
+	uint32_t n;
+	unsigned int len;
+	ptp_read_u32(ptp_get_payload(r), &n);
+	struct FujiCard *card = fuji_get_card(r);
+	card->n_available_objects = n;
+	if (card->object_handle_list != NULL) free(card->object_handle_list);
+	card->object_handle_list = malloc(sizeof(int) * n); if (card->object_handle_list == NULL) ptp_panic("malloc");
+	ptp_read_uint32_array_s(ptp_get_payload(r), ptp_get_payload(r) + ptp_get_payload_length(r), card->object_handle_list, n, &len);
+
 	return 0;
+}
+
+int fuji_switch_card(struct PtpRuntime *r, int id) {
+	ptp_mutex_lock(r);
+	uint8_t dat = id;
+	int rc = ptp_set_prop_value_data(r, PTP_DPC_FUJI_StorageID_D244, &dat, 1);
+	r->priv->card_id = id;
+	if (rc) goto end;
+	rc = fuji_xapp_config_card(r);
+
+	end: ptp_mutex_unlock(r);
+	return rc;
+}
+
+static int fuji_xapp_config_gallery(struct PtpRuntime *r) {
+	int rc;
+	fujipriv_t *fuji = fuji_get(r);
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28);
+	if (rc) return rc;
+	int val = ptp_parse_prop_value(r);
+	fuji->remote_image_view_ex_version = ptp_parse_prop_value(r);
+	ptp_verbose_log(r, "RemotePhotoViewExVersion: 0x%X\n", fuji->remote_image_view_ex_version);
+	rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28, val);
+	if (rc) return rc;
+
+	return fuji_xapp_config_card(r);
 }
 
 // Assumes cmd socket is valid
@@ -348,12 +399,12 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	struct PtpFujiInitResp resp;
 	int rc = ptpip_fuji_connect_handshake(r, client_name, &resp);
 	if (rc == PTP_RUNTIME_ERR) {
-		if (app_check_thread_cancel(r)) return PTP_CANCELED;
+		if (app_check_thread_cancel(r)) return PTP_CANCELLED;
 		rc = ptpip_fuji_connect_handshake(r, client_name, &resp);
 	} else if (rc) {
-		if (app_check_thread_cancel(r)) return PTP_CANCELED;
+		if (app_check_thread_cancel(r)) return PTP_CANCELLED;
 		usleep(1000); // One last chance...
-		if (app_check_thread_cancel(r)) return PTP_CANCELED;
+		if (app_check_thread_cancel(r)) return PTP_CANCELLED;
 		rc = ptpip_fuji_connect_handshake(r, client_name, &resp);
 	}
 	if (rc) {
@@ -412,6 +463,11 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		app_print(r, "Your camera loves you.");
 	}
 
+	// Illegal state; used for vcam testing when re-using autosave discovery
+	if (fuji->transport == FUJI_FEATURE_AUTOSAVE && fuji->camera_state == FUJI_REMOTE_ACCESS) {
+		fuji->transport = FUJI_FEATURE_WIRELESS_COMM;
+	}
+
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion_DF22);
 	if (rc) return rc;
 	fuji->get_object_version = ptp_parse_prop_value(r);
@@ -422,11 +478,11 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	fuji->remote_image_view_version = ptp_parse_prop_value(r);
 	ptp_verbose_log(r, "PTP_DPC_FUJI_RemoteGetObjectVersion_DF25: 0x%X\n", fuji->remote_image_view_version);
 
-	// Newer cameras such as X-T5 sort photos by oldest first, differing from all older cameras.
-	// Not sure if this is the best way to determine this behavior, but it's not harmful.
-	if (fuji->remote_image_view_version >= 5) {
-		fuji->sort_by_oldest_first = 1;
-	}
+//	// Newer cameras such as X-T5 sort photos by oldest first, differing from all older cameras.
+//	// Not sure if this is the best way to determine this behavior, but it's not harmful.
+//	if (fuji->remote_image_view_version >= 5) {
+//		fuji->sort_by_oldest_first = 1;
+//	}
 
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_ImageGetVersion_DF21);
 	if (rc) return rc;
@@ -474,12 +530,34 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		if (rc) return rc;
 	}
 
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_StorageID);
-	if (rc == 0 && ptp_parse_prop_value(r) > 0) {
-		sprintf(fuji->storage_device_name, "Card %d", ptp_parse_prop_value(r));
-	} else if (rc == PTP_CHECK_CODE || rc == 0) {
-		strcpy(fuji->storage_device_name, "Card");
-	} else if (rc) {
+	// TODO: Can be merged with PTP_DPC_FUJI_StorageID_D244 read in fuji_xapp_config_card
+	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_StorageID_D244);
+	if (rc == 0) {
+		int id = ptp_parse_prop_value(r);
+		fuji->card_id = id;
+		if (id == 0 || id == -1) {
+			// Single card slot
+			fuji->cards[0] = (struct FujiCard){
+				.id = id,
+				.n_available_objects = fuji->num_objects,
+				.name = "Card",
+			};
+		} else {
+			// 1 or 2 means multiple card slots are present
+			fuji->cards[0] = (struct FujiCard){
+				.id = id,
+				.n_available_objects = fuji->num_objects,
+			};
+			sprintf(fuji->cards[0].name, "Card %d", id);
+			fuji->cards[1] = (struct FujiCard){
+				.id = id == 1 ? 2 : 1,
+				.n_available_objects = 0,
+			};
+			sprintf(fuji->cards[1].name, "Card %d", id == 1 ? 2 : 1);
+		}
+	} else if (rc == PTP_CHECK_CODE) {
+		strcpy(fuji->cards[0].name, "Card");
+	} else {
 		return rc;
 	}
 	app_update_storage_info(r);
@@ -815,7 +893,7 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 	unsigned int read = 0;
 	while (1) {
 		if (app_check_thread_cancel(r)) {
-			rc = PTP_CANCELED;
+			rc = PTP_CANCELLED;
 			goto end;
 		}
 
@@ -843,7 +921,7 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 
 		rc = handle_add(arg, ptp_get_payload(r), payload_size, read, oi.compressed_size);
 		if (rc) {
-			rc = PTP_CANCELED;
+			rc = PTP_CANCELLED;
 			goto end;
 		}
 

@@ -280,7 +280,7 @@ static int device_callback(struct PakBt *ctx, enum PakBtEvent ev, struct PakBtDe
 				return PAK_ERR_UNSUPPORTED;
 			}
 			fujifilm_time_t time_struct = get_time_struct();
-			pak_bt_write_characteristic(ctx, time_chr, (const uint8_t *)&time_struct, sizeof(time_struct), PAK_BT_BLOCK);
+			pak_bt_write_characteristic(ctx, time_chr, (const uint8_t *)&time_struct, sizeof(time_struct), PAK_BLOCK);
 			pak_bt_unref_gatt_characteristic(ctx, time_chr);
 			pak_bt_unref_gatt_service(ctx, service);
 		} else {
@@ -300,7 +300,7 @@ static int get_characteristic_as_string(struct PakBt *ctx, struct PakBtDevice *d
 		pak_bt_unref_gatt_service(ctx, service);
 		return PAK_ERR_UNSUPPORTED;
 	}
-	int rc = pak_bt_read_characteristic(ctx, chr, PAK_BT_BLOCK);
+	int rc = pak_bt_read_characteristic(ctx, chr, PAK_BLOCK);
 	if (!rc) buf[pak_bt_read_characteristic_cached_value(ctx, chr, (uint8_t *) buf, max)] = '\0';
 	pak_bt_unref_gatt_characteristic(ctx, chr);
 	pak_bt_unref_gatt_service(ctx, service);
@@ -331,7 +331,7 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 			pak_bt_unref_gatt_service(ctx, service);
 			return PAK_ERR_UNSUPPORTED;
 		}
-		pak_bt_write_characteristic(ctx, chr, (uint8_t[]){0x4, 0x0}, 2, PAK_BT_BLOCK);
+		pak_bt_write_characteristic(ctx, chr, (uint8_t[]){0x4, 0x0}, 2, PAK_BLOCK);
 		pak_bt_unref_gatt_characteristic(ctx, chr);
 		pak_bt_unref_gatt_service(ctx, service);
 	}
@@ -380,7 +380,7 @@ static int send_client_name(struct PakModule *mod, struct PakGattService *pair_s
 	}
 
 	const char *client_name = pak_rt_get_client_name();
-	int rc = pak_bt_write_characteristic(mod->bt, iden_chr, (const uint8_t *)client_name, strlen(client_name), PAK_BT_BLOCK);
+	int rc = pak_bt_write_characteristic(mod->bt, iden_chr, (const uint8_t *)client_name, strlen(client_name), PAK_BLOCK);
 	if (rc) {
 		pak_debug_log(mod, "pak_bt_write_characteristic");
 		return rc;
@@ -434,7 +434,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 		// in 'SELECT PAIRING DESTINATION'
 	}
 
-	int rc = pak_bt_device_connect(ctx, dev);
+	int rc = pak_bt_device_connect(ctx, dev, PAK_BLOCK);
 	if (rc) {
 		pak_debug_log(mod, "pak_bt_device_connect");
 		return rc;
@@ -446,7 +446,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 		pak_rt_set_progress_bar(mod, mod->priv->current_job, 35);
 		if (saved == NULL) {
 			pak_debug_log(mod, "Creating bond...");
-			rc = pak_bt_device_create_bond(ctx, dev);
+			rc = pak_bt_device_create_bond(ctx, dev, PAK_BLOCK);
 			if (rc) {
 				pak_debug_log(mod, "pak_bt_device_pair");
 				return PAK_ERR_NO_CONNECTION;
@@ -468,7 +468,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 
 		uint8_t status[4];
 
-		if (pak_bt_read_characteristic(ctx, pair_chr, PAK_BT_BLOCK)) return PAK_ERR_UNSUPPORTED;
+		if (pak_bt_read_characteristic(ctx, pair_chr, PAK_BLOCK)) return PAK_ERR_UNSUPPORTED;
 		if (pak_bt_read_characteristic_cached_value(ctx, pair_chr, status, sizeof(status)) != 4) {
 			pak_debug_log(mod, "Failed to get status");
 			return PAK_ERR_NO_CONNECTION;
@@ -476,7 +476,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 
 		status[3] = 0x20;
 
-		if (pak_bt_write_characteristic(ctx, pair_chr, status, 4, PAK_BT_BLOCK)) {
+		if (pak_bt_write_characteristic(ctx, pair_chr, status, 4, PAK_BLOCK)) {
 			pak_debug_log(mod, "Failed to write ack");
 			return PAK_ERR_NO_CONNECTION;
 		}

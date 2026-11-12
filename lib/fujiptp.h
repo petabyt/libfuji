@@ -62,10 +62,11 @@ enum FujiDevicePropertyCode {
     // See `struct FujiD228` - structure appears similar to PTP_DPC_FUJI_BatteryInfo2
     // Setting this doesn't appear to be necessary for downloading photos
     PTP_DPC_FUJI_AutoSaveDatabaseStatus = 0xD228,
-    PTP_DPC_FUJI_Unknown_D22B = 0xD22B,
+    PTP_DPC_FUJI_Unknown_D22B = 0xD22b, // Something to do with filtered object number
     PTP_DPC_FUJI_Unknown_D22E = 0xD22e,
+	PTP_DPC_FUJI_DatabaseFilename = 0xd22f,
     PTP_DPC_FUJI_CompressionCutOff = 0xD235,
-    PTP_DPC_FUJI_StorageID = 0xd244,
+    PTP_DPC_FUJI_StorageID_D244 = 0xd244,
     PTP_DPC_FUJI_Unknown_D400 = 0xd400, // Possibly SelectedImgsMode2
     PTP_DPC_FUJI_ObjectCount2 = 0xd401,
     PTP_DPC_FUJI_Unknown2 = 0xdc04,
@@ -75,9 +76,14 @@ enum FujiDevicePropertyCode {
     PTP_DPC_FUJI_Geolocation = 0xd500, // "0000.000000,N00000.000000,E00000.00,M 000.0,K0000:00:0000:00:00.000"
     PTP_DPC_FUJI_Unknown_D52F = 0xd52f,
 
-    // New xapp properties
-    PTP_DPC_FUJI_ImageImportObjectCount = 0xD620,
-    PTP_DPC_FUJI_ImageImportObjectHandles = 0xD621,
+    PTP_DPC_FUJI_Unknown1Filter_D601 = 0xD601,
+    PTP_DPC_FUJI_FolderFilter_D602 = 0xD602,
+    PTP_DPC_FUJI_Unknown2Filter_D603 = 0xD603,
+    PTP_DPC_FUJI_Unknown3Filter_D604 = 0xD604,
+    PTP_DPC_FUJI_Unknown4Filter_D605 = 0xD605,
+
+    PTP_DPC_FUJI_FilteredObjectCount_D620 = 0xD620,
+    PTP_DPC_FUJI_FilteredObjectHandles_D621 = 0xD621,
 
     // NOTE: Most of 0xdfxx appear to be version/revision properties
 
@@ -92,9 +98,10 @@ enum FujiDevicePropertyCode {
     // NOTE: 0xdf26 and 0xdf27 appear to be unused
     // x-s10 sets to 1, x-t5 sets to 3
     PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28 = 0xdf28,
-	// Most likely RemoteExVersion
-    PTP_DPC_FUJI_Unknown_DF2A = 0xdf2a,
+	PTP_DPC_FUJI_Unknown_DF29 = 0xdf29, //
+	PTP_DPC_FUJI_Unknown_DF2A = 0xdf2a, // Most likely RemoteExVersion
     PTP_DPC_FUJI_GeoTagVersion = 0xdf31,
+    PTP_DPC_FUJI_AutoTransferRemaining_DF41 = 0xdf41,
     PTP_DPC_FUJI_Unknown_DF44 = 0xdf44,
 };
 
@@ -125,6 +132,7 @@ enum ClientStates {
 	FUJI_LIMITED_IMG_TRANSMISSION = 18,
 	FUJI_MODE_TRANSFER_FIRMWARE = 19,
 	FUJI_MODE_REMOTE_IMG_VIEW_XAPP = 20,
+	FUJI_MODE_AUTO_TRANSFER_XAPP = 21,
 	FUJI_MODE_REMOTE_LIVE_VIEW_XAPP = 22,
 };
 
@@ -135,6 +143,7 @@ enum SelectedImgsModes {
 };
 
 /// @brief Possible values of PTP_DPC_FUJI_CameraState_DF00 (0xdf00)
+/// Mostly compatible with ClientStates but there appear to be some conflicts
 enum CameraStates {
 	// We need to wait and poll camera for access
 	FUJI_WAIT_FOR_ACCESS = 0,
@@ -188,12 +197,14 @@ enum FujiVendorOpcodes {
     PTP_OC_FUJI_FmSendObject = 0x9041,
     PTP_OC_FUJI_FmSendPartialObject = 0x9042,
 
-    PTP_OC_FUJI_GetImageImportFolders = 0x9050,
-    PTP_OC_FUJI_GetImageImportDates = 0x9053,
-    PTP_OC_FUJI_GetExtensionObjectInfo = 0x9054,
-    PTP_OC_FUJI_GetExtensionThumb = 0x9055,
-    PTP_OC_FUJI_GetExtensionPartialObject = 0x9056,
-    PTP_OC_Unknown_9060 = 0x9060,
+	PTP_OC_FUJI_GetFilterProps = 0x9050,
+	PTP_OC_FUJI_SetFilter_9051 = 0x9051,
+	PTP_OC_FUJI_GetFilter_9052 = 0x9052,
+	PTP_OC_FUJI_GetImageImportDates = 0x9053,
+	PTP_OC_FUJI_GetPreviewObjectInfo = 0x9054,
+	PTP_OC_FUJI_GetPreviewThumb = 0x9055, // Xapp jumps to this object immediately upon entering gallery
+	PTP_OC_FUJI_GetExtensionPartialObject = 0x9056,
+	PTP_OC_Unknown_9060 = 0x9060,
 };
 
 // ECs and PCs stuff from libgphoto2 ptp.h - some appear to be inaccurate or misplaced
@@ -336,6 +347,7 @@ enum FujiVendorOpcodes {
 #define PTP_DPC_FUJI_ProgramShift			0xD205
 #define PTP_DPC_FUJI_FocusAreas				0xD206
 #define PTP_DPC_FUJI_PriorityMode			0xD207 /* from setprioritymode */
+#define PTP_DPC_FUJI_CameraAction			0xD208
 #define PTP_DPC_FUJI_AFStatus				0xD209
 #define PTP_DPC_FUJI_DeviceName				0xD20B
 #define PTP_DPC_FUJI_MediaRecord			0xD20C /* from capmediarecord */
@@ -497,5 +509,104 @@ struct __attribute__((packed)) FujiD228 {
 	// @note I think entries are object IDs
 	uint16_t data[];
 };
+
+/*
+
+PTP_OC_FUJI_GetImageImportFolders:
+05 00 00 00
+12 00 00 00
+01 d6 ff ff 01 01 00 00 01 00 00 01 00 00 38 00 00 00
+02 d6 ff ff 01 01 00 00 01 00 00 02 02 00 (09 32 00 30 00 33 00 5f 00 46 00 55 00 4a 00 49 00 00 00) (09 32 00 30 00 34 00 5f 00 46 00 55 00 4a 00 49 00 00 00) 14 00 00 00
+03 d6 04 00 01 00 00 00 00 01 00 00 3f 00 01 00 14 00 00 00
+04 d6 04 00 01 00 00 00 00 01 00 00 1f 00 01 00 1e 00 00 00
+05 d6 06 00 01 00 00 00 00 00 00 00 00 01 00 00 00 00 7f 00 00 00 01 00 00 00
+
+
+
+0040   05 00 00 00 12 00 00 00 01 d6 ff ff 01 01 00 00   ................
+0050   01 00 00 01 00 00 38 00 00 00 02 d6 ff ff 01 01   ......8.........
+0060   00 00 01 00 00 02 02 00 09 32 00 30 00 33 00 5f   .........2.0.3._
+0070   00 46 00 55 00 4a 00 49 00 00 00 09 32 00 30 00   .F.U.J.I....2.0.
+0080   34 00 5f 00 46 00 55 00 4a 00 49 00 00 00 14 00   4._.F.U.J.I.....
+0090   00 00 03 d6 04 00 01 00 00 00 00 01 00 00 3f 00   ..............?.
+00a0   01 00 14 00 00 00 04 d6 04 00 01 00 00 00 00 01   ................
+00b0   00 00 1f 00 01 00 1e 00 00 00 05 d6 06 00 01 00   ................
+00c0   00 00 00 00 00 00 00 01 00 00 00 00 7f 00 00 00   ................
+00d0   01 00 00 00                                       ....
+*/
+
+/*
+
+
+fa 00 00 00
+52 01 00 00
+51 01 00 00
+50 01 00 00
+4f 01 00 00 4e 01 00 00 4d 01 00 00 4c 01 00 00
+4b 01 00 00 4a 01 00 00 49 01 00 00 48 01 00 00
+47 01 00 00 46 01 00 00 45 01 00 00 44 01 00 00
+43 01 00 00 42 01 00 00 41 01 00 00 40 01 00 00
+3f 01 00 00 3e 01 00 00 3d 01 00 00 3c 01 00 00
+3b 01 00 00 3a 01 00 00 39 01 00 00 38 01 00 00
+37 01 00 00 36 01 00 00 35 01 00 00 34 01 00 00
+33 01 00 00 32 01 00 00 31 01 00 00 30 01 00 00
+2f 01 00 00 2e 01 00 00 2d 01 00 00 2c 01 00 00
+2b 01 00 00 2a 01 00 00 29 01 00 00 28 01 00 00
+27 01 00 00 26 01 00 00 25 01 00 00 24 01 00 00
+23 01 00 00 22 01 00 00 21 01 00 00 1e 01 00 00
+1d 01 00 00 1c 01 00 00 1b 01 00 00 1a 01 00 00
+18 01 00 00 17 01 00 00 16 01 00 00 15 01 00 00
+14 01 00 00 13 01 00 00 12 01 00 00 11 01 00 00
+10 01 00 00 0f 01 00 00 0e 01 00 00 0d 01 00 00
+0c 01 00 00 0b 01 00 00 0a 01 00 00 09 01 00 00
+08 01 00 00 07 01 00 00 06 01 00 00 05 01 00 00
+04 01 00 00 03 01 00 00 02 01 00 00 01 01 00 00
+00 01 00 00 ff 00 00 00 fe 00 00 00 fd 00 00 00
+fc 00 00 00 fb 00 00 00 fa 00 00 00 f9 00 00 00
+f8 00 00 00 f7 00 00 00 f6 00 00 00 f5 00 00 00
+
+b1 00 00 00 af 00 00 00 ae 00 00 00 ad 00 00 00
+ac 00 00 00 ab 00 00 00 aa 00 00 00 a9 00 00 00
+a8 00 00 00 a7 00 00 00 a6 00 00 00 a5 00 00 00
+a4 00 00 00 a3 00 00 00 a2 00 00 00 a1 00 00 00
+a0 00 00 00 9f 00 00 00 9e 00 00 00 9d 00 00 00
+9c 00 00 00 9b 00 00 00 9a 00 00 00 99 00 00 00
+98 00 00 00 97 00 00 00 95 00 00 00 93 00 00 00
+91 00 00 00 90 00 00 00 92 00 00 00 8d 00 00 00
+8c 00 00 00 8b 00 00 00 8a 00 00 00 89 00 00 00
+88 00 00 00 87 00 00 00 86 00 00 00 85 00 00 00
+84 00 00 00 83 00 00 00 82 00 00 00 81 00 00 00
+80 00 00 00 7f 00 00 00 7e 00 00 00 7d 00 00 00
+7c 00 00 00 7b 00 00 00 7a 00 00 00 79 00 00 00
+78 00 00 00 77 00 00 00 76 00 00 00 75 00 00 00
+73 00 00 00 72 00 00 00 71 00 00 00 70 00 00 00
+6f 00 00 00 6d 00 00 00 6c 00 00 00 6b 00 00 00
+6a 00 00 00 69 00 00 00 68 00 00 00 67 00 00 00
+66 00 00 00 65 00 00 00 64 00 00 00 63 00 00 00
+62 00 00 00 61 00 00 00 60 00 00 00 5f 00 00 00
+5e 00 00 00 5d 00 00 00 5c 00 00 00 5b 00 00 00
+5a 00 00 00 59 00 00 00 58 00 00 00 57 00 00 00
+56 00 00 00 55 00 00 00 54 00 00 00 53 00 00 00
+52 00 00 00 4f 00 00 00 4e 00 00 00 4d 00 00 00
+4c 00 00 00 4a 00 00 00 49 00 00 00 48 00 00 00
+47 00 00 00 46 00 00 00 45 00 00 00 44 00 00 00
+43 00 00 00 42 00 00 00 41 00 00 00 40 00 00 00
+3f 00 00 00 3e 00 00 00 3d 00 00 00 3a 00 00 00
+39 00 00 00 38 00 00 00 37 00 00 00 36 00 00 00
+35 00 00 00 34 00 00 00 33 00 00 00 32 00 00 00
+31 00 00 00 30 00 00 00 2f 00 00 00 2e 00 00 00
+2d 00 00 00 2c 00 00 00 2b 00 00 00 2a 00 00 00
+29 00 00 00 28 00 00 00 27 00 00 00 26 00 00 00
+25 00 00 00 24 00 00 00 23 00 00 00 22 00 00 00
+21 00 00 00 20 00 00 00 1f 00 00 00 1e 00 00 00
+1d 00 00 00 1c 00 00 00 1b 00 00 00 1a 00 00 00
+19 00 00 00 18 00 00 00 17 00 00 00 16 00 00 00
+15 00 00 00 14 00 00 00 13 00 00 00 12 00 00 00
+11 00 00 00 0f 00 00 00 09 00 00 00 08 00 00 00
+07 00 00 00 06 00 00 00 05 00 00 00 04 00 00 00
+03 00 00 00 02 00 00 00 01 00 00 00
+
+
+*/
 
 #endif

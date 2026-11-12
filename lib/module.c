@@ -5,8 +5,23 @@
 #include <fuji.h>
 #include "module.h"
 
-static int file_to_oh(struct PakFileHandle *file) { return file->index_in_view + 1; }
-//static struct PakFileHandle oh_to_file(int oh) { return (struct PakFileHandle){.index_in_view = oh - 1}; }
+static int file_to_oh(struct PtpRuntime *r, struct PakObjectHandle *file) {
+	struct FujiCard *card = fuji_get_card(r);
+	if (card->object_handle_list != NULL) {
+		if (card->n_available_objects < file->index_in_view) return -1;
+		return (int)card->object_handle_list[file->index_in_view];
+	}
+	return file->index_in_view + 1;
+}
+static struct PakObjectHandle oh_to_file(struct PtpRuntime *r, int oh) {
+	struct FujiCard *card = fuji_get_card(r);
+	if (card->object_handle_list != NULL) {
+		for (unsigned int i = 0; i < card->n_available_objects; i++) {
+			if (card->object_handle_list[i] == oh) return (struct PakObjectHandle){ .index_in_view = (int)i, .storage_name = card->name };
+		}
+	}
+	return (struct PakObjectHandle){ .index_in_view = oh - 1, .storage_name = card->name };
+}
 
 static const char *get_mime_type(uint16_t object_format) {
 	switch (object_format) {
@@ -69,7 +84,7 @@ void ptp_panic(char *fmt, ...) {
 	va_start(args, fmt);
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
-	pak_error("ptp_panic: %s", buffer);
+	pak_error_log("ptp_panic: %s", buffer);
 	abort();
 }
 
@@ -89,7 +104,7 @@ void app_send_cam_name(struct PtpRuntime *r, const char *name) {
 int app_ptp_download_file(struct PtpRuntime *r, struct PtpObjectInfo *oi, int object_id, unsigned int max_chunk_size, int index) {
 	struct PakModule *mod = get_mod(r);
 	unsigned int read = 0;
-	struct PakFileHandle handle = {
+	struct PakObjectHandle handle = {
 		.index_in_view = index,
 		.storage_name = LIVE_STORAGE_DEVICE_NAME,
 	};
@@ -170,10 +185,13 @@ void app_update_storage_info(struct PtpRuntime *r) {
 			.n_files_total = 1,
 		});
 	} else {
-		pak_rt_set_storage_info(mod, r->priv->storage_device_name, &(struct PakStorageInfo){
-			.n_files_total = r->priv->num_objects,
-			.sorted_by = r->priv->sort_by_oldest_first ? PAK_OLDEST_FIRST : PAK_NEWEST_FIRST,
-		});
+		int n_cards = r->priv->card_id == 0 ? 1 : 2;
+		for (int i = 0; i < n_cards; i++) {
+			pak_rt_set_storage_info(mod, r->priv->cards[i].name, &(struct PakStorageInfo){
+				.n_files_total = r->priv->cards[i].n_available_objects,
+				.sorted_by = r->priv->cards[i].sort_by_oldest_first ? PAK_OLDEST_FIRST : PAK_NEWEST_FIRST,
+			});
+		}
 	}
 }
 
@@ -258,9 +276,9 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 		case FUJI_PC_AUTO_SAVE: {
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
-			pak_rt_set_storage_info(mod, r->priv->storage_device_name, &(struct PakStorageInfo){
+			pak_rt_set_storage_info(mod, "Card", &(struct PakStorageInfo){
 				.n_files_total = r->priv->num_objects,
-				.sorted_by = r->priv->sort_by_oldest_first ? PAK_OLDEST_FIRST : PAK_NEWEST_FIRST,
+				.sorted_by = PAK_NEWEST_FIRST,
 			});
 			pak_rt_set_widget(mod, WIDGET_AUTOSAVE_THUMBS, &(struct PakWidget) {
 					.title = "Enable thumbnails (buggy)",
@@ -379,7 +397,7 @@ static int on_switch_screen(struct PakModule *mod, int old_screen, int new_scree
 
 struct TempStruct {
 	struct PakModule *mod;
-	struct PakFileHandle *file;
+	struct PakObjectHandle *file;
 	int job;
 };
 
@@ -399,7 +417,7 @@ static int download_add(void *arg, void *data, unsigned int size, unsigned int o
 	return 0;
 }
 
-static int on_request_file_contents(struct PakModule *mod, int job, struct PakFileHandle *file) {
+static int on_request_file_contents(struct PakModule *mod, int job, struct PakObjectHandle *file) {
 	struct PtpRuntime *r = mod->priv->r;
 	if (r == NULL) return 0;
 	int rc;
@@ -413,7 +431,7 @@ static int on_request_file_contents(struct PakModule *mod, int job, struct PakFi
 		rc = app_ptp_download_file(r, &r->priv->current_downloading_oi, 1, 0x100000, file->index_in_view);
 	} else {
 		pak_rt_set_progress_bar(mod, job, 0);
-		rc = fuji_download_file_ex(r, file->index_in_view + 1, download_init, download_add, &(struct TempStruct){
+		rc = fuji_download_file_ex(r, file_to_oh(r, file), download_init, download_add, &(struct TempStruct){
 			.mod = mod,
 			.file = file,
 			.job = job,
@@ -425,14 +443,14 @@ static int on_request_file_contents(struct PakModule *mod, int job, struct PakFi
 	return 0;
 }
 
-static int on_request_thumbnail(struct PakModule *mod, int job, struct PakFileHandle *file) {
+static int on_request_thumbnail(struct PakModule *mod, int job, struct PakObjectHandle *file) {
 	unsigned int offset = 0, length = 0;
 	struct PtpRuntime *r = mod->priv->r;
 	if (r == NULL) return 0;
 
 	ptp_mutex_lock(r);
 
-	int rc = fuji_get_thumb(r, file->index_in_view + 1, &offset, &length);
+	int rc = fuji_get_thumb(r, file_to_oh(r, file), &offset, &length);
 	if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR || length == 0) {
 		pak_rt_add_file_thumbnail(mod, file, NULL, 0);
 		ptp_mutex_unlock(r);
@@ -473,34 +491,41 @@ int app_queue_file_for_download(struct PtpRuntime *r, int object_id) {
 	} else if (rc) return rc;
 	struct PtpObjectInfo *oi = &r->priv->current_downloading_oi;
 	struct PakFileMetadata md = oi_to_metadata(oi);
-	pak_rt_add_file_metadata(mod, &(struct PakFileHandle){.index_in_view = r->priv->n_items_downloaded++, .storage_name = LIVE_STORAGE_DEVICE_NAME}, &md);
+	pak_rt_add_file_metadata(mod, &(struct PakObjectHandle){.index_in_view = r->priv->n_items_downloaded++, .storage_name = LIVE_STORAGE_DEVICE_NAME}, &md);
+	return 0;
+}
+
+int on_switch_storage_device(struct PakModule *mod, int job, const char *name) {
+	struct PtpRuntime *r = mod->priv->r;
+	int id = r->priv->card_id;
+	for (int i = 0; i < 2; i++) {
+		if (!strcmp(name, r->priv->cards[i].name)) { id = r->priv->cards[i].id; break; }
+	}
+	fuji_switch_card(r, id);
+	app_update_storage_info(r);
 	return 0;
 }
 
 int plat_update_object_info(struct PtpRuntime *r, int handle, const struct PtpObjectInfo *oi) {
 	struct PakModule *mod = get_mod(r);
-
-	struct PakFileHandle file = {0};
-	file.index_in_view = handle - 1;
-	file.storage_name = r->priv->storage_device_name;
-
+	struct PakObjectHandle file = oh_to_file(r, handle);
 	struct PakFileMetadata md = oi_to_metadata(oi);
 	return pak_rt_add_file_metadata(mod, &file, &md);
 }
 
-static int on_request_file_metadata(struct PakModule *mod, int job, struct PakFileHandle *file) {
+static int on_request_file_metadata(struct PakModule *mod, int job, struct PakObjectHandle *file) {
 	struct PtpObjectInfo info;
 	struct PtpRuntime *r = mod->priv->r;
 	if (r == NULL) {
 		return 0;
 	}
-	int rc = ptp_get_object_info(r, file->index_in_view + 1, &info);
+	int rc = ptp_get_object_info(r, file_to_oh(r, file), &info);
 	if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR) {
 		pak_rt_add_file_metadata(mod, file, NULL);
 		return 0;
 	} else if (rc) return handle_ptperr(mod, rc, "fuji_get_thumb");
 
-	return plat_update_object_info(r, file->index_in_view + 1, &info);
+	return plat_update_object_info(r, file_to_oh(r, file), &info);
 }
 
 static int on_command(struct PakModule *mod, int job, int argc, const char * const *argv) {
@@ -544,7 +569,7 @@ static int on_try_connect_usb(struct PakModule *mod, libusb_device *dev, struct 
 	return 0;
 }
 
-static int on_request_liveview_frame(struct PakModule *mod, int job, struct PakFileHandle *handle) {
+static int on_request_liveview_frame(struct PakModule *mod, int job, struct PakObjectHandle *handle) {
 	struct PtpRuntime *r = mod->priv->r;
 	if (r == NULL) return 0;
 	ptp_mutex_lock(r);
@@ -564,9 +589,10 @@ int get_module(struct PakModule *mod) {
 	mod->on_try_connect_wifi = on_try_connect_wifi;
 	mod->on_try_connect_bluetooth = on_try_connect_bluetooth;
 	mod->on_request_file_thumbnail = on_request_thumbnail;
-	mod->on_request_file_metadata = on_request_file_metadata;
+	mod->on_request_object_info = on_request_file_metadata;
 	mod->on_request_file_contents = on_request_file_contents;
 	mod->on_request_liveview_frame = on_request_liveview_frame;
+	mod->on_switch_storage_device = on_switch_storage_device;
 	mod->on_idle_tick = on_idle_tick;
 	mod->on_disconnect = on_disconnect;
 	mod->on_switch_screen = on_switch_screen;
