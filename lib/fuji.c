@@ -592,7 +592,7 @@ static int ptpip_fuji_connect_handshake_(struct PtpRuntime *r, const char *devic
 	ptp_write_u32(&p->guid3, 0xd0ded5d3);
 	ptp_write_u32(&p->guid4, 0x0);
 
-	ptp_write_unicode_string(p->device_name, device_name);
+	ptp_write_unicode_string((uint8_t *)p->device_name, device_name);
 
 	if (ptpip_cmd_write(r, r->data, p->length) != (int)p->length) {
 		ptp_verbose_log(r, "First TCP packet failed\n");
@@ -1008,4 +1008,6 @@ int ptp_fuji_read_liveview_frame(struct PtpRuntime *r, unsigned int *size) {
 	return rc;
 }
 
-//int fuji_ptp_set_liveview_setting(struct PtpRuntime *r, )
+int fuji_ptp_set_liveview_setting(struct PtpRuntime *r, int dpc) {
+	return -1;
+}

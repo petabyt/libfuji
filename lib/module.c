@@ -59,7 +59,7 @@ static int ptpip_set_extra_socket_settings(struct PtpRuntime *r, int sockfd) {
 	return 0;
 }
 
-void ptp_verbose_log(struct PtpRuntime *r, char *fmt, ...) {
+void ptp_verbose_log(struct PtpRuntime *r, const char *fmt, ...) {
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
@@ -68,7 +68,7 @@ void ptp_verbose_log(struct PtpRuntime *r, char *fmt, ...) {
 	pak_verbose_log(r->priv->mod, buffer);
 }
 
-void ptp_error_log(struct PtpRuntime *r, char *fmt, ...) {
+void ptp_error_log(struct PtpRuntime *r, const char *fmt, ...) {
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
@@ -79,7 +79,7 @@ void ptp_error_log(struct PtpRuntime *r, char *fmt, ...) {
 }
 
 __attribute__ ((noreturn))
-void ptp_panic(char *fmt, ...) {
+void ptp_panic(const char *fmt, ...) {
 	char buffer[512];
 	va_list args;
 	va_start(args, fmt);
@@ -574,10 +574,13 @@ static int on_request_liveview_frame(struct PakModule *mod, int job, struct PakO
 	struct PtpRuntime *r = mod->priv->r;
 	if (r == NULL) return 0;
 	ptp_mutex_lock(r);
-	unsigned int size = 0;
-	int rc = ptp_fuji_read_liveview_frame(r, &size);
-	if (rc == 0 && size != 0) {
-		pak_rt_add_file_contents(mod, handle, r->data, size, 0, size);
+	int rc = 0;
+	for (int i = 0; i < 5; i++) {
+		unsigned int size = 0;
+		rc = ptp_fuji_read_liveview_frame(r, &size);
+		if (rc == 0 && size != 0) {
+			pak_rt_add_file_contents(mod, handle, r->data, size, 0, size);
+		} else break;
 	}
 	ptp_mutex_unlock(r);
 	return rc;

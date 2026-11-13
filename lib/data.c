@@ -158,8 +158,7 @@ int ptp_fuji_parse_init_struct(struct PtpRuntime *r, struct PtpFujiInitResp *res
 	d += ptp_read_u32(d, &resp->x2);
 	d += ptp_read_u32(d, &resp->x3);
 	d += ptp_read_u32(d, &resp->x4);
-
-	ptp_read_unicode_string(resp->cam_name, (char *)d, sizeof(resp->cam_name));
+	d += ptp_read_unicode_string(d, resp->cam_name, sizeof(resp->cam_name));
 
 	return 0;
 }

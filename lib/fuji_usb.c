@@ -60,12 +60,14 @@ int fujiusb_try_connect(struct PtpRuntime *r, int num) {
 	r->connection_type = PTP_USB;
 	fuji_get(r)->transport = FUJI_FEATURE_USB;
 
-	struct PtpDeviceEntry *list = ptpusb_device_list(r);
+	struct PtpDeviceList *list = ptpusb_device_list(r);
+	if (list == NULL || list->n_devices == 0) {
+		return PTP_NO_DEVICE;
+	}
 
-	struct PtpDeviceEntry *curr = NULL;
-	int i = 0;
-	for (curr = list; curr != NULL; curr = curr->next) {
-		if (curr->vendor_id == 0x4cb) {
+	unsigned int i;
+	for (i = 0; i < list->n_devices; i++) {
+		if (list->devices[i].vendor_id == 0x4cb) {
 			if (num == -1) {
 				break;
 			}
@@ -76,12 +78,7 @@ int fujiusb_try_connect(struct PtpRuntime *r, int num) {
 		}
 	}
 
-	if (curr == NULL) {
-		ptpusb_free_device_list(list);
-		return PTP_NO_DEVICE;
-	}
-
-	int rc = ptp_device_open(r, curr);
+	int rc = ptp_device_open(r, &list->devices[i]);
 	if (rc) {
 		ptpusb_free_device_list(list);
 		return rc;
