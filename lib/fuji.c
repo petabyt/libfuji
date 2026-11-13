@@ -976,36 +976,61 @@ int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a) {
 	return 0;
 }
 
-int ptp_fuji_read_liveview_frame(struct PtpRuntime *r, unsigned int *size) {
-	char buffer[18];
-	int rc = ptpip_video_read(r, buffer, sizeof(buffer));
-	if (rc == 18) {
-		// Header:
-		// d5 1d 00 00
-		// 00 00 00 00
-		// 00 00 00 00
-		// 00 00 00 00
-		// fe 7f
-		uint32_t len = 0;
-		ptp_read_u32(buffer, &len);
-		ptp_buffer_resize(r, len);
-		len -= 18; // includes header
-		(*size) = len;
-		unsigned int of = 0;
-		while (len != 0) {
-			rc = ptpip_video_read(r, r->data + of, len);
-			if (rc < 0) break;
-			len -= rc; of += rc;
+// Reads exactly size bytes from the video socket. TCP can split the 18 byte header or the JPEG
+// across reads, so a single read() isn't enough. Returns 0 if nothing arrived at all (the caller
+// can poll again), size on success, or a negative error. ptpip_video_read returns 0 when the
+// receive times out, so give up after a few of those in the middle of a frame.
+static int fuji_video_read_exact(struct PtpRuntime *r, void *buf, unsigned int size) {
+	unsigned int of = 0;
+	int empty_reads = 0;
+	while (of < size) {
+		int rc = ptpip_video_read(r, (uint8_t *)buf + of, size - of);
+		if (rc < 0) return rc;
+		if (rc == 0) {
+			if (of == 0) return 0;
+			if (++empty_reads >= 5) return PTP_IO_ERR;
+			continue;
 		}
-		rc = 0;
-	} else if (rc == 0) {
-		return 0;
-	} else if (rc < 0) {
-		return rc;
-	} else {
-		ptp_error_log(r, "Didn't read enough bytes for liveview");
+		empty_reads = 0;
+		of += (unsigned int)rc;
 	}
-	return rc;
+	return (int)of;
+}
+
+int ptp_fuji_read_liveview_frame(struct PtpRuntime *r, unsigned int *size) {
+	(*size) = 0;
+	// Header:
+	// d5 1d 00 00 <- u32 frame length, including this header
+	// 00 00 00 00
+	// 00 00 00 00
+	// 00 00 00 00
+	// fe 7f
+	uint8_t header[18];
+	int rc = fuji_video_read_exact(r, header, sizeof(header));
+	if (rc <= 0) return rc;
+
+	uint32_t len = 0;
+	ptp_read_u32(header, &len);
+	// A bad length means we've lost our place in the stream, so don't trust anything after it.
+	// Frames from an X100V are 640x480 JPEGs of 10-20 KB.
+	if (len <= sizeof(header) || len > 16 * 1024 * 1024) {
+		ptp_error_log(r, "Bad liveview frame length %u\n", len);
+		return PTP_IO_ERR;
+	}
+	len -= sizeof(header);
+
+	rc = ptp_buffer_resize(r, len);
+	if (rc) return rc;
+
+	rc = fuji_video_read_exact(r, r->data, len);
+	if (rc < 0) return rc;
+	if (rc != (int)len) {
+		ptp_error_log(r, "Liveview frame cut short\n");
+		return PTP_IO_ERR;
+	}
+
+	(*size) = len;
+	return 0;
 }
 
 int fuji_ptp_set_liveview_setting(struct PtpRuntime *r, int dpc) {
