@@ -67,11 +67,13 @@ struct PtpUserPriv {
 	/// @brief Camera's initial value of PTP_DPC_FUJI_RemoteVersion_DF24
 	int remote_version;
 	/// @brief Current value of PTP_DPC_FUJI_ExposureIndex
-	int iso;
+	uint32_t iso;
 	/// @brief Current value of PTP_DPC_FNumber
-	int fnumber;
+	uint32_t fnumber;
 	/// @brief Current value of PTP_DPC_FUJI_ShutterSpeed2 (?)
-	int shutterspeed;
+	uint32_t shutterspeed;
+	/// @brief Current value of PTP_DPC_FUJI_FilmSimulation (?)
+	uint32_t filmsilm;
 	/// @brief Cached value of PTP_OC_FUJI_GetDeviceInfo
 	struct FujiPropDescList prop_desc_list;
 	/// @brief current value of PTP_DPC_FUJI_StorageID_D244
@@ -159,10 +161,10 @@ int fujiusb_try_connect(struct PtpRuntime *r, int num);
 int fujiusb_setup(struct PtpRuntime *r);
 int fujitether_setup(struct PtpRuntime *r, const char *client_name);
 
-int fuji_get_device_info(struct PtpRuntime *r);
+/// Parses 0x902b
 int fuji_register_device_info(struct PtpRuntime *r, struct FujiPropDescList *list);
 
-// Fuji (PTP/IP)
+/// Fuji (PTP/IP)
 int ptp_fuji_parse_init_struct(struct PtpRuntime *r, struct PtpFujiInitResp *resp);
 
 /// @brief Respects cancel signals.

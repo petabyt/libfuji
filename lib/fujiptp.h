@@ -98,7 +98,7 @@ enum FujiDevicePropertyCode {
     // NOTE: 0xdf26 and 0xdf27 appear to be unused
     // x-s10 sets to 1, x-t5 sets to 3
     PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28 = 0xdf28,
-	PTP_DPC_FUJI_Unknown_DF29 = 0xdf29, //
+	PTP_DPC_FUJI_Unknown_DF29 = 0xdf29,
 	PTP_DPC_FUJI_Unknown_DF2A = 0xdf2a, // Most likely RemoteExVersion
     PTP_DPC_FUJI_GeoTagVersion = 0xdf31,
     PTP_DPC_FUJI_AutoTransferRemaining_DF41 = 0xdf41,
@@ -187,7 +187,7 @@ enum FujiVendorOpcodes {
     PTP_OC_FUJI_StopZoom = 0x9025,
     PTP_OC_FUJI_LockS1Lock = 0x9026,
     PTP_OC_FUJI_UnlockS1Lock = 0x9027,
-    PTP_OC_FUJI_GetDeviceInfo = 0x902B,
+    PTP_OC_FUJI_GetPropertyDescriptors = 0x902B,
 	/// Takes 1 param (1 step up, 0 step down)
     PTP_OC_FUJI_StepShutterSpeed = 0x902C,
     PTP_OC_FUJI_StepFNumber = 0x902D,

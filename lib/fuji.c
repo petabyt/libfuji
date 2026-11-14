@@ -99,9 +99,9 @@ int has_wifi_issue_with_newer_hardware(const char *model_name) {
 	return 0;
 }
 
-int fuji_get_device_info(struct PtpRuntime *r) {
+int fuji_get_property_descriptors(struct PtpRuntime *r) {
 	struct PtpCommand cmd;
-	cmd.code = PTP_OC_FUJI_GetDeviceInfo;
+	cmd.code = PTP_OC_FUJI_GetPropertyDescriptors;
 	cmd.param_length = 0;
 	ptp_mutex_lock(r);
 	int rc = ptp_send(r, &cmd);
@@ -195,6 +195,10 @@ int fuji_get_events(struct PtpRuntime *r) {
 				free(a);
 			}
 			break;
+			case PTP_DPC_FNumber: fuji->fnumber = (int)ev->events[i].value; break;
+			case PTP_DPC_FUJI_ExposureIndex: fuji->iso = (int)ev->events[i].value; break;
+			case PTP_DPC_FUJI_ShutterSpeed2: fuji->shutterspeed = (int)ev->events[i].value; break;
+			case PTP_DPC_FUJI_FilmSimulation: fuji->filmsilm = (int)ev->events[i].value; break;
 		}
 	}
 
@@ -296,7 +300,7 @@ int fuji_config_version(struct PtpRuntime *r) {
 int fuji_config_device_info_routine(struct PtpRuntime *r) {
 	fujipriv_t *fuji = fuji_get(r);
 	if (fuji->remote_version != -1 && fuji->camera_state != FUJI_PC_AUTO_SAVE && fuji->transport != FUJI_FEATURE_XAPP_WIRELESS_COMM) {
-		int rc = fuji_get_device_info(r);
+		int rc = fuji_get_property_descriptors(r);
 		if (rc) return rc;
 	}
 
@@ -778,6 +782,8 @@ int fuji_config_liveview(struct PtpRuntime *r) {
 			rc = fuji_get_events(r);
 			if (rc) return rc;
 		}
+
+		fuji_get_property_descriptors(r);
 
 		// Begin camera remote - (per spec, OpenCapture is much more broad than 'take picture')
 		// This tells the camera to open the remote mode sockets (video/event)

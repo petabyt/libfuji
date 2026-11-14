@@ -37,6 +37,8 @@ static int handle_ptperr(struct PakModule *mod, int rc, const char *action) {
 		case PTP_CLOSED:
 		case PTP_IO_ERR: {
 			if (mod->priv->dev == NULL) {
+				ptp_report_error(mod->priv->r, action, rc);
+				mod->priv->r = NULL;
 				pak_rt_fatal_error(mod, "%s", action);
 				// on_disconnect will be called
 			}
@@ -155,6 +157,7 @@ static int init(struct PakModule *mod) {
 	mod->priv->mod = mod;
 	pak_rt_set_tick_interval(mod, 1000 * 1000); // 1sec
 	pak_rt_set_screen_supported(mod, PAK_SCREEN_DASHBOARD, 1);
+	//pak_rt_set_thread_policy(mod, PAK_CONCURRENT_JOBS);
 	return 0;
 }
 
@@ -344,7 +347,8 @@ static int on_disconnect(struct PakModule *mod) {
 static int update_liveview_widgets(struct PakModule *mod) {
 	struct PtpRuntime *r = mod->priv->r;
 	struct FujiPropDescList *list = &r->priv->prop_desc_list;
-	const char *dummy_list[64];
+	if (list->items == NULL) return -1;
+	const char *dummy_list[128];
 	for (unsigned int i = 0; i < list->length; i++) {
 		uint32_t raw_val;
 		const char *widget_name;
@@ -352,6 +356,10 @@ static int update_liveview_widgets(struct PakModule *mod) {
 			case PTP_DPC_FUJI_ExposureIndex: {
 				raw_val = r->priv->iso;
 				widget_name = "iso";
+			} break;
+			case PTP_DPC_FUJI_FilmSimulation: {
+				raw_val = r->priv->filmsilm;
+				widget_name = "filmsim";
 			} break;
 			case PTP_DPC_FNumber: {
 				raw_val = r->priv->fnumber;
@@ -364,7 +372,7 @@ static int update_liveview_widgets(struct PakModule *mod) {
 		int z;
 		int selected_index = -1;
 		for (z = 0; z < desc->n_items; z++) {
-			if (desc->items[z].val_name == NULL) continue;
+			if (desc->items[z].val_name == NULL) continue; if (z >= 128) continue;
 			dummy_list[z] = desc->items[z].val_name;
 			if (desc->items[z].raw_val == raw_val) selected_index = z;
 		}
@@ -388,6 +396,8 @@ static int on_switch_screen(struct PakModule *mod, int old_screen, int new_scree
 		if (new_screen == PAK_SCREEN_LIVEVIEW) {
 			rc = fuji_config_liveview(r);
 			if (rc) return rc;
+
+			//update_liveview_widgets(mod);
 		} else if (old_screen == PAK_SCREEN_LIVEVIEW) {
 			rc = fuji_end_liveview(r);
 			fuji_config_image_gallery(r);
@@ -409,6 +419,7 @@ static int download_init(void *arg, struct PtpObjectInfo *oi) {
 	temp->mod->priv->to_read_target = oi->compressed_size;
 	temp->mod->priv->total_read = 0;
 	pak_rt_set_progress_bar(temp->mod, temp->job, 0);
+	return 0;
 }
 
 static int download_add(void *arg, void *data, unsigned int size, unsigned int offset, unsigned int total_size) {
