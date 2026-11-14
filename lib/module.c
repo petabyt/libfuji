@@ -185,14 +185,14 @@ void app_update_storage_info(struct PtpRuntime *r) {
 	struct PakModule *mod = get_mod(r);
 	if (r->priv->camera_state == FUJI_MULTIPLE_TRANSFER) {
 		pak_rt_set_storage_info(mod, LIVE_STORAGE_DEVICE_NAME, &(struct PakStorageInfo){
-			.is_live = 1,
-			.n_files_total = 1,
+			.type = PAK_LIVE_QUEUE,
+			.n_files_root = 1,
 		});
 	} else {
 		int n_cards = r->priv->card_id == 0 ? 1 : 2;
 		for (int i = 0; i < n_cards; i++) {
 			pak_rt_set_storage_info(mod, r->priv->cards[i].name, &(struct PakStorageInfo){
-				.n_files_total = r->priv->cards[i].n_available_objects,
+				.n_files_root = r->priv->cards[i].n_available_objects,
 				.sorted_by = r->priv->cards[i].sort_by_oldest_first ? PAK_OLDEST_FIRST : PAK_NEWEST_FIRST,
 			});
 		}
@@ -281,7 +281,7 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_VIEWER, 1);
 			pak_rt_set_screen_supported(mod, PAK_SCREEN_FILE_GALLERY, 1);
 			pak_rt_set_storage_info(mod, "Card", &(struct PakStorageInfo){
-				.n_files_total = r->priv->num_objects,
+				.n_files_root = r->priv->num_objects,
 				.sorted_by = PAK_NEWEST_FIRST,
 			});
 			pak_rt_set_widget(mod, WIDGET_AUTOSAVE_THUMBS, &(struct PakWidget) {
