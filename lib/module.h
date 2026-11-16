@@ -24,7 +24,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 
 int fuji_bt_handle_command(struct PakModule *mod, struct PakBtDevice *dev, int argc, const char * const *argv);
 
-int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev);
+int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, int job, struct PakBt *ctx, struct PakBtDevice *dev);
 
 #define LIVE_STORAGE_DEVICE_NAME "live"
 

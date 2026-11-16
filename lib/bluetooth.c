@@ -88,7 +88,8 @@
 #define SVC_SHUTTER_UUID "6514eb81-4e8f-458d-aa2a-e691336cdfac"
 	// Shutter characteristic
 	#define CHR_SHUTTER_UUID "7fcf49c6-4ff0-4777-a03d-1a79166af7a8"
-	#define CHR_SHUTTER_UUID2 "600655e6-3637-42f1-8fb2-44efc5c63b13"
+	// writes 03,00 and 04,00
+	#define CHR_WIFI_TRIGGER "600655e6-3637-42f1-8fb2-44efc5c63b13"
 	// write to 02,00
 	#define CHR_STATUS_COMMAND "2674f0b0-f909-4e73-8656-338e9c74457f"
 	// write 01,00
@@ -295,13 +296,30 @@ static int get_characteristic_as_string(struct PakBt *ctx, struct PakBtDevice *d
 		return PAK_ERR_UNSUPPORTED;
 	}
 	int rc = pak_bt_read_characteristic(ctx, chr, PAK_BLOCK);
-	if (!rc) buf[pak_bt_read_characteristic_cached_value(ctx, chr, (uint8_t *) buf, max)] = '\0';
+	if (!rc) buf[pak_bt_read_characteristic_cached_value(ctx, chr, (uint8_t *)buf, max)] = '\0';
 	pak_bt_unref_gatt_characteristic(ctx, chr);
 	pak_bt_unref_gatt_service(ctx, service);
 	return rc;
 }
 
-int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev) {
+static int get_characteristic_as_data(struct PakBt *ctx, struct PakBtDevice *dev, const char *svcuuid, const char *chruuid, char *buf, unsigned int max) {
+	struct PakGattService *service;
+	if ((service = pak_bt_get_gatt_service_uuid(ctx, dev, svcuuid)) == NULL) {
+		return PAK_ERR_UNSUPPORTED;
+	}
+	struct PakGattCharacteristic *chr;
+	if ((chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, chruuid)) == NULL) {
+		pak_bt_unref_gatt_service(ctx, service);
+		return PAK_ERR_UNSUPPORTED;
+	}
+	int rc = pak_bt_read_characteristic(ctx, chr, PAK_BLOCK);
+	if (!rc) pak_bt_read_characteristic_cached_value(ctx, chr, (uint8_t *)buf, max);
+	pak_bt_unref_gatt_characteristic(ctx, chr);
+	pak_bt_unref_gatt_service(ctx, service);
+	return rc;
+}
+
+int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, int job, struct PakBt *ctx, struct PakBtDevice *dev) {
 	struct PakWiFiApFilter filter = {
 		.ssid_pattern = mod->priv->wifi_ssid,
 		.password = mod->priv->wifi_ssid_is_hidden ? mod->priv->wifi_password : NULL,
@@ -315,13 +333,23 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 
 	pak_debug_log(mod, "SSID: %s", filter.ssid_pattern);
 
+	// xapp does this, probably to depress shutter in case it got stuck
+	send_shutter_command(mod, dev, SHUTTER_CMD, SHUTTER_RELEASE);
+
+	int progress = 0;
+
+	for (int i = 0; i < 10; i++) {
+		pak_rt_set_progress_bar(mod, job, progress++);
+		usleep(1 * 100 * 1000);
+	}
+
 	{ // Trigger camera's WiFi routine
 		struct PakGattService *service;
 		struct PakGattCharacteristic *chr;
 		if ((service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_SHUTTER_UUID)) == NULL) {
 			return PAK_ERR_UNSUPPORTED;
 		}
-		if ((chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, CHR_SHUTTER_UUID2)) == NULL) {
+		if ((chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, CHR_WIFI_TRIGGER)) == NULL) {
 			pak_bt_unref_gatt_service(ctx, service);
 			return PAK_ERR_UNSUPPORTED;
 		}
@@ -329,6 +357,8 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 		pak_bt_unref_gatt_characteristic(ctx, chr);
 		pak_bt_unref_gatt_service(ctx, service);
 	}
+
+	pak_rt_set_progress_bar(mod, job, 10);
 
 	{
 		struct PakGattService *service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_CONF_UUID);
@@ -344,14 +374,10 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 			return PAK_ERR_UNSUPPORTED;
 		}
 
-		uint8_t buf[2] = {0xff, 0xff};
-		int rc = pak_bt_watch_characteristic(ctx, chr, 500); // Normally updates a few seconds after
-		if (rc) {
-			pak_rt_add_user_instruction(mod, "Something went wrong. please try again.");
-		}
-		pak_bt_read_characteristic_cached_value(ctx, chr, buf, sizeof(buf));
+		char buf2[1] = {0};
+		get_characteristic_as_data(ctx, dev, NOTX_SVC_UUID, NOT9_CHR_UUID, buf2, sizeof(buf2));
 
-		if (buf[0] == 0) {
+		if (buf2[0] != 1) {
 			pak_rt_add_user_instruction(mod, "Camera is busy, can't connect. Switch to liveview.");
 		} else {
 			// buf[0] should be 1 on success or 0xff on timeout
@@ -360,7 +386,7 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 
 		pak_bt_unref_gatt_service(ctx, service);
 		pak_bt_unref_gatt_characteristic(ctx, chr);
-		return rc;
+		return 0;
 	}
 
 	return 0;

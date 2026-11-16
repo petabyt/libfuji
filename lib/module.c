@@ -548,7 +548,7 @@ static int on_command(struct PakModule *mod, int job, int argc, const char * con
 static int on_prop_changed(struct PakModule *mod, int job, const char *name, struct PakWidget *prop) {
 	struct PtpRuntime *r = mod->priv->r;
 	if (!strcmp(name, WIDGET_SWITCH_WIFI)) {
-		return fuji_bluetooth_connect_to_wifi(mod, mod->bt, mod->priv->dev);
+		return fuji_bluetooth_connect_to_wifi(mod, job, mod->bt, mod->priv->dev);
 	} else if (!strcmp(name, WIDGET_AUTOSAVE_THUMBS)) {
 		r->priv->allow_autosave_thumbnails = prop->u.boolv.v;
 	} else if (!strcmp(name, WIDGET_RESIZE_IMAGES)) {
