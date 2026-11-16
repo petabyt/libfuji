@@ -97,7 +97,7 @@ int fuji_register_device_info(struct PtpRuntime *r, struct FujiPropDescList *lis
 		free(list->items);
 	}
 
-	list->length = n_entries;
+	list->length = 0;
 	list->items = malloc(sizeof(struct FujiPropDesc *) * n_entries);
 
 	for (unsigned int i = 0; i < n_entries; i++) {
@@ -127,20 +127,22 @@ int fuji_register_device_info(struct PtpRuntime *r, struct FujiPropDescList *lis
 			continue;
 		}
 
-		list->items[i] = malloc(sizeof(struct FujiPropDesc) + (sizeof(struct PropDescValue) * n_items));
-		list->items[i]->n_items = n_items;
-		list->items[i]->code = code;
+		list->items[list->length] = malloc(sizeof(struct FujiPropDesc) + (sizeof(struct PropDescValue) * n_items));
+		list->items[list->length]->n_items = n_items;
+		list->items[list->length]->code = code;
 
 		for (int v = 0; v < n_items; v++) {
 			uint32_t val = 0;
 			uint16_t val16 = 0;
 			if (type == 6) of += ptp_read_u32(data + of, &val);
 			else if (type == 3 || type == 4) { of += ptp_read_u16(data + of, &val16); val = val16; }
-			list->items[i]->items[v] = (struct PropDescValue){
+			list->items[list->length]->items[v] = (struct PropDescValue){
 				.val_name = get_val_name(code, val),
 				.raw_val = val,
 			};
 		}
+
+		list->length++;
 
 		of = start_of + this_length;
 	}
