@@ -27,22 +27,6 @@
 	#define NOT10_CHR_UUID "deef7187-3f43-4364-9e22-11a8c8a15951"
 	#define GEOTAG_SYNC_INTERVAL_UUID "c95d91ae-b247-4d6d-8661-7dd5d6a0f85b"
 
-// Appears to be a generic file reading service - both for backups and equipment status json
-#define SVC_BACKUPS "af854c2e-b214-458e-97e2-912c4ecf2cb8"
-	// 0000   62 61 63 6b 75 70 2e 64 61 74 00 00 00 00 00 00
-	// 0010   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-	// 0020   00 00 00 00 00 00 00 00 7c 82 00 00
-	struct __attribute__((packed)) BackupFileInfo {
-		char name[40];
-		uint32_t filesize;
-	};
-	#define CHR_BACKUPS_FILE_NAME "c922ac69-9480-4348-8f4b-9ee29bc30d1d"
-	// Seems to be a mode setting
-	#define CHR_BACKUPS_UNKNOWN2 "68052e8a-fb91-404f-8847-0eb4be24308c"
-	#define CHR_BACKUPS_FILE_DATA "ac0c799a-fa6c-4df5-bbc5-bb95cce7e6ea"
-	// 05 00 ff ff
-	#define CHR_BACKUPS_UNKNOWN3 "2e27ed9f-5506-41cd-ba48-dac06669ad95"
-
 #define XAPP_SVC_UUID "117c4142-edd4-4c77-8696-dd18eebb770a"
 	#define CHR_UNKNOWN2_UNKNOWN1 "49a12959-dfaa-4eb2-89ce-62548ad948f3"
 
@@ -63,13 +47,27 @@
 	#define CHR_LENS_FW_VER "621a98d8-6314-4c3e-a683-eea1d6166606"
 
 // "Equipment Status"
-#define SVC_STATUS "af854c2e-b214-458e-97e2-912c4ecf2cb8"
+#define SVC_FILES "af854c2e-b214-458e-97e2-912c4ecf2cb8"
 	#define CHR_UNK1 "e3fbbfcf-f326-4b0f-82cf-b00ae1b107a2"
+	// status: 00,00,00,00 and 01,00,00,00
 	#define CHR_UNK2 "051dd980-df9d-4472-a2e1-35811dd24ee1"
-	#define CHR_UNK3 "c922ac69-9480-4348-8f4b-9ee29bc30d1d"
-	#define CHR_UNK4 "7f3400fe-17e7-4b80-8a0e-81b0343c1b49"
-	#define CHR_UNK5 "ac0c799a-fa6c-4df5-bbc5-bb95cce7e6ea"
+	struct __attribute__((packed)) FileInfo {
+		char name[40];
+		uint32_t filesize;
+	};
+	#define CHR_FILES_FILEINFO "c922ac69-9480-4348-8f4b-9ee29bc30d1d"
+	// status: 78,00,00,00
+	#define CHR_FILES_MAX_CHUNK_SIZE "7f3400fe-17e7-4b80-8a0e-81b0343c1b49"
+	// 248 bytes
+	struct __attribute__((packed)) FileChunk {
+		uint16_t chunk_counter;
+		uint32_t size;
+		uint8_t data[242];
+	};
+	#define CHR_FILES_FILECHUNK "ac0c799a-fa6c-4df5-bbc5-bb95cce7e6ea"
+	// status: 01,00; backups: 03,00
 	#define CHR_UNK6 "68052e8a-fb91-404f-8847-0eb4be24308c"
+	// notif chr, 05,00,ff,ff
 	#define CHR_UNK7 "2e27ed9f-5506-41cd-ba48-dac06669ad95"
 
 // Subscriptions
@@ -91,6 +89,12 @@
 	// Shutter characteristic
 	#define CHR_SHUTTER_UUID "7fcf49c6-4ff0-4777-a03d-1a79166af7a8"
 	#define CHR_SHUTTER_UUID2 "600655e6-3637-42f1-8fb2-44efc5c63b13"
+	// write to 02,00
+	#define CHR_STATUS_COMMAND "2674f0b0-f909-4e73-8656-338e9c74457f"
+	// write 01,00
+	#define CHR_BACKUPS_UPLOAD_COMMAND "f1897eb9-a9aa-40f0-8ce6-2fa7915bc459"
+	// write 01,00
+	#define BACKUPS_READ_COMMAND "f14e7a88-6f57-4872-a69b-b47ef3295c9b"
 
 #define SVC_GEOTAG_UUID "3b46ec2b-48ba-41fd-b1b8-ed860b60d22b"
 	// Write location struct when GEOTAG_UPDATE notification is received
@@ -127,16 +131,6 @@ typedef struct __attribute__((packed)) {
 	fujifilm_adv_t adv;
 	token_t token;
 } adv_basic_t;
-
-/**
- * Non-volatile storage type.
- */
-typedef struct _nvs_t {
-	char name[MAX_NAME]; /** Human readable device name. */
-	uint64_t address;		/** Device MAC address. */
-	uint8_t type;				/** Address type. */
-	token_t token;			 /** Pairing token. */
-} nvs_t;
 
 /**
 * Time synchronisation.
@@ -372,6 +366,61 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, struct PakBt *ctx, str
 	return 0;
 }
 
+enum FileType {
+	BACKUP = 1,
+	STATUS = 2,
+};
+
+int fuji_bluetooth_download_file(struct PakModule *mod, struct PakBtDevice *dev, struct PakObjectHandle *obj, enum FileType type) {
+	// set notification for 2e27ed9f550641cdba48dac06669ad95
+
+	if (type == STATUS) {
+		// set indication for 2f6cb7721d69448e8819fe6b5c20b094
+		uint16_t value = 2;
+		struct PakGattService *service = pak_bt_get_gatt_service_uuid(mod->bt, dev, SVC_SHUTTER_UUID);
+		struct PakGattCharacteristic *chr = pak_bt_get_gatt_characteristic_uuid(mod->bt, service, CHR_STATUS_COMMAND);
+		pak_bt_write_characteristic(mod->bt, chr, &value, sizeof(value), PAK_BLOCK);
+	} else if (type == BACKUP) {
+		// set indication for 4b3a413c230f42bcb3edb1db2eadee82
+		uint16_t value = 1;
+		struct PakGattService *service = pak_bt_get_gatt_service_uuid(mod->bt, dev, SVC_SHUTTER_UUID);
+		struct PakGattCharacteristic *chr = pak_bt_get_gatt_characteristic_uuid(mod->bt, service, CHR_BACKUPS_UPLOAD_COMMAND);
+		pak_bt_write_characteristic(mod->bt, chr, &value, sizeof(value), PAK_BLOCK);
+	}
+
+	struct PakGattCharacteristic *chr = NULL;
+	struct PakGattCharacteristic *chr_sz = NULL;
+	struct PakGattCharacteristic *data_chr = NULL;
+	struct PakGattService *service = pak_bt_get_gatt_service_uuid(mod->bt, dev, SVC_FILES);
+	if (service == NULL) return -1;
+
+	uint32_t max_size = 0x78;
+	chr_sz = pak_bt_get_gatt_characteristic_uuid(mod->bt, service, CHR_FILES_MAX_CHUNK_SIZE);
+	pak_bt_write_characteristic(mod->bt, chr_sz, &max_size, sizeof(max_size), PAK_BLOCK);
+
+	struct FileInfo info = {0};
+	chr = pak_bt_get_gatt_characteristic_uuid(mod->bt, service, CHR_FILES_FILEINFO);
+	pak_bt_read_characteristic(mod->bt, chr, PAK_BLOCK);
+	if (pak_bt_read_characteristic_cached_value(mod->bt, chr, (uint8_t *)&info, sizeof(info)) != sizeof(info)) goto end;
+
+	data_chr = pak_bt_get_gatt_characteristic_uuid(mod->bt, service, CHR_FILES_FILECHUNK);
+
+	unsigned int offset = 0;
+	while (1) {
+		struct FileChunk chunk = {0};
+		pak_bt_read_characteristic(mod->bt, data_chr, PAK_BLOCK);
+		unsigned int len = pak_bt_read_characteristic_cached_value(mod->bt, data_chr, &chunk, sizeof(chunk));
+		pak_rt_add_file_contents(mod, obj, chunk.data, chunk.size, offset, info.filesize);
+		offset += chunk.size;
+	}
+
+	end:
+	pak_bt_unref_gatt_characteristic(mod->bt, data_chr);
+	pak_bt_unref_gatt_characteristic(mod->bt, chr);
+	pak_bt_unref_gatt_service(mod->bt, service);
+	return 0;
+}
+
 static int send_client_name(struct PakModule *mod, struct PakGattService *pair_service) {
 	struct PakGattCharacteristic *iden_chr = pak_bt_get_gatt_characteristic_uuid(mod->bt, pair_service, CHR_IDEN_UUID);
 	if (iden_chr == NULL) {
@@ -430,7 +479,7 @@ int fuji_connect_bluetooth(struct PakModule *mod, struct PakBt *ctx, struct PakB
 	} else {
 		memcpy(mfgdata.token.data, saved->aux_data, TOKEN_LEN);
 
-		// TODO: If newer bluetooth (?) if !dev->is_bonded we must abort and tell user to switch to this device
+		// TODO: On newer bluetooth (?) if !dev->is_bonded we must abort and tell user to switch to this device
 		// in 'SELECT PAIRING DESTINATION'
 	}
 

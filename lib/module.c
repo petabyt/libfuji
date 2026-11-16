@@ -232,7 +232,7 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 		}
 		if (rc == FUJI_D_GO_PTP) {
 			r->priv->transport = info.transport;
-			strlcpy(r->priv->ip_address, info.camera_ip, sizeof(info.camera_ip));
+			strlcpy(r->priv->ip_address, info.camera_ip, sizeof(r->priv->ip_address));
 			usleep(1000 * 1000);
 			rc = ptpip_connect(r, r->priv->ip_address, info.camera_port, 3);
 			if (rc) {
