@@ -983,6 +983,7 @@ int ptp_fuji_get_object_handles(struct PtpRuntime *r, struct PtpArray **a) {
 }
 
 int ptp_fuji_read_liveview_frame(struct PtpRuntime *r, unsigned int *size) {
+	if (!r->priv->opened_liveview_sockets) return 0;
 	char buffer[18];
 	int rc = ptpip_video_read(r, buffer, sizeof(buffer));
 	if (rc == 18) {
