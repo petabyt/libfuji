@@ -361,32 +361,37 @@ int fuji_bluetooth_connect_to_wifi(struct PakModule *mod, int job, struct PakBt 
 	pak_rt_set_progress_bar(mod, job, 10);
 
 	{
-		struct PakGattService *service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_CONF_UUID);
-		if (service == NULL) {
-			pak_global_log("pak_bt_get_gatt_service_uuid");
-			return PAK_ERR_UNSUPPORTED;
-		}
-
-		struct PakGattCharacteristic *chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, CHR_IND1_UUID);
-		if (chr == NULL) {
-			pak_global_log("pak_bt_get_gatt_characteristic_uuid");
-			pak_bt_unref_gatt_service(ctx, service);
-			return PAK_ERR_UNSUPPORTED;
-		}
-
 		char buf2[1] = {0};
-		get_characteristic_as_data(ctx, dev, NOTX_SVC_UUID, NOT9_CHR_UUID, buf2, sizeof(buf2));
+		if (get_characteristic_as_data(ctx, dev, NOTX_SVC_UUID, NOT9_CHR_UUID, buf2, sizeof(buf2))) {
+			struct PakGattService *service = pak_bt_get_gatt_service_uuid(ctx, dev, SVC_CONF_UUID);
+			if (service == NULL) {
+				pak_global_log("pak_bt_get_gatt_service_uuid");
+				return PAK_ERR_UNSUPPORTED;
+			}
+
+			struct PakGattCharacteristic *chr = pak_bt_get_gatt_characteristic_uuid(ctx, service, CHR_IND1_UUID);
+			if (chr == NULL) {
+				pak_global_log("pak_bt_get_gatt_characteristic_uuid");
+				pak_bt_unref_gatt_service(ctx, service);
+				return PAK_ERR_UNSUPPORTED;
+			}
+
+			// CHR_IND1_UUID appears to change to 2,0 when WiFi service started, 1,0 when AP is available. 0,0 if not triggered
+
+			uint8_t buf[2] = {0xff, 0xff};
+			int rc = pak_bt_watch_characteristic(ctx, chr, 500);
+			if (rc == 0) {
+				pak_bt_read_characteristic_cached_value(ctx, chr, buf, sizeof(buf));
+			}
+			buf2[0] = 1;
+		}
 
 		if (buf2[0] != 1) {
 			pak_rt_add_user_instruction(mod, "Camera is busy, can't connect. Switch to liveview.");
 		} else {
-			// buf[0] should be 1 on success or 0xff on timeout
+			// buf2[0] should be 1 on success or 0xff on timeout
 			pak_rt_add_wifi_connection(mod, &filter, wifi_setup_option);
 		}
-
-		pak_bt_unref_gatt_service(ctx, service);
-		pak_bt_unref_gatt_characteristic(ctx, chr);
-		return 0;
 	}
 
 	return 0;
