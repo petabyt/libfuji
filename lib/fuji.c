@@ -326,7 +326,10 @@ static int fuji_xapp_config_card(struct PtpRuntime *r) {
 	rc = ptp_send(r, &cmd);
 	if (rc == PTP_CHECK_CODE) {
 		// Returns 0x2013 if card is not inserted
+		struct FujiCard *card = fuji_get_card(r);
+		card->n_available_objects = 0;
 		fuji->num_objects = 0;
+		app_update_storage_info(r);
 		return 0;
 	} else if (rc) return rc;
 
@@ -354,17 +357,21 @@ static int fuji_xapp_config_card(struct PtpRuntime *r) {
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_FilteredObjectCount_D620);
 	if (rc) return rc;
 
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_FilteredObjectHandles_D621);
-	if (rc) return rc;
+	{
+		ptp_mutex_lock(r);
+		rc = ptp_get_prop_value(r, PTP_DPC_FUJI_FilteredObjectHandles_D621);
+		if (rc) return rc;
 
-	uint32_t n;
-	unsigned int len;
-	ptp_read_u32(ptp_get_payload(r), &n);
-	struct FujiCard *card = fuji_get_card(r);
-	card->n_available_objects = n;
-	if (card->object_handle_list != NULL) free(card->object_handle_list);
-	card->object_handle_list = malloc(sizeof(int) * n); if (card->object_handle_list == NULL) ptp_panic("malloc");
-	ptp_read_uint32_array_s(ptp_get_payload(r), ptp_get_payload(r) + ptp_get_payload_length(r), card->object_handle_list, n, &len);
+		uint32_t n;
+		unsigned int len;
+		ptp_read_u32(ptp_get_payload(r), &n);
+		struct FujiCard *card = fuji_get_card(r);
+		card->n_available_objects = n;
+		if (card->object_handle_list != NULL) free(card->object_handle_list);
+		card->object_handle_list = malloc(sizeof(int) * n); if (card->object_handle_list == NULL) ptp_panic("malloc");
+		ptp_read_uint32_array_s(ptp_get_payload(r), ptp_get_payload(r) + ptp_get_payload_length(r), card->object_handle_list, n, &len);
+		ptp_mutex_unlock(r);
+	}
 
 	return 0;
 }
@@ -372,7 +379,7 @@ static int fuji_xapp_config_card(struct PtpRuntime *r) {
 int fuji_switch_card(struct PtpRuntime *r, int id) {
 	ptp_mutex_lock(r);
 	uint8_t dat = id;
-	int rc = ptp_set_prop_value_data(r, PTP_DPC_FUJI_StorageID_D244, &dat, 1);
+	int rc = ptp_set_prop_value_data(r, PTP_DPC_FUJI_StorageID_D244, &dat, sizeof(dat));
 	r->priv->card_id = id;
 	if (rc) goto end;
 	rc = fuji_xapp_config_card(r);
@@ -513,29 +520,6 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		return rc;
 	}
 
-	if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
-		// when xapp enters the gallery for the first time, 0xdf00 isn't set.
-		// It is set when otherwise switching between liveview and gallery.
-		rc = fuji_xapp_config_gallery(r);
-		if (rc && rc != PTP_CHECK_CODE) return rc;
-	}
-
-	if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {
-		return 0;
-	}
-
-	app_print(r, "Configuring version properties");
-	rc = fuji_config_version(r);
-	if (rc) {
-		app_print(r, "fuji_config_version()");
-		return rc;
-	}
-
-	if (fuji->transport == FUJI_FEATURE_AUTOSAVE) {
-		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 1);
-		if (rc) return rc;
-	}
-
 	// TODO: Can be merged with PTP_DPC_FUJI_StorageID_D244 read in fuji_xapp_config_card
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_StorageID_D244);
 	if (rc == 0) {
@@ -567,6 +551,29 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		return rc;
 	}
 	app_update_storage_info(r);
+
+	if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
+		// when xapp enters the gallery for the first time, 0xdf00 isn't set.
+		// It is set when otherwise switching between liveview and gallery.
+		rc = fuji_xapp_config_gallery(r);
+		if (rc && rc != PTP_CHECK_CODE) return rc;
+	}
+
+	if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {
+		return 0;
+	}
+
+	app_print(r, "Configuring version properties");
+	rc = fuji_config_version(r);
+	if (rc) {
+		app_print(r, "fuji_config_version()");
+		return rc;
+	}
+
+	if (fuji->transport == FUJI_FEATURE_AUTOSAVE) {
+		rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 1);
+		if (rc) return rc;
+	}
 
 	if (fuji->remote_version != -1 && fuji->camera_state == FUJI_REMOTE_ACCESS && fuji->transport != FUJI_FEATURE_XAPP_WIRELESS_COMM) {
 		// Start and end liveview mode - not sure why this is needed, but IIRC camera stops responding if this isn't done during setup

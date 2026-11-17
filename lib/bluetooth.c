@@ -476,7 +476,7 @@ int fill_props(struct PakModule *mod, struct PakBt *ctx, struct PakBtDevice *dev
 	// Read SSID
 	int rc = get_characteristic_as_string(ctx, dev, NOTX_SVC_UUID, CHR_UNKNOWN1_SSID, mod->priv->wifi_ssid, sizeof(mod->priv->wifi_ssid));
 	if (rc) {
-		pak_debug_log(mod, "get_characteristic_as_string: %s", __LINE__);
+		pak_debug_log(mod, "get_characteristic_as_string");
 		return rc;
 	}
 	// Read password

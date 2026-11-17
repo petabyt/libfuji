@@ -8,7 +8,7 @@
 static int file_to_oh(struct PtpRuntime *r, struct PakObjectHandle *file) {
 	struct FujiCard *card = fuji_get_card(r);
 	if (card->object_handle_list != NULL) {
-		if (card->n_available_objects < file->index_in_view) return -1;
+		if (card->n_available_objects <= file->index_in_view) return -1;
 		return (int)card->object_handle_list[file->index_in_view];
 	}
 	return file->index_in_view + 1;
@@ -193,7 +193,7 @@ void app_update_storage_info(struct PtpRuntime *r) {
 		for (int i = 0; i < n_cards; i++) {
 			pak_rt_set_storage_info(mod, r->priv->cards[i].name, &(struct PakStorageInfo){
 				.n_files_root = r->priv->cards[i].n_available_objects,
-				.sorted_by = r->priv->cards[i].sort_by_oldest_first ? PAK_OLDEST_FIRST : PAK_NEWEST_FIRST,
+				.sorted_by = PAK_NEWEST_FIRST,
 			});
 		}
 	}
@@ -443,7 +443,9 @@ static int on_request_file_contents(struct PakModule *mod, int job, struct PakOb
 		rc = app_ptp_download_file(r, &r->priv->current_downloading_oi, 1, 0x100000, file->index_in_view);
 	} else {
 		pak_rt_set_progress_bar(mod, job, 0);
-		rc = fuji_download_file_ex(r, file_to_oh(r, file), download_init, download_add, &(struct TempStruct){
+		int handle = file_to_oh(r, file);
+		if (handle == -1) return PAK_ERR_UNDEFINED;
+		rc = fuji_download_file_ex(r, handle, download_init, download_add, &(struct TempStruct){
 			.mod = mod,
 			.file = file,
 			.job = job,
@@ -462,7 +464,9 @@ static int on_request_thumbnail(struct PakModule *mod, int job, struct PakObject
 
 	ptp_mutex_lock(r);
 
-	int rc = fuji_get_thumb(r, file_to_oh(r, file), &offset, &length);
+	int handle = file_to_oh(r, file);
+	if (handle == -1) { ptp_mutex_unlock(r); return PAK_ERR_UNDEFINED; }
+	int rc = fuji_get_thumb(r, handle, &offset, &length);
 	if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR || length == 0) {
 		pak_rt_add_file_thumbnail(mod, file, NULL, 0);
 		ptp_mutex_unlock(r);
@@ -531,13 +535,16 @@ static int on_request_file_metadata(struct PakModule *mod, int job, struct PakOb
 	if (r == NULL) {
 		return 0;
 	}
-	int rc = ptp_get_object_info(r, file_to_oh(r, file), &info);
+
+	int handle = file_to_oh(r, file);
+	if (handle == -1) return PAK_ERR_UNDEFINED;
+	int rc = ptp_get_object_info(r, handle, &info);
 	if (rc == PTP_CHECK_CODE || rc == PTP_RUNTIME_ERR) {
 		pak_rt_add_file_metadata(mod, file, NULL);
 		return 0;
 	} else if (rc) return handle_ptperr(mod, rc, "fuji_get_thumb");
 
-	return plat_update_object_info(r, file_to_oh(r, file), &info);
+	return plat_update_object_info(r, handle, &info);
 }
 
 static int on_command(struct PakModule *mod, int job, int argc, const char * const *argv) {
