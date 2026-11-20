@@ -43,7 +43,7 @@ enum FujiTransport {
 enum FujiDevicePropertyCode {
     PTP_DPC_FUJI_EventsList_D212 = 0xd212,
     PTP_DPC_FUJI_SelectedImgsMode_D220 = 0xd220,
-    PTP_DPC_FUJI_ObjectCount_D2222 = 0xd222,
+    PTP_DPC_FUJI_ObjectCount_D222 = 0xd222,
     PTP_DPC_FUJI_CameraState_DF00 = 0xdf00,
     PTP_DPC_FUJI_ClientState_DF01 = 0xdf01,
     /// @brief If 1, will heavily compress images into 400kb-800kb. Fuji uses this for downloading a quick preview.
@@ -55,25 +55,24 @@ enum FujiDevicePropertyCode {
     /// the setup process, then it will make the gallery slower (I think slowing down GetThumb calls).
     /// PC AutoSave will set this to 1 on startup, although this doesn't make a difference since it never calls GetThumb.
     PTP_DPC_FUJI_EnableCorrectFileSize_D227 = 0xD227,
-
     PTP_DPC_FUJI_UnknownD21C = 0xd21c,
     PTP_DPC_FUJI_Unknown_D224 = 0xd224,
     // Client sets this in PC Autosave, likely for the camera to update it's database of images the client hasn't downloaded?
     // See `struct FujiD228` - structure appears similar to PTP_DPC_FUJI_BatteryInfo2
     // Setting this doesn't appear to be necessary for downloading photos
-    PTP_DPC_FUJI_AutoSaveDatabaseStatus = 0xD228,
+    PTP_DPC_FUJI_AutoSaveDatabaseStatus_D228 = 0xD228,
     PTP_DPC_FUJI_Unknown_D22B = 0xD22b, // Something to do with filtered object number
     PTP_DPC_FUJI_Unknown_D22E = 0xD22e,
-	PTP_DPC_FUJI_DatabaseFilename = 0xd22f,
-    PTP_DPC_FUJI_CompressionCutOff = 0xD235,
+	PTP_DPC_FUJI_DatabaseFilename_D22F = 0xd22f,
+    PTP_DPC_FUJI_CompressionCutOff_D235 = 0xD235,
     PTP_DPC_FUJI_StorageID_D244 = 0xd244,
     PTP_DPC_FUJI_Unknown_D400 = 0xd400, // Possibly SelectedImgsMode2
     PTP_DPC_FUJI_ObjectCount2 = 0xd401,
-    PTP_DPC_FUJI_Unknown2 = 0xdc04,
-    PTP_DPC_FUJI_Unknown1 = 0xd246,
-    PTP_DPC_FUJI_Unknown7 = 0xd406,
-    PTP_DPC_FUJI_Unknown8 = 0xd407,
-    PTP_DPC_FUJI_Geolocation = 0xd500, // "0000.000000,N00000.000000,E00000.00,M 000.0,K0000:00:0000:00:00.000"
+    PTP_DPC_FUJI_Unknown2_DC04 = 0xdc04,
+    PTP_DPC_FUJI_LiveviewCaptureMode_D246 = 0xd246,
+    PTP_DPC_FUJI_Unknown7_D406 = 0xd406,
+    PTP_DPC_FUJI_Unknown8_D406 = 0xd407,
+    PTP_DPC_FUJI_Geolocation_D500 = 0xd500, // "0000.000000,N00000.000000,E00000.00,M 000.0,K0000:00:0000:00:00.000"
     PTP_DPC_FUJI_Unknown_D52F = 0xd52f,
 
     PTP_DPC_FUJI_Unknown1Filter_D601 = 0xD601,
@@ -100,7 +99,7 @@ enum FujiDevicePropertyCode {
     PTP_DPC_FUJI_RemotePhotoViewExVersion_DF28 = 0xdf28,
 	PTP_DPC_FUJI_Unknown_DF29 = 0xdf29,
 	PTP_DPC_FUJI_Unknown_DF2A = 0xdf2a, // Most likely RemoteExVersion
-    PTP_DPC_FUJI_GeoTagVersion = 0xdf31,
+    PTP_DPC_FUJI_GeoTagVersion_DF31 = 0xdf31,
     PTP_DPC_FUJI_AutoTransferRemaining_DF41 = 0xdf41,
     PTP_DPC_FUJI_Unknown_DF44 = 0xdf44,
 };

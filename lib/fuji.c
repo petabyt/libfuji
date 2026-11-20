@@ -1,5 +1,5 @@
 // Implements Fujifilm nonstandard PTP/IP implementation
-// This is all portable code
+// This is all portable code. Linux/Android/iOS/Win/OSX
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -168,7 +168,7 @@ int fuji_get_events(struct PtpRuntime *r) {
 		case PTP_DPC_FUJI_SelectedImgsMode_D220:
 			fuji->selected_imgs_mode = (int)ev->events[i].value;
 			break;
-		case PTP_DPC_FUJI_ObjectCount_D2222:
+		case PTP_DPC_FUJI_ObjectCount_D222:
 			fuji->num_objects = (int)ev->events[i].value;
 			break;
 		case PTP_DPC_FUJI_CameraState_DF00:
@@ -265,9 +265,9 @@ static int fuji_config_version_(struct PtpRuntime *r) {
 		if (rc) return rc;
 	} else {
 		// Some cams set from 2000a to 2000b
-		// Others set 20006 to 2000c (?)
+		// Others set 20006 to 2000c
 		// X-T20 has 20004
-		// Setting to the highest (supported?) value (2000c) seems to be what Fuji does
+		// Appears to be a current version property, set it to the highest currently supported
 		rc = ptp_set_prop_value(r, PTP_DPC_FUJI_RemoteVersion_DF24, FUJI_CAM_CONNECT_REMOTE_VER);
 		if (rc) return rc;
 
@@ -307,6 +307,44 @@ int fuji_config_device_info_routine(struct PtpRuntime *r) {
 	return 0;
 }
 
+static int fuji_config_card(struct PtpRuntime *r) {
+	fujipriv_t *fuji = fuji_get(r);
+	if (fuji->camera_state == FUJI_REMOTE_ACCESS || fuji->camera_state == FUJI_MODE_REMOTE_IMG_VIEW || fuji->camera_state == FUJI_MODE_REMOTE_IMG_VIEW_XAPP) {
+		int rc = ptp_get_prop_value(r, PTP_DPC_FUJI_StorageID_D244);
+		if (rc == PTP_CHECK_CODE) goto single_card_slot; else if (rc) return rc;
+		int id = ptp_parse_prop_value(r);
+		fuji->card_id = id;
+		if (id == 0 || id == -1) {
+			goto single_card_slot;
+		} else {
+			// 1 or 2 means multiple card slots are present
+			fuji->cards[0] = (struct FujiCard){
+				.id = id,
+				.n_available_objects = fuji->num_objects,
+			};
+			sprintf(fuji->cards[0].name, "Card %d", id);
+			fuji->cards[1] = (struct FujiCard){
+				.id = id == 1 ? 2 : 1,
+				.n_available_objects = 0,
+			};
+			sprintf(fuji->cards[1].name, "Card %d", id == 1 ? 2 : 1);
+		}
+	} else {
+		goto single_card_slot;
+	}
+	app_update_storage_info(r);
+	return 0;
+
+	single_card_slot:;
+	fuji->cards[0] = (struct FujiCard){
+		.id = 0,
+		.n_available_objects = fuji->num_objects,
+		.name = "Card",
+	};
+	app_update_storage_info(r);
+	return 0;
+}
+
 static int fuji_xapp_config_card(struct PtpRuntime *r) {
 	fujipriv_t *fuji = fuji_get(r);
 
@@ -315,9 +353,8 @@ static int fuji_xapp_config_card(struct PtpRuntime *r) {
 	rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 0);
 	if (rc) return rc;
 
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_StorageID_D244);
+	rc = fuji_config_card(r);
 	if (rc) return rc;
-	r->priv->card_id = ptp_parse_prop_value(r);
 
 	struct PtpCommand cmd;
 	cmd.code = PTP_OC_FUJI_GetPreviewObjectInfo;
@@ -486,22 +523,18 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	fuji->get_object_version = ptp_parse_prop_value(r);
 	ptp_verbose_log(r, "PTP_DPC_FUJI_GetObjectVersion_DF22: 0x%X\n", fuji->get_object_version);
 
+	// TODO: Only read if FUJI_REMOTE_MODE
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion_DF25);
 	if (rc) return rc;
 	fuji->remote_image_view_version = ptp_parse_prop_value(r);
 	ptp_verbose_log(r, "PTP_DPC_FUJI_RemoteGetObjectVersion_DF25: 0x%X\n", fuji->remote_image_view_version);
-
-//	// Newer cameras such as X-T5 sort photos by oldest first, differing from all older cameras.
-//	// Not sure if this is the best way to determine this behavior, but it's not harmful.
-//	if (fuji->remote_image_view_version >= 5) {
-//		fuji->sort_by_oldest_first = 1;
-//	}
 
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_ImageGetVersion_DF21);
 	if (rc) return rc;
 	fuji->image_get_version = ptp_parse_prop_value(r);
 	ptp_verbose_log(r, "PTP_DPC_FUJI_ImageGetVersion_DF21: 0x%X\n", fuji->image_get_version);
 
+	// TODO: Only read if FUJI_REMOTE_MODE
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteVersion_DF24);
 	if (rc) return rc;
 	fuji->remote_version = ptp_parse_prop_value(r);
@@ -509,7 +542,7 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 
 	// TODO: Shitty shim to differentiate between xapp and cr ptp differences after a bluetooth handoff.
 	// This is likely done through detecting GATT services, but I don't have enough data to verify exactly how it works.
-	if (fuji->remote_version < 0x20007 && fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
+	if (fuji->remote_version != -1 && fuji->remote_version < 0x20007 && fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
 		fuji->transport = FUJI_FEATURE_WIRELESS_COMM;
 	}
 
@@ -520,43 +553,14 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		return rc;
 	}
 
-	// TODO: Can be merged with PTP_DPC_FUJI_StorageID_D244 read in fuji_xapp_config_card
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_StorageID_D244);
-	if (rc == 0) {
-		int id = ptp_parse_prop_value(r);
-		fuji->card_id = id;
-		if (id == 0 || id == -1) {
-			// Single card slot
-			fuji->cards[0] = (struct FujiCard){
-				.id = id,
-				.n_available_objects = fuji->num_objects,
-				.name = "Card",
-			};
-		} else {
-			// 1 or 2 means multiple card slots are present
-			fuji->cards[0] = (struct FujiCard){
-				.id = id,
-				.n_available_objects = fuji->num_objects,
-			};
-			sprintf(fuji->cards[0].name, "Card %d", id);
-			fuji->cards[1] = (struct FujiCard){
-				.id = id == 1 ? 2 : 1,
-				.n_available_objects = 0,
-			};
-			sprintf(fuji->cards[1].name, "Card %d", id == 1 ? 2 : 1);
-		}
-	} else if (rc == PTP_CHECK_CODE) {
-		strcpy(fuji->cards[0].name, "Card");
-	} else {
-		return rc;
-	}
-	app_update_storage_info(r);
-
 	if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
 		// when xapp enters the gallery for the first time, 0xdf00 isn't set.
 		// It is set when otherwise switching between liveview and gallery.
 		rc = fuji_xapp_config_gallery(r);
 		if (rc && rc != PTP_CHECK_CODE) return rc;
+	} else {
+		rc = fuji_config_card(r);
+		if (rc) return rc;
 	}
 
 	if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {
@@ -1022,6 +1026,14 @@ int ptp_fuji_read_liveview_frame(struct PtpRuntime *r, unsigned int *size) {
 	return rc;
 }
 
-int fuji_ptp_set_liveview_setting(struct PtpRuntime *r, int dpc) {
+int fuji_capture(struct PtpRuntime *r) {
+	return ptp_send(r, &(struct PtpCommand){
+		.code = PTP_OC_InitiateCapture,
+		.param_length = 2,
+		.params = { 0, 0 }
+	});
+}
+
+int fuji_ptp_set_liveview_setting(struct PtpRuntime *r, int dpc, uint32_t value) {
 	return -1;
 }
