@@ -100,11 +100,14 @@ struct PtpUserPriv {
 //	unsigned int liveview_buffer_length;
 };
 
-__attribute__((unused))
-static struct FujiCard *fuji_get_card(struct PtpRuntime *r) {
-	if (r->priv->card_id == 0) return &r->priv->cards[0];
-	return r->priv->cards[0].id == r->priv->card_id ? &r->priv->cards[0] : &r->priv->cards[1];
-}
+/// Get current card struct pointer
+struct FujiCard *fuji_get_card(struct PtpRuntime *r);
+
+/// Convert 0-based file index into object handle
+int fuji_to_oh(struct PtpRuntime *r, int index_in_view);
+
+/// Convert object handle into 0-based file index
+int fuji_from_oh(struct PtpRuntime *r, int oh);
 
 typedef struct PtpUserPriv fujipriv_t;
 fujipriv_t *fuji_get(struct PtpRuntime *r);

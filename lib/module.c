@@ -6,21 +6,11 @@
 #include "module.h"
 
 static int file_to_oh(struct PtpRuntime *r, struct PakObjectHandle *file) {
-	struct FujiCard *card = fuji_get_card(r);
-	if (card->object_handle_list != NULL) {
-		if (card->n_available_objects <= file->index_in_view) return -1;
-		return (int)card->object_handle_list[file->index_in_view];
-	}
-	return file->index_in_view + 1;
+	return fuji_to_oh(r, file->index_in_view);
 }
 static struct PakObjectHandle oh_to_file(struct PtpRuntime *r, int oh) {
 	struct FujiCard *card = fuji_get_card(r);
-	if (card->object_handle_list != NULL) {
-		for (unsigned int i = 0; i < card->n_available_objects; i++) {
-			if (card->object_handle_list[i] == oh) return (struct PakObjectHandle){ .index_in_view = (int)i, .storage_name = card->name };
-		}
-	}
-	return (struct PakObjectHandle){ .index_in_view = oh - 1, .storage_name = card->name };
+	return (struct PakObjectHandle){ .index_in_view = fuji_from_oh(r, oh), .storage_name = card->name };
 }
 
 static const char *get_mime_type(uint16_t object_format) {
@@ -176,6 +166,7 @@ void ptp_report_read_progress(struct PtpRuntime *r, unsigned int size) {
 	if (mod == NULL) return;
 	if (mod->priv->update_progress_bar_job) {
 		mod->priv->total_read += size;
+		if (mod->priv->to_read_target == 0) return;
 		unsigned int percent = ((uint64_t)mod->priv->total_read * 100ULL) / ((uint64_t)mod->priv->to_read_target);
 		pak_rt_set_progress_bar(mod, mod->priv->update_progress_bar_job, (int)percent);
 	}

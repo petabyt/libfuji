@@ -44,6 +44,30 @@ void fuji_ptp_close(struct PtpRuntime *r) {
 	ptp_close(r);
 }
 
+struct FujiCard *fuji_get_card(struct PtpRuntime *r) {
+	if (r->priv->card_id == 0) return &r->priv->cards[0];
+	return r->priv->cards[0].id == r->priv->card_id ? &r->priv->cards[0] : &r->priv->cards[1];
+}
+
+int fuji_to_oh(struct PtpRuntime *r, int index_in_view) {
+	struct FujiCard *card = fuji_get_card(r);
+	if (card->object_handle_list != NULL) {
+		if (card->n_available_objects <= index_in_view) return -1;
+		return (int)card->object_handle_list[index_in_view];
+	}
+	return index_in_view + 1;
+}
+
+int fuji_from_oh(struct PtpRuntime *r, int oh) {
+	struct FujiCard *card = fuji_get_card(r);
+	if (card->object_handle_list != NULL) {
+		for (unsigned int i = 0; i < card->n_available_objects; i++) {
+			if (card->object_handle_list[i] == oh) return (int)i;
+		}
+	}
+	return oh - 1;
+}
+
 void ptp_report_error(struct PtpRuntime *r, const char *reason, int code) {
 	if (r->io_kill_switch) return;
 	ptp_mutex_lock(r);

@@ -203,32 +203,36 @@ int fudge_test_camera(const char *name) {
 		ptp_error_log(r, "Configured image viewer\n");
 	}
 #endif
-	
-	srand(382);
-	for (int i = 0; i < 10; i++) {
-		if ((rand() & 3) == 0) {
-			int handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
-			ptp_verbose_log(r, "Downloading thumb (%d)\n", handle);
-			rc = ptp_get_thumbnail(r, handle);
-			if (rc == PTP_CHECK_CODE) {
-				// doh
-			} else if (rc) {
-				ptp_error_log(r, "Failed to download thumb\n");
-				return rc;
+
+	if (r->priv->num_objects != 0) {
+		srand(382);
+		for (int i = 0; i < 10; i++) {
+			if ((rand() & 3) == 0) {
+				int handle = fuji_to_oh(r, (rand() % r->priv->num_objects + 1) + 1);
+				ptp_verbose_log(r, "Downloading thumb (%d)\n", handle);
+				rc = ptp_get_thumbnail(r, handle);
+				if (rc == PTP_CHECK_CODE) {
+					// doh
+				} else if (rc) {
+					ptp_error_log(r, "Failed to download thumb\n");
+					return rc;
+				}
+			}
+
+			if ((rand() & 7) == 0) {
+				int handle = fuji_to_oh(r, (rand() % fuji_get(r)->num_objects + 1) + 1);
+				ptp_verbose_log(r, "Downloading an object (%d)\n", handle);
+
+				rc = fuji_download_file(r, handle, temp_file_handle, NULL);
+				if (rc) {
+					ptp_error_log(r, "fuji_download_file\n");
+					return rc;
+				}
 			}
 		}
-
-		if ((rand() & 7) == 0) {
-			int handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
-			ptp_verbose_log(r, "Downloading an object (%d)\n", handle);
-
-			rc = fuji_download_file(r, handle, temp_file_handle, NULL);
-			if (rc) {
-				ptp_error_log(r, "fuji_download_file\n");
-				return rc;
-			}
-		}
-	}	
+	} else {
+		ptp_verbose_log(r, "No files available, not running gallery simulation.");
+	}
 	
 	rc = ptp_close_session(r);
 	if (rc) return rc;
