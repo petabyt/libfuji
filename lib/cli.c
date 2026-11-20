@@ -61,24 +61,6 @@ void app_print(struct PtpRuntime *r, char *fmt, ...) {
 	putchar('\n');
 }
 
-void tester_log(struct PtpRuntime *r, char *fmt, ...) {
-	printf("LOG: ");
-	va_list args;
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
-	putchar('\n');
-}
-
-void tester_fail(struct PtpRuntime *r, char *fmt, ...) {
-	printf("FAIL: ");
-	va_list args;
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
-	putchar('\n');
-}
-
 int fuji_discovery_check_cancel(struct PtpRuntime *r) {return 0;}
 void app_report_download_speed(struct PtpRuntime *r, long time, size_t size) {}
 int app_check_thread_cancel(struct PtpRuntime *r) {return 0;}
@@ -161,6 +143,12 @@ int fudge_dump_usb(int devnum) {
 	return rc;
 }
 
+int temp_file_handle(void *arg, void *buffer, unsigned int size, unsigned int offset, unsigned int total_size) {
+	struct PtpRuntime *r = arg;
+	ptp_verbose_log(r, "Read %d bytes\n", size);
+	return 0;
+}
+
 int fudge_test_camera(const char *name) {
 	signal(SIGUSR1, nothing);
 	int pid = getpid();
@@ -188,20 +176,59 @@ int fudge_test_camera(const char *name) {
 
 	int rc = 0;
 
+
 	struct PtpRuntime *r = ptp_new(PTP_IP_USB);
 	fuji_reset_ptp(r);
-	fuji_get(r)->transport = FUJI_FEATURE_WIRELESS_COMM;
+	if (!strcmp(name, "fuji_x_t5")) {
+		r->priv->transport = FUJI_FEATURE_XAPP_WIRELESS_COMM;
+	} else {
+		r->priv->transport = FUJI_FEATURE_WIRELESS_COMM;
+	}
 	strlcpy(r->priv->ip_address, ip_addr, sizeof(r->priv->ip_address));
 	if (ptpip_connect(r, ip_addr, FUJI_CMD_IP_PORT, 0)) {
 		printf("Error connecting to %s:%d\n", ip_addr, FUJI_CMD_IP_PORT);
 		return -1;
 	}
 
-	rc = fuji_test_setup(r);
+	rc = fuji_setup(r, "tester");
 	if (rc) return rc;
+
+#if 0
+	// not needed, fuji_setup enters gallery itself
+	rc = fuji_config_image_gallery(r);
+	if (rc) {
+		ptp_verbose_log(r, "Failed to config image viewer\n");
+		return rc;
+	} else {
+		ptp_error_log(r, "Configured image viewer\n");
+	}
+#endif
 	
-	rc = fuji_test_filesystem(r);
-	if (rc) return rc;
+	srand(382);
+	for (int i = 0; i < 10; i++) {
+		if ((rand() & 3) == 0) {
+			int handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
+			ptp_verbose_log(r, "Downloading thumb (%d)\n", handle);
+			rc = ptp_get_thumbnail(r, handle);
+			if (rc == PTP_CHECK_CODE) {
+				// doh
+			} else if (rc) {
+				ptp_error_log(r, "Failed to download thumb\n");
+				return rc;
+			}
+		}
+
+		if ((rand() & 7) == 0) {
+			int handle = (rand() % fuji_get(r)->num_objects + 1) + 1;
+			ptp_verbose_log(r, "Downloading an object (%d)\n", handle);
+
+			rc = fuji_download_file(r, handle, temp_file_handle, NULL);
+			if (rc) {
+				ptp_error_log(r, "fuji_download_file\n");
+				return rc;
+			}
+		}
+	}	
 	
 	rc = ptp_close_session(r);
 	if (rc) return rc;
@@ -220,7 +247,7 @@ int fudge_test_camera(const char *name) {
 }
 
 int fudge_test_all_cameras(void) {
-	const char *models[] = {"fuji_x_h1", "fuji_x_a2", "fuji_x_t20", "fuji_x_t2", "fuji_x_s10", "fuji_x_f10", "fuji_x30", "fuji_x_dev"};
+	const char *models[] = {"fuji_x_h1", "fuji_x_a2", "fuji_x_t20", "fuji_x_t2", "fuji_x_s10", "fuji_x_f10", "fuji_x30", "fuji_x_t5", "fuji_x_t4"};
 	const int len = sizeof(models) / sizeof(models[0]);
 
 	for (int i = 0; i < len; i++) {

@@ -60,7 +60,6 @@ if(LIBFUJI_INCLUDE_CLI)
     add_executable(libfuji-cli
         lib/cli.c
         lib/jank.c
-        lib/tester.c
     )
     target_link_libraries(libfuji-cli PUBLIC fuji)
 endif()

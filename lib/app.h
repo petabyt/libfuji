@@ -16,10 +16,6 @@ void plat_dbg(char *fmt, ...);
 /// @brief Ping UI with update
 void app_print(struct PtpRuntime *r, char *fmt, ...);
 
-// Test suite verbose logging
-void tester_log(struct PtpRuntime *r, char *fmt, ...);
-void tester_fail(struct PtpRuntime *r, char *fmt, ...);
-
 void app_report_download_speed(struct PtpRuntime *r, long time, size_t size);
 
 /// @brief Check if the current downloader thread has been marked as canceled

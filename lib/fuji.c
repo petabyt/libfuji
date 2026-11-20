@@ -518,10 +518,11 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 		fuji->transport = FUJI_FEATURE_WIRELESS_COMM;
 	}
 
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion_DF22);
-	if (rc) return rc;
-	fuji->get_object_version = ptp_parse_prop_value(r);
-	ptp_verbose_log(r, "PTP_DPC_FUJI_GetObjectVersion_DF22: 0x%X\n", fuji->get_object_version);
+	// TODO: not necessary
+	// rc = ptp_get_prop_value(r, PTP_DPC_FUJI_GetObjectVersion_DF22);
+	// if (rc) return rc;
+	// fuji->get_object_version = ptp_parse_prop_value(r);
+	// ptp_verbose_log(r, "PTP_DPC_FUJI_GetObjectVersion_DF22: 0x%X\n", fuji->get_object_version);
 
 	// TODO: Only read if FUJI_REMOTE_MODE
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteGetObjectVersion_DF25);
@@ -529,10 +530,11 @@ int fuji_setup(struct PtpRuntime *r, const char *client_name) {
 	fuji->remote_image_view_version = ptp_parse_prop_value(r);
 	ptp_verbose_log(r, "PTP_DPC_FUJI_RemoteGetObjectVersion_DF25: 0x%X\n", fuji->remote_image_view_version);
 
-	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_ImageGetVersion_DF21);
-	if (rc) return rc;
-	fuji->image_get_version = ptp_parse_prop_value(r);
-	ptp_verbose_log(r, "PTP_DPC_FUJI_ImageGetVersion_DF21: 0x%X\n", fuji->image_get_version);
+	// TODO: Not necessary
+	// rc = ptp_get_prop_value(r, PTP_DPC_FUJI_ImageGetVersion_DF21);
+	// if (rc) return rc;
+	// fuji->image_get_version = ptp_parse_prop_value(r);
+	// ptp_verbose_log(r, "PTP_DPC_FUJI_ImageGetVersion_DF21: 0x%X\n", fuji->image_get_version);
 
 	// TODO: Only read if FUJI_REMOTE_MODE
 	rc = ptp_get_prop_value(r, PTP_DPC_FUJI_RemoteVersion_DF24);
