@@ -1,0 +1,97 @@
+Subject: guard 32-bit sizes; make bounded narrowings explicit
+
+Reported by Xcode (-Wshorten-64-to-32) when building the iOS app.
+- lib.c ptp_buffer_resize: r->data_length is 32-bit; a size it cannot
+  represent is now refused (PTP_OUT_OF_MEM) instead of being truncated
+  while the buffer itself is allocated with the full size.
+- pict_data.c ptp_write_string: the MTP string length is a single byte
+  including the terminator; strings longer than 254 characters are now
+  truncated instead of writing a wrapped length byte.
+- pict_data.c ptp_pack_chdk_upload_file, canon.c ptp_eos_update_firmware,
+  operations.c ptp_download_object: reject file/request sizes that do not
+  fit the 32-bit PTP fields, then cast explicitly. (None of these is used by
+  the iOS app; firmware updates are out of scope.)
+
+--- a/libpict/lib.c
++++ b/libpict/lib.c
+@@ -118,9 +118,11 @@
+ 
+ 	// realloc with a little extra space to minimize reallocs later on
+ 	static int extra = 100;
+-	ptp_verbose_log(r, "Extending IO buffer to %X\n", size + extra);
++	// data_length is 32-bit; refuse sizes it cannot represent.
++	if (size > UINT32_MAX - extra) return PTP_OUT_OF_MEM;
++	ptp_verbose_log(r, "Extending IO buffer to %zX\n", size + extra);
+ 	r->data = realloc(r->data, size + extra);
+-	r->data_length = size + extra;
++	r->data_length = (unsigned int)(size + extra);
+ 	if (r->data == NULL) {
+ 		return PTP_OUT_OF_MEM;
+ 	}
+--- a/libpict/pict_data.c
++++ b/libpict/pict_data.c
+@@ -98,7 +98,9 @@
+ int ptp_write_string(uint8_t *dat, const char *string) {
+ 	int of = 0;
+ 
+-	uint32_t length = strlen(string);
++	// The length is one byte including the terminator: at most 254 characters.
++	size_t full_length = strlen(string);
++	uint32_t length = full_length > 254 ? 254 : (uint32_t)full_length;
+ 	if (length == 0) {
+ 		// 'An empty string is represented by a single 8-bit integer containing a value of 0x00.'
+ 		ptp_write_u8(dat, 0x0);
+@@ -487,13 +489,18 @@
+     long file_size = ftell(f);
+     fseek(f, 0, SEEK_SET);
+ 
+-	unsigned int size_all = 4 + strlen(out) + 1 + file_size;
++	size_t name_size = strlen(out) + 1;
++	if (file_size < 0 || (unsigned long)file_size > UINT32_MAX - 4 - name_size) {
++		fclose(f);
++		return NULL;
++	}
++	unsigned int size_all = (unsigned int)(4 + name_size + (size_t)file_size);
+ 	*length = size_all;
+ 	uint8_t *data = malloc(size_all);
+ 	if (data == NULL) return NULL;
+ 
+ 	int of = 0;
+-	of += ptp_write_u32(data + of, strlen(out) + 1);
++	of += ptp_write_u32(data + of, (uint32_t)name_size);
+ 	of += ptp_write_utf8_string(data + of, out);
+ 
+ 	fread(data + of, 1, file_size, f);
+--- a/libpict/canon.c
++++ b/libpict/canon.c
+@@ -183,7 +183,9 @@
+ 	}
+ 
+ 	struct stat s;
+-	fstat(fileno(f), &s);
++	if (fstat(fileno(f), &s) || s.st_size < 0 || s.st_size > UINT32_MAX) {
++		return -1;
++	}
+ 
+ 	char *payload = malloc(EOS_FIRM_MAX);
+ 
+@@ -192,7 +194,7 @@
+ 		struct PtpCommand cmd;
+ 		cmd.code = PTP_OC_EOS_UpdateFirmware;
+ 		cmd.param_length = 2;
+-		cmd.params[0] = s.st_size;
++		cmd.params[0] = (uint32_t)s.st_size;
+ 		cmd.params[1] = sent;
+ 
+ 		unsigned int size = EOS_FIRM_MAX;
+--- a/libpict/operations.c
++++ b/libpict/operations.c
+@@ -362,7 +362,7 @@
+ 	unsigned int read = 0;
+ 	while (1) {
+ 		ptp_mutex_lock(r);
+-		int x = ptp_get_partial_object(r, handle, read, max);
++		int x = ptp_get_partial_object(r, handle, read, max > UINT32_MAX ? UINT32_MAX : (unsigned int)max);
+ 		if (x) {
+ 			ptp_mutex_unlock(r);
+ 			return x;

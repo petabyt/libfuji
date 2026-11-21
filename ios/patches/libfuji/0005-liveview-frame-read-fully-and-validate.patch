@@ -1,0 +1,101 @@
+Subject: ptp_fuji_read_liveview_frame: read header/body fully, validate length, no infinite loop
+
+- `len -= 18` underflowed for a header length below 18 and the following
+  loop then tried to read ~4GB.
+- A 0-byte read (EOF after the camera closed the socket, or SO_RCVTIMEO)
+  was retried forever because only `rc < 0` ended the loop.
+- A short TCP read of the 18 byte header desynchronised the stream and the
+  function returned a positive byte count that callers treated as an error
+  code.
+- ptp_buffer_resize() failures were ignored.
+Behaviour for well-formed frames is unchanged: the JPEG is left at r->data
+with its length in *size. Returns 0 with *size == 0 when no frame is ready.
+
+--- a/libfuji/fuji.c
++++ b/libfuji/fuji.c
+@@ -924,34 +924,58 @@
+ 	return 0;
+ }
+ 
+-int ptp_fuji_read_liveview_frame(struct PtpRuntime *r, unsigned int *size) {
+-	char buffer[18];
+-	int rc = ptpip_video_read(r, buffer, sizeof(buffer));
+-	if (rc == 18) {
+-		// Header:
+-		// d5 1d 00 00
+-		// 00 00 00 00
+-		// 00 00 00 00
+-		// 00 00 00 00
+-		// fe 7f
+-		uint32_t len = 0;
+-		ptp_read_u32(buffer, &len);
+-		ptp_buffer_resize(r, len);
+-		len -= 18; // includes header
+-		(*size) = len;
+-		unsigned int of = 0;
+-		while (len != 0) {
+-			rc = ptpip_video_read(r, r->data + of, len);
+-			if (rc < 0) break;
+-			len -= rc; of += rc;
++// Read exactly `len` bytes from the liveview socket. A read of 0 bytes is EOF
++// or a receive timeout; give up after a few in a row instead of spinning.
++static int fuji_video_read_full(struct PtpRuntime *r, uint8_t *dst, unsigned int len) {
++	unsigned int of = 0;
++	int idle_reads = 0;
++	while (of < len) {
++		int n = ptpip_video_read(r, dst + of, len - of);
++		if (n < 0) return PTP_IO_ERR;
++		if (n == 0) {
++			if (++idle_reads >= 3) return PTP_IO_ERR;
++			continue;
+ 		}
+-		rc = 0;
+-	} else if (rc == 0) {
+-		return 0;
++		idle_reads = 0;
++		of += (unsigned int)n;
++	}
++	return 0;
++}
++
++int ptp_fuji_read_liveview_frame(struct PtpRuntime *r, unsigned int *size) {
++	// Header:
++	// d5 1d 00 00
++	// 00 00 00 00
++	// 00 00 00 00
++	// 00 00 00 00
++	// fe 7f
++	uint8_t header[18];
++	(*size) = 0;
++	int rc = ptpip_video_read(r, header, sizeof(header));
++	if (rc == 0) {
++		return 0; // No frame available yet
+ 	} else if (rc < 0) {
+-		return rc;
+-	} else {
+-		ptp_error_log(r, "Didn't read enough bytes for liveview");
++		return PTP_IO_ERR;
++	} else if (rc < (int)sizeof(header)) {
++		// Partial TCP read: finish the header instead of desyncing the stream
++		int rc2 = fuji_video_read_full(r, header + rc, sizeof(header) - (unsigned int)rc);
++		if (rc2) return rc2;
++	}
++
++	uint32_t len = 0;
++	ptp_read_u32(header, &len);
++	// Length includes the 18 byte header. Reject values that would underflow
++	// or ask for an absurd allocation (a JPEG frame is well under 16MB).
++	if (len < 18 || len > 16 * 1024 * 1024) {
++		ptp_error_log(r, "Invalid liveview frame length %u\n", len);
++		return PTP_IO_ERR;
+ 	}
+-	return rc;
++	if (ptp_buffer_resize(r, len)) {
++		return PTP_OUT_OF_MEM;
++	}
++	len -= 18;
++	rc = fuji_video_read_full(r, r->data, len);
++	if (rc) return rc;
++	(*size) = len;
++	return 0;
+ }

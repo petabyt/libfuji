@@ -1,0 +1,113 @@
+Subject: fuji_get_events: bounds-check the event list, copy it, unlock on every path
+
+Problems in the original:
+- The entry count from the camera was trusted; a short payload made the loop
+  read past the received data.
+- The loop read `ev->events[i]` directly from r->data, but
+  app_queue_file_for_download()/ptp_get_object_handles() inside the loop run
+  new PTP transactions that overwrite r->data, so later entries were garbage.
+- Early `return rc` inside the switch left the (recursive) PTP mutex locked
+  and leaked the handle array.
+- The FreeSDRAMImages branch queued `a->data[i]` (outer index) instead of
+  `a->data[y]`.
+- The parsed `code`/`value` were computed but the raw packed fields were used.
+
+--- a/libfuji/fuji.c
++++ b/libfuji/fuji.c
+@@ -128,49 +128,67 @@
+ 		return rc;
+ 	}
+ 
+-	struct PtpFujiEvents *ev = (struct PtpFujiEvents *)(ptp_get_payload(r));
++	unsigned int payload_length = ptp_get_payload_length(r);
++	if (payload_length < 2) {
++		ptp_mutex_unlock(r);
++		return 0;
++	}
++
++	// Copy the event list out of r->data: app_queue_file_for_download and
++	// ptp_get_object_handles below run new transactions that overwrite r->data.
++	uint8_t *payload = malloc(payload_length);
++	if (payload == NULL) {
++		ptp_mutex_unlock(r);
++		return PTP_OUT_OF_MEM;
++	}
++	memcpy(payload, ptp_get_payload(r), payload_length);
+ 
+ 	uint16_t length, code;
+ 	uint32_t value;
+ 
+-	ptp_read_u16(&ev->length, &length);
++	ptp_read_u16(payload, &length);
++	// Each entry is a packed u16 code + u32 value. Never read past the payload.
++	if ((unsigned int)length > (payload_length - 2) / 6) {
++		ptp_verbose_log(r, "Event list claims %d entries, payload only holds %u\n", length, (payload_length - 2) / 6);
++		length = (uint16_t)((payload_length - 2) / 6);
++	}
+ 
+-	ptp_verbose_log(r, "Found %d events\n", ev->length);
+-	for (int i = 0; i < ev->length; i++) {
+-		ptp_read_u16(&ev->events[i].code, &code);
+-		ptp_read_u32(&ev->events[i].value, &value);
++	ptp_verbose_log(r, "Found %d events\n", length);
++	for (int i = 0; i < length; i++) {
++		ptp_read_u16(payload + 2 + i * 6, &code);
++		ptp_read_u32(payload + 2 + i * 6 + 2, &value);
+ 		ptp_verbose_log(r, "%X changed to %X\n", code, value);
+ 	}
+ 
+-	for (int i = 0; i < ev->length; i++) {
+-		ptp_read_u16(&ev->events[i].code, &code);
+-		ptp_read_u32(&ev->events[i].value, &value);
+-		switch (ev->events[i].code) {
++	rc = 0;
++	for (int i = 0; i < length && rc == 0; i++) {
++		ptp_read_u16(payload + 2 + i * 6, &code);
++		ptp_read_u32(payload + 2 + i * 6 + 2, &value);
++		switch (code) {
+ 		case PTP_DPC_FUJI_SelectedImgsMode_D220:
+-			fuji->selected_imgs_mode = (int)ev->events[i].value;
++			fuji->selected_imgs_mode = (int)value;
+ 			break;
+ 		case PTP_DPC_FUJI_ObjectCount_D2222:
+-			fuji->num_objects = (int)ev->events[i].value;
++			fuji->num_objects = (int)value;
+ 			break;
+ 		case PTP_DPC_FUJI_CameraState_DF00:
+-			fuji->camera_state = (int)ev->events[i].value;
++			fuji->camera_state = (int)value;
+ 			if (fuji->camera_state == FUJI_MULTIPLE_TRANSFER) {
+ 				app_update_storage_info(r);
+ 				rc = app_queue_file_for_download(r, 1);
+-				if (rc) return rc;
+ 			}
+ 			break;
+ 		case PTP_DPC_FUJI_FreeSDRAMImages:
+ 			if (fuji->transport == FUJI_FEATURE_WIRELESS_TETHER) {
+ 				struct PtpArray *a;
+ 				rc = ptp_get_object_handles(r, -1, 0x0, 0x0, &a);
+-				if (rc) return rc;
++				if (rc) break;
+ 
+ 				for (int y = 0; y < (int)a->length; y++) {
+ 					// oi.filename will always be DSCF0001.JPG
+ 					// TODO: Rewrite filename to be indexed
+-					rc = app_queue_file_for_download(r, (int)a->data[i]);
+-					if (rc) return rc;
++					rc = app_queue_file_for_download(r, (int)a->data[y]);
++					if (rc) break;
+ 				}
+ 
+ 				free(a);
+@@ -179,9 +197,10 @@
+ 		}
+ 	}
+ 
++	free(payload);
+ 	ptp_mutex_unlock(r);
+ 
+-	return 0;
++	return rc;
+ }
+ 
+ // Set PTP_DPC_FUJI_ClientState_DF01/0xdf01
