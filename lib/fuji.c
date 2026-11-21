@@ -438,6 +438,7 @@ static int fuji_xapp_config_card(struct PtpRuntime *r) {
 }
 
 int fuji_switch_card(struct PtpRuntime *r, int id) {
+	if (id == r->priv->card_id) return 0;
 	ptp_mutex_lock(r);
 	uint8_t dat = id;
 	int rc = ptp_set_prop_value_data(r, PTP_DPC_FUJI_StorageID_D244, &dat, sizeof(dat));
@@ -932,6 +933,15 @@ int fuji_download_file_ex(struct PtpRuntime *r, int handle, int (info)(void *arg
 	plat_update_object_info(r, handle, &oi);
 
 	if (info != NULL) info(arg, &oi);
+
+	// Compression properties probably only apply for JPEGs
+	if (oi.obj_format != PTP_OF_JPEG) {
+		if (fuji->transport == FUJI_FEATURE_WIRELESS_COMM) {
+			rc = ptp_set_prop_value16(r, PTP_DPC_FUJI_EnableCorrectFileSize_D227, 0);
+		} else if (fuji->transport == FUJI_FEATURE_XAPP_WIRELESS_COMM) {
+			ptp_set_prop_value16(r, PTP_DPC_FUJI_CompressSmall_D226, 2);
+		}
+	}
 
 	long then = get_ms();
 
