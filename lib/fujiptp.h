@@ -75,11 +75,16 @@ enum FujiDevicePropertyCode {
     PTP_DPC_FUJI_Geolocation_D500 = 0xd500, // "0000.000000,N00000.000000,E00000.00,M 000.0,K0000:00:0000:00:00.000"
     PTP_DPC_FUJI_Unknown_D52F = 0xd52f,
 
-    PTP_DPC_FUJI_Unknown1Filter_D601 = 0xD601,
+	// Date Range Filter
+	// 20260602-********
+	// 20260602-20260813
+    PTP_DPC_FUJI_DateRangeFilter_D601 = 0xD601,
     PTP_DPC_FUJI_FolderFilter_D602 = 0xD602,
-    PTP_DPC_FUJI_Unknown2Filter_D603 = 0xD603,
-    PTP_DPC_FUJI_Unknown3Filter_D604 = 0xD604,
-    PTP_DPC_FUJI_Unknown4Filter_D605 = 0xD605,
+	// Bitfield (16bit)
+	// 0x3c = 5/4/3/2, not 1 or 0
+    PTP_DPC_FUJI_StarRatingFilter_D603 = 0xD603,
+    PTP_DPC_FUJI_FileTypeFilter_D604 = 0xD604, // type
+    PTP_DPC_FUJI_SubjectFilter_D605 = 0xD605, // subject type
 
     PTP_DPC_FUJI_FilteredObjectCount_D620 = 0xD620,
     PTP_DPC_FUJI_FilteredObjectHandles_D621 = 0xD621,
